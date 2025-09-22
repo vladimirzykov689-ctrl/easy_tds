@@ -89,7 +89,7 @@ if (!in_array($basename, $excluded)) {
     $isBot = false;
 
     if ($row['bot_filter'] === 'on') {
-        $botFileIP = __DIR__ . '/bots/Bots_IP.dat';
+        $botFileIP = __DIR__ . '/bots/bots_ip.dat';
         if (file_exists($botFileIP)) {
             $lines = file($botFileIP, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             foreach ($lines as $line) {
@@ -104,7 +104,7 @@ if (!in_array($basename, $excluded)) {
         }
 
         if (!$isBot) {
-            $botFileUA = __DIR__ . '/bots/Bots_UA.dat';
+            $botFileUA = __DIR__ . '/bots/bots_ua.dat';
             if (file_exists($botFileUA)) {
                 $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
                 $lines = file($botFileUA, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -120,7 +120,7 @@ if (!in_array($basename, $excluded)) {
         }
 
         if (!$isBot) {
-            $botFileProvider = __DIR__ . '/bots/Bots_ISP.dat';
+            $botFileProvider = __DIR__ . '/bots/bots_isp.dat';
             if (file_exists($botFileProvider)) {
                 $lines = file($botFileProvider, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
                 foreach ($lines as $line) {
@@ -135,7 +135,7 @@ if (!in_array($basename, $excluded)) {
         }
 
         if (!$isBot) {
-            $botFilePTR = __DIR__ . '/bots/Bots_PTR.dat';
+            $botFilePTR = __DIR__ . '/bots/bots_ptr.dat';
             if (file_exists($botFilePTR) && $ptr !== 'UNKNOWN') {
                 $lines = file($botFilePTR, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
                 foreach ($lines as $line) {
@@ -230,3 +230,4 @@ function cidrMatch($ip, $cidr) {
     }
     return true;
 }
+
