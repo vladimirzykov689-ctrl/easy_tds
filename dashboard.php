@@ -2,6 +2,7 @@
 require 'config.php';
 $db = getDB();
 checkAuth();
+checkIP();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     $delete_id = (int)$_POST['delete_id'];
