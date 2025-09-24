@@ -1,115 +1,88 @@
 #!/bin/bash
 set -e
 
+REPO="https://github.com/vladimirzykov689-ctrl/easy_tds.git"
 INSTALL_DIR="/var/www/html/easy_tds"
 NGINX_CONF="/etc/nginx/sites-enabled/easy_tds.conf"
 
-echo "====================================="
-echo "  Добро пожаловать в установщик Easy Tds"
-echo "====================================="
-echo
+echo "=============================="
+echo "Добро пожаловать в установщик Easy Tds"
+echo "=============================="
+
+# --- Выбор режима ---
 echo "Выберите режим:"
 echo "1) Установка Easy Tds"
 echo "2) Удаление Easy Tds"
-read -p "Введите номер режима (1 или 2): " MODE
+read -rp "Введите номер: " MODE
 
-# -----------------------------
-# Режим удаления
-# -----------------------------
-if [ "$MODE" == "2" ]; then
-    echo
-    echo "====================================="
-    echo "  Удаление Easy Tds"
-    echo "====================================="
-    read -p "Вы уверены, что хотите удалить Easy Tds? (yes/no): " CONFIRM
-    if [ "$CONFIRM" != "yes" ]; then
-        echo "Удаление отменено."
-        exit 0
-    fi
-
-    echo ">>> Остановка nginx и php-fpm..."
-    systemctl stop nginx >/dev/null 2>&1 || true
-    systemctl stop php8.1-fpm >/dev/null 2>&1 || true
-
-    echo ">>> Удаление папки панели..."
-    rm -rf "$INSTALL_DIR"
-
-    echo ">>> Удаление конфигурации Nginx..."
-    if [ -f "$NGINX_CONF" ]; then
-        rm -f "$NGINX_CONF"
-    fi
-
-    echo ">>> Перезапуск nginx..."
-    systemctl restart nginx || true
-
-    echo "====================================="
-    echo "  Easy Tds успешно удалён!"
-    echo "====================================="
+if [[ "$MODE" == "2" ]]; then
+    echo "Удаляем Easy Tds..."
+    sudo rm -rf "$INSTALL_DIR"
+    sudo rm -f "$NGINX_CONF"
+    sudo systemctl reload nginx || true
+    echo "Удаление завершено!"
     exit 0
 fi
 
-# -----------------------------
-# Режим установки
-# -----------------------------
-
-# Ввод данных пользователя
-read -p "Придумайте логин для входа: " USER_LOGIN
+read -rp "Введите логин: " PANEL_USER
 while true; do
-    read -s -p "Придумайте пароль: " USER_PASSWORD
+    read -srp "Введите пароль: " PANEL_PASS
     echo
-    read -s -p "Подтвердите пароль: " USER_PASSWORD_CONFIRM
+    read -srp "Подтвердите пароль: " PANEL_PASS_CONFIRM
     echo
-    if [ "$USER_PASSWORD" == "$USER_PASSWORD_CONFIRM" ]; then
-        break
-    else
-        echo "Пароли не совпадают, попробуйте снова."
-    fi
+    [[ "$PANEL_PASS" == "$PANEL_PASS_CONFIRM" ]] && break
+    echo "Пароли не совпадают, попробуйте снова."
 done
 
-read -p "Введите домен для панели (например: example.com): " DOMAIN
-
-read -p "Ограничить доступ по IP? (yes/no): " IP_RESTRICT
-if [ "$IP_RESTRICT" == "yes" ]; then
-    read -p "Введите разрешённые IP через запятую (без пробелов): " USER_IPS
-else
-    USER_IPS=""
+read -rp "Введите домен для панели: " PANEL_DOMAIN
+read -rp "Ограничить доступ по IP? (да/нет): " IP_RESTRICT
+ALLOWED_IPS=""
+if [[ "$IP_RESTRICT" =~ ^(да|Да|yes|Yes)$ ]]; then
+    read -rp "Введите IP-адреса через запятую (без пробелов): " ALLOWED_IPS
 fi
 
-echo
-echo "====================================="
-echo "  Начало установки Easy Tds"
-echo "====================================="
+echo "=============================="
+echo "Начало установки Easy Tds"
+echo "=============================="
 
-# -----------------------------
-# Установка пакетов
-# -----------------------------
-echo ">>> Установка необходимых пакетов..."
-apt update -y
-apt install -y php8.1 php8.1-fpm php8.1-sqlite3 sqlite3 nginx git unzip composer
+# --- Настройка неинтерактивной установки пакетов ---
+export DEBIAN_FRONTEND=noninteractive
+sudo sed -i 's/#\$nrconf{restart} = .*/\$nrconf{restart} = "a";/' /etc/needrestart/needrestart.conf || true
+sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt update
+sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt install -y \
+php8.1 php8.1-fpm php8.1-curl php8.1-mbstring php8.1-xml php8.1-zip \
+sqlite3 git unzip curl composer nginx >/dev/null
 
-# Остановка apache, если есть
-systemctl stop apache2 >/dev/null 2>&1
-systemctl disable apache2 >/dev/null 2>&1
+sudo systemctl stop apache2 || true
 
-# -----------------------------
-# Клонирование репозитория
-# -----------------------------
-echo ">>> Клонирование репозитория..."
-rm -rf "$INSTALL_DIR"
-git clone https://github.com/vladimirzykov689-ctrl/easy_tds.git "$INSTALL_DIR"
-chown -R www-data:www-data "$INSTALL_DIR"
-chmod -R 755 "$INSTALL_DIR"
+sudo mkdir -p "$INSTALL_DIR"
+sudo chown -R $USER:$USER "$INSTALL_DIR"
 
-# -----------------------------
-# Создание базы SQLite
-# -----------------------------
-echo ">>> Создание базы данных SQLite..."
-DB_DIR="$INSTALL_DIR/db"
-DB_FILE="$DB_DIR/campaigns.db"
-mkdir -p "$DB_DIR"
-rm -f "$DB_FILE"
+# --- Клонируем репозиторий ---
+git clone "$REPO" "$INSTALL_DIR"
 
-sqlite3 "$DB_FILE" <<EOF
+mkdir -p "$INSTALL_DIR/db"
+mkdir -p "$INSTALL_DIR/geo"
+
+# --- Установка Composer (если не установлен) ---
+if ! command -v composer >/dev/null 2>&1; then
+    echo ">>> Установка Composer..."
+    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+    php composer-setup.php --install-dir=/usr/local/bin --filename=composer >/dev/null 2>&1
+    rm composer-setup.php
+fi
+
+# --- Устанавливаем GeoLite2 через Composer ---
+echo ">>> Установка GeoLite2 в $INSTALL_DIR/geo ..."
+mkdir -p "$INSTALL_DIR/geo"
+cd "$INSTALL_DIR/geo"
+export COMPOSER_ALLOW_SUPERUSER=1
+composer init --name="easytds/geolite2" --require="geoip2/geoip2:^3.2" --no-interaction >/dev/null 2>&1
+composer install --no-interaction --no-progress >/dev/null 2>&1
+cd -
+
+# --- Создание обычной SQLite базы ---
+sqlite3 "$INSTALL_DIR/db/campaigns.db" <<EOF
 CREATE TABLE IF NOT EXISTS streams (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -121,7 +94,6 @@ CREATE TABLE IF NOT EXISTS streams (
     bot_filter TEXT NOT NULL DEFAULT 'off',
     bot_redirect_urls TEXT
 );
-
 CREATE TABLE IF NOT EXISTS logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     stream_id INTEGER NOT NULL,
@@ -136,94 +108,11 @@ CREATE TABLE IF NOT EXISTS logs (
 );
 EOF
 
-chown www-data:www-data "$DB_FILE"
-chmod 664 "$DB_FILE"
-
-# -----------------------------
-# Создание config.php
-# -----------------------------
-echo ">>> Создание config.php..."
-
-CONFIG_FILE="$INSTALL_DIR/config.php"
-PASSWORD_HASH=$(php -r "echo password_hash('$USER_PASSWORD', PASSWORD_BCRYPT);")
-SECRET_KEY=$(openssl rand -hex 32)
-
-if [ "$IP_RESTRICT" == "yes" ]; then
-    ENCRYPTED_IPS=$(php -r "
-\$key = hex2bin('$SECRET_KEY'); 
-\$iv = openssl_random_pseudo_bytes(16); 
-\$encrypted = openssl_encrypt('$USER_IPS','AES-256-CBC',\$key,OPENSSL_RAW_DATA,\$iv); 
-echo base64_encode(\$iv . \$encrypted);
-")
-else
-    ENCRYPTED_IPS=""
-fi
-
-cat > "$CONFIG_FILE" <<EOL
-<?php
-session_start();
-
-define('DB_FILE', __DIR__ . '/db/campaigns.db');
-define('SECRET_KEY', '$SECRET_KEY');
-
-\$CREDENTIALS = [
-    '$USER_LOGIN' => '$PASSWORD_HASH'
-];
-
-\$ENCRYPTED_IPS = '$ENCRYPTED_IPS';
-
-function getDB() {
-    \$db = new PDO('sqlite:' . DB_FILE);
-    \$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    return \$db;
-}
-
-function checkAuth() {
-    if(!isset(\$_SESSION['username'])) {
-        header('Location: login.php');
-        exit;
-    }
-
-    global \$ENCRYPTED_IPS;
-    if (!empty(\$ENCRYPTED_IPS)) {
-        \$decrypted_ips = openssl_decrypt(\$ENCRYPTED_IPS, 'AES-256-CBC', hex2bin(SECRET_KEY), OPENSSL_RAW_DATA, substr(hex2bin(SECRET_KEY),0,16));
-        \$allowed_ips = explode(',', \$decrypted_ips);
-        if (!in_array(\$_SERVER['REMOTE_ADDR'], \$allowed_ips)) {
-            header('HTTP/1.0 403 Forbidden');
-            exit('Access denied: your IP is not allowed.');
-        }
-    }
-}
-
-function authenticate(\$user, \$pass) {
-    global \$CREDENTIALS;
-    if (isset(\$CREDENTIALS[\$user]) && password_verify(\$pass, \$CREDENTIALS[\$user])) {
-        \$_SESSION['username'] = \$user;
-        return true;
-    }
-    return false;
-}
-EOL
-
-chown www-data:www-data "$CONFIG_FILE"
-chmod 600 "$CONFIG_FILE"
-
-# -----------------------------
-# Установка GeoLite2
-# -----------------------------
-echo ">>> Установка библиотеки GeoLite2 (PHP GeoIP2)..."
-cd "$INSTALL_DIR"
-composer require geoip2/geoip2 >/dev/null 2>&1
-cd -
-
-# -----------------------------
-# Настройка Nginx
-# -----------------------------
-echo ">>> Настройка Nginx..."
-cat > "$NGINX_CONF" <<EOL
+# --- Конфигурация Nginx ---
+sudo tee "$NGINX_CONF" > /dev/null <<EOL
 server {
     listen 80;
-    server_name $DOMAIN;
+    server_name $PANEL_DOMAIN;
 
     root $INSTALL_DIR;
     index index.php;
@@ -243,11 +132,45 @@ server {
 }
 EOL
 
-systemctl restart php8.1-fpm
-systemctl restart nginx
+sudo systemctl reload nginx || true
 
-echo
-echo "====================================="
-echo "  Установка Easy Tds завершена!"
-echo "  Панель доступна по адресу: http://$DOMAIN"
-echo "====================================="
+# --- Генерация конфигурации панели для обычной SQLite ---
+cat > "$INSTALL_DIR/config.php" <<PHP
+<?php
+session_start();
+
+define('DB_FILE', __DIR__ . '/db/campaigns.db');
+define('PANEL_USER', '$PANEL_USER');
+\$GLOBALS['ALLOWED_IPS'] = '$ALLOWED_IPS';
+
+function getDB() {
+    \$db = new PDO('sqlite:' . DB_FILE);
+    \$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    return \$db;
+}
+
+function checkIP() {
+    if(!empty(\$GLOBALS['ALLOWED_IPS'])){
+        \$ips = explode(',', \$GLOBALS['ALLOWED_IPS']);
+        if(!in_array(\$_SERVER['REMOTE_ADDR'], \$ips)){
+            header('HTTP/1.0 403 Forbidden');
+            exit('Access denied: your IP is not allowed.');
+        }
+    }
+}
+
+function checkAuth() {
+    checkIP();
+    if(!isset(\$_SESSION['username'])){
+        header('Location: login.php');
+        exit;
+    }
+}
+PHP
+
+echo "=============================="
+echo "Установка Easy Tds завершена!"
+echo "Доступ по адресу: http://$PANEL_DOMAIN/login.php"
+echo "Логин для входа: $PANEL_USER"
+echo "Пароль для входа: $PANEL_PASS"
+echo "=============================="
