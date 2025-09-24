@@ -2,6 +2,7 @@
 require 'config.php';
 $db = getDB();
 checkAuth();
+checkIP();
 
 $error = '';
 
@@ -151,4 +152,5 @@ window.addEventListener('DOMContentLoaded', () => {
 </div>
 
 </body>
+
 </html>
