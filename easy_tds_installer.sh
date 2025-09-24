@@ -23,6 +23,7 @@ if [[ "$MODE" == "2" ]]; then
     exit 0
 fi
 
+# --- Логин и пароль панели ---
 read -rp "Введите логин панели: " PANEL_USER
 while true; do
     read -rp "Введите пароль панели: " PANEL_PASS
@@ -154,7 +155,7 @@ function decrypt(\$encrypted) {
 function getDB() {
     \$db = new PDO('sqlite:' . DB_FILE);
     \$db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
-    \$password = decrypt(ENCRYPTED_PANEL_PASS);
+    \$password = decrypt(ENCRYPTED_PANEL_PASS); // тот же пароль для SQLCipher
     \$db->exec("PRAGMA key='\$password';");
     return \$db;
 }
