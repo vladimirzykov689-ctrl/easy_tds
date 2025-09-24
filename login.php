@@ -1,12 +1,10 @@
 <?php
-require 'config.php'; // session_start() уже вызывается здесь
-
-// --- Ограничение по IP ---
-checkIP();
+require 'config.php';
+session_start();
 
 $error = '';
 $maxAttempts = 5;
-$lockoutTime = 300; // в секундах
+$lockoutTime = 300;
 
 if (!isset($_SESSION['login_attempts'])) $_SESSION['login_attempts'] = 0;
 if (!isset($_SESSION['last_attempt'])) $_SESSION['last_attempt'] = 0;
@@ -20,12 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $user = $_POST['username'] ?? '';
         $pass = $_POST['password'] ?? '';
-
-        // Расшифровка пароля панели
-        $panelPass = decrypt(ENCRYPTED_PANEL_PASS);
-
-        // Сравниваем строки безопасно
-        if ($user === PANEL_USER && hash_equals($panelPass, $pass)) {
+        if (isset($CREDENTIALS[$user]) && $CREDENTIALS[$user] === $pass) {
             $_SESSION['username'] = $user;
             $_SESSION['login_attempts'] = 0;
             header('Location: dashboard.php');
@@ -43,8 +36,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="UTF-8">
 <title>Вход в Easy TDS</title>
+
 <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
+<link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico">
 <link rel="stylesheet" href="/css/style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="login-page">
 
