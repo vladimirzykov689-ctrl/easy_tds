@@ -60,6 +60,8 @@ sudo chown -R $USER:$USER "$INSTALL_DIR"
 
 # --- Клонируем репозиторий ---
 git clone "$REPO" "$INSTALL_DIR"
+sudo rm -f /var/www/html/easy_tds/easy_tds_installer.sh
+sudo rm -f /var/www/html/easy_tds/.git
 
 mkdir -p "$INSTALL_DIR/db"
 mkdir -p "$INSTALL_DIR/geo"
@@ -196,3 +198,4 @@ echo "Домен панели: http://$PANEL_DOMAIN"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
+
