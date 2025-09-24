@@ -45,12 +45,11 @@ echo "=============================="
 echo "Начало установки Easy Tds"
 echo "=============================="
 
-# --- Настройка неинтерактивной установки пакетов ---
+# --- Установка PHP и SQLite ---
 export DEBIAN_FRONTEND=noninteractive
-sudo sed -i 's/#\$nrconf{restart} = .*/\$nrconf{restart} = "a";/' /etc/needrestart/needrestart.conf || true
-sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt update
-sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt install -y \
-php8.1 php8.1-fpm php8.1-curl php8.1-mbstring php8.1-xml php8.1-zip \
+sudo apt update
+sudo apt install -y \
+php8.1 php8.1-fpm php8.1-curl php8.1-mbstring php8.1-xml php8.1-zip php8.1-sqlite3 \
 sqlite3 git unzip curl composer nginx >/dev/null
 
 sudo systemctl stop apache2 || true
@@ -74,14 +73,13 @@ fi
 
 # --- Устанавливаем GeoLite2 через Composer ---
 echo ">>> Установка GeoLite2 в $INSTALL_DIR/geo ..."
-mkdir -p "$INSTALL_DIR/geo"
 cd "$INSTALL_DIR/geo"
 export COMPOSER_ALLOW_SUPERUSER=1
 composer init --name="easytds/geolite2" --require="geoip2/geoip2:^3.2" --no-interaction >/dev/null 2>&1
 composer install --no-interaction --no-progress >/dev/null 2>&1
 cd -
 
-# --- Создание обычной SQLite базы ---
+# --- Создание базы SQLite ---
 sqlite3 "$INSTALL_DIR/db/campaigns.db" <<EOF
 CREATE TABLE IF NOT EXISTS streams (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -107,6 +105,10 @@ CREATE TABLE IF NOT EXISTS logs (
     ptr TEXT DEFAULT 'UNKNOWN'
 );
 EOF
+
+# --- Выставляем правильные права на папку db и файл базы ---
+sudo chown -R www-data:www-data "$INSTALL_DIR/db"
+sudo chmod -R 770 "$INSTALL_DIR/db"
 
 # --- Конфигурация Nginx ---
 sudo tee "$NGINX_CONF" > /dev/null <<EOL
@@ -134,60 +136,45 @@ EOL
 
 sudo systemctl reload nginx || true
 
-# --- Генерация конфигурации панели для обычной SQLite ---
+# --- Создание config.php ---
 cat > "$INSTALL_DIR/config.php" <<PHP
 <?php
 session_start();
 
 define('DB_FILE', __DIR__ . '/db/campaigns.db');
-
-$CREDENTIALS = [
-    'admin' => 'admin'
-];
-
+define('PANEL_USER', '$PANEL_USER');
+define('PANEL_PASS', '$PANEL_PASS');
+\$ALLOWED_IPS = '$ALLOWED_IPS';
 
 function getDB() {
-    $db = new PDO('sqlite:' . DB_FILE);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-    $db->exec("
-        CREATE TABLE IF NOT EXISTS streams (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            slug TEXT UNIQUE NOT NULL,
-            url TEXT NOT NULL,
-            geo_filter_type TEXT DEFAULT 'none',
-            geo_filter_list TEXT
-        );
-    ");
-
-    $db->exec("
-        CREATE TABLE IF NOT EXISTS logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            stream_id INTEGER NOT NULL,
-            device TEXT NOT NULL,
-            ip TEXT,
-            geo TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-    ");
-
-    return $db;
+    \$db = new PDO('sqlite:' . DB_FILE);
+    \$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    return \$db;
 }
 
+function checkIP() {
+    global \$ALLOWED_IPS;
+    if (!empty(\$ALLOWED_IPS)) {
+        \$ips = explode(',', \$ALLOWED_IPS);
+        if (!in_array(\$_SERVER['REMOTE_ADDR'], \$ips)) {
+            header('HTTP/1.0 403 Forbidden');
+            exit('Access denied: your IP is not allowed.');
+        }
+    }
+}
 
 function checkAuth() {
-    if (!isset($_SESSION['username'])) {
+    checkIP();
+    if (!isset(\$_SESSION['username'])) {
         header('Location: login.php');
         exit;
     }
 }
-
 PHP
 
 echo "=============================="
 echo "Установка Easy Tds завершена!"
-echo "Доступ по адресу: http://$PANEL_DOMAIN/login.php"
-echo "Логин для входа: $PANEL_USER"
-echo "Пароль для входа: $PANEL_PASS"
+echo "Домен панели: http://$PANEL_DOMAIN"
+echo "Логин: $PANEL_USER"
+echo "Пароль: $PANEL_PASS"
 echo "=============================="
