@@ -27,9 +27,9 @@ fi
 
 read -rp "Введите логин: " PANEL_USER
 while true; do
-    read -rp "Введите пароль: " PANEL_PASS
+    read -srp "Введите пароль: " PANEL_PASS
     echo
-    read -rp "Введите пароль: " PANEL_PASS_CONFIRM
+    read -srp "Подтвердите пароль: " PANEL_PASS_CONFIRM
     echo
     [[ "$PANEL_PASS" == "$PANEL_PASS_CONFIRM" ]] && break
     echo "Пароли не совпадают, попробуйте снова."
@@ -176,8 +176,8 @@ PHP
 rm -- "$0"
 
 echo "=============================="
-echo "Установка Еasy Tds завершена!"
-echo "Доступ по адресу: $PANEL_DOMAIN/login.php"
+echo "Установка Easy Tds завершена!"
+echo "Доступ по адресу: http://$PANEL_DOMAIN/login.php"
 echo "Логин для входа: $PANEL_USER"
 echo "Пароль для входа: $PANEL_PASS"
 echo "=============================="
