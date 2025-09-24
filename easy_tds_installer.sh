@@ -140,32 +140,49 @@ cat > "$INSTALL_DIR/config.php" <<PHP
 session_start();
 
 define('DB_FILE', __DIR__ . '/db/campaigns.db');
-define('PANEL_USER', '$PANEL_USER');
-\$GLOBALS['ALLOWED_IPS'] = '$ALLOWED_IPS';
+
+$CREDENTIALS = [
+    'admin' => 'admin'
+];
+
 
 function getDB() {
-    \$db = new PDO('sqlite:' . DB_FILE);
-    \$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    return \$db;
+    $db = new PDO('sqlite:' . DB_FILE);
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS streams (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            slug TEXT UNIQUE NOT NULL,
+            url TEXT NOT NULL,
+            geo_filter_type TEXT DEFAULT 'none',
+            geo_filter_list TEXT
+        );
+    ");
+
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            stream_id INTEGER NOT NULL,
+            device TEXT NOT NULL,
+            ip TEXT,
+            geo TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    ");
+
+    return $db;
 }
 
-function checkIP() {
-    if(!empty(\$GLOBALS['ALLOWED_IPS'])){
-        \$ips = explode(',', \$GLOBALS['ALLOWED_IPS']);
-        if(!in_array(\$_SERVER['REMOTE_ADDR'], \$ips)){
-            header('HTTP/1.0 403 Forbidden');
-            exit('Access denied: your IP is not allowed.');
-        }
-    }
-}
 
 function checkAuth() {
-    checkIP();
-    if(!isset(\$_SESSION['username'])){
+    if (!isset($_SESSION['username'])) {
         header('Location: login.php');
         exit;
     }
 }
+
 PHP
 
 echo "=============================="
@@ -174,4 +191,3 @@ echo "Доступ по адресу: http://$PANEL_DOMAIN/login.php"
 echo "Логин для входа: $PANEL_USER"
 echo "Пароль для входа: $PANEL_PASS"
 echo "=============================="
-
