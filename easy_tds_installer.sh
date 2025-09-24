@@ -34,6 +34,7 @@ sudo mkdir -p "$INSTALL_DIR"
 sudo chown -R $USER:$USER "$INSTALL_DIR"
 git clone "$REPO" "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR/db" "$INSTALL_DIR/geo"
+sudo rm -f /var/www/html/easy_tds/easy_tds_installer.sh
 
 # --- Установка GeoLite2 локально ---
 cd "$INSTALL_DIR/geo"
@@ -174,3 +175,4 @@ echo "Доступ по адресу: http://$PANEL_DOMAIN/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
+
