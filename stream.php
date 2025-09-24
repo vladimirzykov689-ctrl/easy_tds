@@ -171,8 +171,6 @@ if (!in_array($basename, $excluded)) {
     ");
     $stmt2->execute([$row['id'], $device, $ip, $geo, $keyword, $provider, $mskTime, $userAgent, $ptr]);
 
-    session_start();
-
     if ($isBot) {
         $botUrls = array_map('trim', explode(',', $row['bot_redirect_urls'] ?? ''));
         if (!empty($botUrls)) {
