@@ -50,7 +50,8 @@ export DEBIAN_FRONTEND=noninteractive
 sudo sed -i 's/#\$nrconf{restart} = .*/\$nrconf{restart} = "a";/' /etc/needrestart/needrestart.conf || true
 sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt update
 sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt install -y \
-php8.1 php8.1-fpm sqlite3 sqlcipher git unzip curl composer nginx >/dev/null
+php8.1 php8.1-fpm php8.1-curl php8.1-mbstring php8.1-xml php8.1-zip \
+sqlite3 sqlcipher git unzip curl composer nginx >/dev/null
 
 sudo systemctl stop apache2 || true
 
@@ -63,7 +64,16 @@ git clone "$REPO" "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR/db"
 mkdir -p "$INSTALL_DIR/geo"
 
-# --- Устанавливаем GeoLite2 через composer ---
+# --- Установка Composer (если не установлен) ---
+if ! command -v composer >/dev/null 2>&1; then
+    echo ">>> Установка Composer..."
+    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+    php composer-setup.php --install-dir=/usr/local/bin --filename=composer >/dev/null 2>&1
+    rm composer-setup.php
+fi
+
+# --- Устанавливаем GeoLite2 через Composer ---
+echo ">>> Установка GeoLite2..."
 cd "$INSTALL_DIR"
 export COMPOSER_ALLOW_SUPERUSER=1
 composer require geoip2/geoip2 --no-interaction --no-progress
