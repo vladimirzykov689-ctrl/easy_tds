@@ -1,6 +1,7 @@
 <?php
 require 'config.php';
 checkAuth();
+checkIP();
 $db = getDB();
 
 $stream_id = (int)($_GET['stream_id'] ?? 0);
