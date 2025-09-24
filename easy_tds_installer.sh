@@ -45,19 +45,19 @@ echo "=============================="
 echo "Начало установки Easy Tds"
 echo "=============================="
 
-# --- Обновление и установка пакетов ---
-export DEBIAN_FRONTEND=noninteractive  # отключаем интерактивные вопросы для apt
-sudo apt update
-sudo apt install -y php8.1 php8.1-fpm sqlite3 sqlcipher git unzip curl composer nginx needrestart >/dev/null
-
-# Отключаем needrestart интерактивный режим, чтобы не спрашивал про перезапуск демонов
+# --- Настройка неинтерактивной установки пакетов ---
+export DEBIAN_FRONTEND=noninteractive
 sudo sed -i 's/#\$nrconf{restart} = .*/\$nrconf{restart} = "a";/' /etc/needrestart/needrestart.conf || true
+sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt update
+sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt install -y \
+php8.1 php8.1-fpm sqlite3 sqlcipher git unzip curl composer nginx >/dev/null
 
 sudo systemctl stop apache2 || true
 
 sudo mkdir -p "$INSTALL_DIR"
 sudo chown -R $USER:$USER "$INSTALL_DIR"
 
+# --- Клонируем репозиторий ---
 git clone "$REPO" "$INSTALL_DIR"
 
 mkdir -p "$INSTALL_DIR/db"
