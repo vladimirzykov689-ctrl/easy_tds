@@ -23,9 +23,9 @@ if [[ "$MODE" == "2" ]]; then
     exit 0
 fi
 
-read -rp "Введите логин: " PANEL_USER
+read -rp "Введите логин панели: " PANEL_USER
 while true; do
-    read -rp "Введите пароль: " PANEL_PASS
+    read -rp "Введите пароль панели: " PANEL_PASS
     echo
     read -rp "Подтвердите пароль: " PANEL_PASS_CONFIRM
     echo
@@ -52,28 +52,20 @@ php8.1 php8.1-fpm php8.1-curl php8.1-mbstring php8.1-xml php8.1-zip \
 sqlite3 sqlcipher git unzip curl composer nginx >/dev/null
 
 sudo systemctl stop apache2 || true
-
 sudo mkdir -p "$INSTALL_DIR"
 sudo chown -R $USER:$USER "$INSTALL_DIR"
 
 git clone "$REPO" "$INSTALL_DIR"
+mkdir -p "$INSTALL_DIR/db" "$INSTALL_DIR/geo"
 
-mkdir -p "$INSTALL_DIR/db"
-mkdir -p "$INSTALL_DIR/geo"
-
-if ! command -v composer >/dev/null 2>&1; then
-    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-    php composer-setup.php --install-dir=/usr/local/bin --filename=composer >/dev/null 2>&1
-    rm composer-setup.php
-fi
-
-mkdir -p "$INSTALL_DIR/geo"
+# --- Установка GeoLite2 локально ---
 cd "$INSTALL_DIR/geo"
 export COMPOSER_ALLOW_SUPERUSER=1
 composer init --name="easytds/geolite2" --require="geoip2/geoip2:^3.2" --no-interaction >/dev/null 2>&1
 composer install --no-interaction --no-progress >/dev/null 2>&1
 cd -
 
+# --- Создание базы SQLCipher с паролем панели ---
 sqlcipher "$INSTALL_DIR/db/campaigns.db" <<EOF
 PRAGMA key = '$PANEL_PASS';
 CREATE TABLE IF NOT EXISTS streams (
@@ -101,6 +93,7 @@ CREATE TABLE IF NOT EXISTS logs (
 );
 EOF
 
+# --- Конфиг Nginx ---
 sudo tee "$NGINX_CONF" > /dev/null <<EOL
 server {
     listen 80;
@@ -123,51 +116,53 @@ server {
     }
 }
 EOL
-
 sudo systemctl reload nginx || true
 
+# --- Генерация ключа и шифрование пароля и IP ---
 SECRET_KEY=$(openssl rand -hex 32)
-ENCRYPTED_PASS=$(php -r "
-echo base64_encode(substr(\$iv = openssl_random_pseudo_bytes(16),0,16) . openssl_encrypt('$PANEL_PASS', 'AES-256-CBC', '$SECRET_KEY', OPENSSL_RAW_DATA, substr('$SECRET_KEY',0,16)));
+
+ENCRYPTED_PANEL_PASS=$(php -r "
+echo base64_encode(substr(\$iv = openssl_random_pseudo_bytes(16),0,16) . openssl_encrypt('$PANEL_PASS','AES-256-CBC','$SECRET_KEY',OPENSSL_RAW_DATA,substr('$SECRET_KEY',0,16)));
 ")
 
 if [[ -n "$ALLOWED_IPS" ]]; then
     ENCRYPTED_IPS=$(php -r "
-echo base64_encode(substr(\$iv = openssl_random_pseudo_bytes(16),0,16) . openssl_encrypt('$ALLOWED_IPS', 'AES-256-CBC', '$SECRET_KEY', OPENSSL_RAW_DATA, substr('$SECRET_KEY',0,16)));
+echo base64_encode(substr(\$iv = openssl_random_pseudo_bytes(16),0,16) . openssl_encrypt('$ALLOWED_IPS','AES-256-CBC','$SECRET_KEY',OPENSSL_RAW_DATA,substr('$SECRET_KEY',0,16)));
 ")
 else
     ENCRYPTED_IPS=""
 fi
 
+# --- Создание config.php ---
 cat > "$INSTALL_DIR/config.php" <<PHP
 <?php
 session_start();
 
 define('DB_FILE', __DIR__ . '/db/campaigns.db');
 define('SECRET_KEY', '$SECRET_KEY');
-define('ENCRYPTED_DB_PASS', '$ENCRYPTED_PASS');
+define('ENCRYPTED_PANEL_PASS', '$ENCRYPTED_PANEL_PASS');
 define('ENCRYPTED_IPS', '$ENCRYPTED_IPS');
 define('PANEL_USER', '$PANEL_USER');
 
 function decrypt(\$encrypted) {
     \$data = base64_decode(\$encrypted);
-    \$iv = substr(\$data, 0, 16);
-    \$ciphertext = substr(\$data, 16);
-    return openssl_decrypt(\$ciphertext, 'AES-256-CBC', SECRET_KEY, OPENSSL_RAW_DATA, \$iv);
+    \$iv = substr(\$data,0,16);
+    \$ciphertext = substr(\$data,16);
+    return openssl_decrypt(\$ciphertext,'AES-256-CBC',SECRET_KEY,OPENSSL_RAW_DATA,\$iv);
 }
 
 function getDB() {
     \$db = new PDO('sqlite:' . DB_FILE);
-    \$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    \$password = decrypt(ENCRYPTED_DB_PASS);
-    \$db->exec("PRAGMA key = '\$password';");
+    \$db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+    \$password = decrypt(ENCRYPTED_PANEL_PASS);
+    \$db->exec("PRAGMA key='\$password';");
     return \$db;
 }
 
 function checkIP() {
     if(!empty(ENCRYPTED_IPS)){
         \$ips = explode(',', decrypt(ENCRYPTED_IPS));
-        if(!in_array(\$_SERVER['REMOTE_ADDR'], \$ips)){
+        if(!in_array(\$_SERVER['REMOTE_ADDR'],\$ips)){
             header('HTTP/1.0 403 Forbidden');
             exit('Access denied: your IP is not allowed.');
         }
@@ -187,7 +182,7 @@ rm -- "$0"
 
 echo "=============================="
 echo "Установка Easy Tds завершена!"
-echo "Доступ по адресу: $PANEL_DOMAIN/login.php"
+echo "Доступ по адресу: http://$PANEL_DOMAIN/login.php"
 echo "Логин для входа: $PANEL_USER"
 echo "Пароль для входа: $PANEL_PASS"
 echo "=============================="
