@@ -21,6 +21,7 @@ read -rp "Ограничить доступ по IP? (да/нет): " IP_RESTRIC
 ALLOWED_IPS=""
 if [[ "$IP_RESTRICT" =~ ^(да|Да|yes|Yes)$ ]]; then
     read -rp "Введите IP-адреса через запятую (без пробелов): " ALLOWED_IPS
+    ALLOWED_IPS=$(echo "$ALLOWED_IPS" | tr -d ' ')
 fi
 
 # --- Установка PHP и Nginx ---
@@ -41,9 +42,11 @@ composer init --name="easytds/geolite2" --require="geoip2/geoip2:^3.2" --no-inte
 composer install --no-interaction --no-progress >/dev/null 2>&1
 cd -
 
-# --- Создаём обычную SQLite базу ---
-sqlite3 "$INSTALL_DIR/db/campaigns.db" <<EOF
-CREATE TABLE IF NOT EXISTS streams (
+# --- Создаём SQLite базу с корректными правами ---
+DB_FILE="$INSTALL_DIR/db/campaigns.db"
+if [ ! -f "$DB_FILE" ]; then
+    sqlite3 "$DB_FILE" <<EOF
+CREATE TABLE streams (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     slug TEXT NOT NULL UNIQUE,
@@ -54,7 +57,7 @@ CREATE TABLE IF NOT EXISTS streams (
     bot_filter TEXT NOT NULL DEFAULT 'off',
     bot_redirect_urls TEXT
 );
-CREATE TABLE IF NOT EXISTS logs (
+CREATE TABLE logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     stream_id INTEGER NOT NULL,
     device TEXT NOT NULL,
@@ -67,6 +70,9 @@ CREATE TABLE IF NOT EXISTS logs (
     ptr TEXT DEFAULT 'UNKNOWN'
 );
 EOF
+    sudo chown -R www-data:www-data "$INSTALL_DIR/db"
+    sudo chmod 660 "$DB_FILE"
+fi
 
 # --- Генерация ключа и шифрование пароля и IP ---
 SECRET_KEY=$(openssl rand -hex 32)
@@ -150,7 +156,9 @@ server {
 }
 EOL
 
-sudo systemctl reload nginx || true
+# --- Проверка Nginx и перезагрузка ---
+sudo nginx -t
+sudo systemctl reload nginx
 
 echo "=============================="
 echo "Установка завершена!"
