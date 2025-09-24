@@ -10,10 +10,10 @@ echo "Добро пожаловать в установщик Easy Tds"
 echo "=============================="
 
 # --- Выбор режима ---
-echo "Выберите режим:"
+echo "Режимы установщика:"
 echo "1) Установка Easy Tds"
 echo "2) Удаление Easy Tds"
-read -rp "Введите номер: " MODE
+read -rp "Введите режим установщика (1 или 2): " MODE
 
 if [[ "$MODE" == "2" ]]; then
     echo "Удаляем Easy Tds..."
@@ -26,9 +26,9 @@ fi
 
 read -rp "Введите логин: " PANEL_USER
 while true; do
-    read -srp "Введите пароль: " PANEL_PASS
+    read -rp "Введите пароль: " PANEL_PASS
     echo
-    read -srp "Подтвердите пароль: " PANEL_PASS_CONFIRM
+    read -rp "Подтвердите пароль: " PANEL_PASS_CONFIRM
     echo
     [[ "$PANEL_PASS" == "$PANEL_PASS_CONFIRM" ]] && break
     echo "Пароли не совпадают, попробуйте снова."
@@ -45,7 +45,6 @@ echo "=============================="
 echo "Начало установки Easy Tds"
 echo "=============================="
 
-# --- Настройка неинтерактивной установки пакетов ---
 export DEBIAN_FRONTEND=noninteractive
 sudo sed -i 's/#\$nrconf{restart} = .*/\$nrconf{restart} = "a";/' /etc/needrestart/needrestart.conf || true
 sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt update
@@ -58,28 +57,24 @@ sudo systemctl stop apache2 || true
 sudo mkdir -p "$INSTALL_DIR"
 sudo chown -R $USER:$USER "$INSTALL_DIR"
 
-# --- Клонируем репозиторий ---
 git clone "$REPO" "$INSTALL_DIR"
 
 mkdir -p "$INSTALL_DIR/db"
 mkdir -p "$INSTALL_DIR/geo"
 
-# --- Установка Composer (если не установлен) ---
 if ! command -v composer >/dev/null 2>&1; then
-    echo ">>> Установка Composer..."
     php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
     php composer-setup.php --install-dir=/usr/local/bin --filename=composer >/dev/null 2>&1
     rm composer-setup.php
 fi
 
-# --- Устанавливаем GeoLite2 через Composer ---
-echo ">>> Установка GeoLite2..."
-cd "$INSTALL_DIR"
+mkdir -p "$INSTALL_DIR/geo"
+cd "$INSTALL_DIR/geo"
 export COMPOSER_ALLOW_SUPERUSER=1
-composer require geoip2/geoip2 --no-interaction --no-progress
+composer init --name="easytds/geolite2" --require="geoip2/geoip2:^3.2" --no-interaction >/dev/null 2>&1
+composer install --no-interaction --no-progress >/dev/null 2>&1
 cd -
 
-# --- Создание базы с SQLCipher ---
 sqlcipher "$INSTALL_DIR/db/campaigns.db" <<EOF
 PRAGMA key = '$PANEL_PASS';
 CREATE TABLE IF NOT EXISTS streams (
@@ -107,7 +102,6 @@ CREATE TABLE IF NOT EXISTS logs (
 );
 EOF
 
-# --- Конфигурация Nginx ---
 sudo tee "$NGINX_CONF" > /dev/null <<EOL
 server {
     listen 80;
@@ -133,7 +127,6 @@ EOL
 
 sudo systemctl reload nginx || true
 
-# --- Генерация конфигурации панели ---
 SECRET_KEY=$(openssl rand -hex 32)
 ENCRYPTED_PASS=$(php -r "
 echo base64_encode(substr(\$iv = openssl_random_pseudo_bytes(16),0,16) . openssl_encrypt('$PANEL_PASS', 'AES-256-CBC', '$SECRET_KEY', OPENSSL_RAW_DATA, substr('$SECRET_KEY',0,16)));
@@ -191,12 +184,11 @@ function checkAuth() {
 }
 PHP
 
-# --- Удаление установщика ---
 rm -- "$0"
 
 echo "=============================="
 echo "Установка Easy Tds завершена!"
-echo "Доступ по адресу: http://$PANEL_DOMAIN/login.php"
+echo "Доступ по адресу: $PANEL_DOMAIN/login.php"
 echo "Логин для входа: $PANEL_USER"
 echo "Пароль для входа: $PANEL_PASS"
 echo "=============================="
