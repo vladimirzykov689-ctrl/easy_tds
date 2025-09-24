@@ -1,6 +1,5 @@
 <?php
-require 'config.php';
-session_start();
+require 'config.php'; // session_start() уже вызывается здесь
 
 $error = '';
 $maxAttempts = 5;
@@ -18,7 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $user = $_POST['username'] ?? '';
         $pass = $_POST['password'] ?? '';
-        if (isset($CREDENTIALS[$user]) && $CREDENTIALS[$user] === $pass) {
+
+        // --- Проверка логина и пароля через константы ---
+        if ($user === PANEL_USER && $pass === PANEL_PASS) {
             $_SESSION['username'] = $user;
             $_SESSION['login_attempts'] = 0;
             header('Location: dashboard.php');
