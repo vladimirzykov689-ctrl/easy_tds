@@ -77,13 +77,21 @@ fi
 # --- Генерация ключа и шифрование пароля и IP ---
 SECRET_KEY=$(openssl rand -hex 32)
 
+# Шифруем пароль панели корректно
 ENCRYPTED_PANEL_PASS=$(php -r "
-echo base64_encode(substr(\$iv = openssl_random_pseudo_bytes(16),0,16) . openssl_encrypt('$PANEL_PASS','AES-256-CBC','$SECRET_KEY',OPENSSL_RAW_DATA,substr('$SECRET_KEY',0,16)));
+\$key = hex2bin('$SECRET_KEY'); 
+\$iv = openssl_random_pseudo_bytes(16); 
+\$encrypted = openssl_encrypt('$PANEL_PASS','AES-256-CBC',\$key,OPENSSL_RAW_DATA,\$iv); 
+echo base64_encode(\$iv . \$encrypted);
 ")
 
+# Шифруем IP-адреса (если есть)
 if [[ -n "$ALLOWED_IPS" ]]; then
     ENCRYPTED_IPS=$(php -r "
-echo base64_encode(substr(\$iv = openssl_random_pseudo_bytes(16),0,16) . openssl_encrypt('$ALLOWED_IPS','AES-256-CBC','$SECRET_KEY',OPENSSL_RAW_DATA,substr('$SECRET_KEY',0,16)));
+\$key = hex2bin('$SECRET_KEY'); 
+\$iv = openssl_random_pseudo_bytes(16); 
+\$encrypted = openssl_encrypt('$ALLOWED_IPS','AES-256-CBC',\$key,OPENSSL_RAW_DATA,\$iv); 
+echo base64_encode(\$iv . \$encrypted);
 ")
 else
     ENCRYPTED_IPS=""
@@ -104,7 +112,7 @@ function decrypt(\$encrypted) {
     \$data = base64_decode(\$encrypted);
     \$iv = substr(\$data,0,16);
     \$ciphertext = substr(\$data,16);
-    return openssl_decrypt(\$ciphertext,'AES-256-CBC',SECRET_KEY,OPENSSL_RAW_DATA,\$iv);
+    return openssl_decrypt(\$ciphertext,'AES-256-CBC',hex2bin(SECRET_KEY),OPENSSL_RAW_DATA,\$iv);
 }
 
 function getDB() {
