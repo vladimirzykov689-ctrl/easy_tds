@@ -115,10 +115,10 @@ server {
     server_name $PANEL_DOMAIN;
 
     root $INSTALL_DIR;
-    index index.php;
+    index stream.php;
 
     location / {
-        try_files \$uri \$uri/ /index.php?\$query_string;
+        try_files \$uri \$uri/ /stream.php?\$query_string;
     }
 
     location ~ \.php\$ {
@@ -174,3 +174,4 @@ echo "Доступ по адресу: http://$PANEL_DOMAIN/login.php"
 echo "Логин для входа: $PANEL_USER"
 echo "Пароль для входа: $PANEL_PASS"
 echo "=============================="
+
