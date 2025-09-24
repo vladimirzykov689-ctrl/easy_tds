@@ -9,11 +9,10 @@ echo "=============================="
 echo "Добро пожаловать в установщик Easy Tds"
 echo "=============================="
 
-# --- Выбор режима ---
-echo "Выберите режим:"
+echo "Режимы установщика:"
 echo "1) Установка Easy Tds"
 echo "2) Удаление Easy Tds"
-read -rp "Введите номер: " MODE
+read -rp "Введите номер режима (1/2): " MODE
 
 if [[ "$MODE" == "2" ]]; then
     echo "Удаляем Easy Tds..."
@@ -24,12 +23,11 @@ if [[ "$MODE" == "2" ]]; then
     exit 0
 fi
 
-# --- Ввод логина и пароля ---
-read -rp "Введите логин: " PANEL_USER
+read -rp "Введите желаемый логин: " PANEL_USER
 while true; do
-    read -srp "Введите пароль: " PANEL_PASS
+    read -rp "Введите желаемый пароль: " PANEL_PASS
     echo
-    read -srp "Подтвердите пароль: " PANEL_PASS_CONFIRM
+    read -rp "Подтвердите свой пароль: " PANEL_PASS_CONFIRM
     echo
     [[ "$PANEL_PASS" == "$PANEL_PASS_CONFIRM" ]] && break
     echo "Пароли не совпадают, попробуйте снова."
@@ -38,7 +36,7 @@ done
 read -rp "Введите домен для панели: " PANEL_DOMAIN
 read -rp "Ограничить доступ по IP? (да/нет): " IP_RESTRICT
 ALLOWED_IPS=""
-if [[ "$IP_RESTRICT" =~ ^(да|Да|yes|Yes)$ ]]; then
+if [[ "$IP_RESTRICT" =~ ^(да)$ ]]; then
     read -rp "Введите IP-адреса через запятую (без пробелов): " ALLOWED_IPS
 fi
 
@@ -46,7 +44,6 @@ echo "=============================="
 echo "Начало установки Easy Tds"
 echo "=============================="
 
-# --- Установка PHP и SQLite ---
 export DEBIAN_FRONTEND=noninteractive
 sudo apt update
 sudo apt install -y \
@@ -58,15 +55,13 @@ sudo systemctl stop apache2 || true
 sudo mkdir -p "$INSTALL_DIR"
 sudo chown -R $USER:$USER "$INSTALL_DIR"
 
-# --- Клонируем репозиторий ---
 git clone "$REPO" "$INSTALL_DIR"
-sudo rm -f /var/www/html/easy_tds/easy_tds_installer.sh
-sudo rm -f /var/www/html/easy_tds/.git
+rm -rf /var/www/html/easy_tds/easy_tds_installer.sh
+rm -rf /var/www/html/easy_tds/.git
 
 mkdir -p "$INSTALL_DIR/db"
 mkdir -p "$INSTALL_DIR/geo"
 
-# --- Установка Composer (если не установлен) ---
 if ! command -v composer >/dev/null 2>&1; then
     echo ">>> Установка Composer..."
     php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
@@ -74,7 +69,6 @@ if ! command -v composer >/dev/null 2>&1; then
     rm composer-setup.php
 fi
 
-# --- Устанавливаем GeoLite2 через Composer ---
 echo ">>> Установка GeoLite2 в $INSTALL_DIR/geo ..."
 cd "$INSTALL_DIR/geo"
 export COMPOSER_ALLOW_SUPERUSER=1
@@ -82,7 +76,6 @@ composer init --name="easytds/geolite2" --require="geoip2/geoip2:^3.2" --no-inte
 composer install --no-interaction --no-progress >/dev/null 2>&1
 cd -
 
-# --- Создание базы SQLite ---
 sqlite3 "$INSTALL_DIR/db/campaigns.db" <<EOF
 CREATE TABLE IF NOT EXISTS streams (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -112,7 +105,6 @@ EOF
 sudo chown -R www-data:www-data "$INSTALL_DIR/db"
 sudo chmod -R 770 "$INSTALL_DIR/db"
 
-# --- Конфигурация Nginx ---
 sudo tee "$NGINX_CONF" > /dev/null <<EOL
 server {
     listen 80;
@@ -138,11 +130,9 @@ EOL
 
 sudo systemctl reload nginx || true
 
-# --- Генерация хэшей для логина и пароля через PHP ---
 PANEL_USER_HASH=$(php -r "echo password_hash('$PANEL_USER', PASSWORD_DEFAULT);")
 PANEL_PASS_HASH=$(php -r "echo password_hash('$PANEL_PASS', PASSWORD_DEFAULT);")
 
-# --- Создание config.php с хэшами ---
 cat > "$INSTALL_DIR/config.php" <<PHP
 <?php
 session_start();
@@ -194,8 +184,7 @@ PHP
 
 echo "=============================="
 echo "Установка Easy Tds завершена!"
-echo "Домен панели: http://$PANEL_DOMAIN"
+echo "Доступ: $PANEL_DOMAIN/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
-
