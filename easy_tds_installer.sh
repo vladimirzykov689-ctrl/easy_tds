@@ -24,6 +24,7 @@ if [[ "$MODE" == "2" ]]; then
     exit 0
 fi
 
+# --- Ввод логина и пароля ---
 read -rp "Введите логин: " PANEL_USER
 while true; do
     read -srp "Введите пароль: " PANEL_PASS
@@ -106,7 +107,6 @@ CREATE TABLE IF NOT EXISTS logs (
 );
 EOF
 
-# --- Выставляем правильные права на папку db и файл базы ---
 sudo chown -R www-data:www-data "$INSTALL_DIR/db"
 sudo chmod -R 770 "$INSTALL_DIR/db"
 
@@ -136,14 +136,22 @@ EOL
 
 sudo systemctl reload nginx || true
 
-# --- Создание config.php ---
+# --- Генерация хэшей для логина и пароля через PHP ---
+PANEL_USER_HASH=$(php -r "echo password_hash('$PANEL_USER', PASSWORD_DEFAULT);")
+PANEL_PASS_HASH=$(php -r "echo password_hash('$PANEL_PASS', PASSWORD_DEFAULT);")
+
+# --- Создание config.php с хэшами ---
 cat > "$INSTALL_DIR/config.php" <<PHP
 <?php
 session_start();
 
 define('DB_FILE', __DIR__ . '/db/campaigns.db');
-define('PANEL_USER', '$PANEL_USER');
-define('PANEL_PASS', '$PANEL_PASS');
+
+// Хэши логина и пароля
+define('PANEL_USER_HASH', '$PANEL_USER_HASH');
+define('PANEL_PASS_HASH', '$PANEL_PASS_HASH');
+
+// Разрешённые IP (через запятую)
 \$ALLOWED_IPS = '$ALLOWED_IPS';
 
 function getDB() {
@@ -154,11 +162,21 @@ function getDB() {
 
 function checkIP() {
     global \$ALLOWED_IPS;
+
     if (!empty(\$ALLOWED_IPS)) {
-        \$ips = explode(',', \$ALLOWED_IPS);
-        if (!in_array(\$_SERVER['REMOTE_ADDR'], \$ips)) {
+        if (!empty(\$_SERVER['HTTP_CF_CONNECTING_IP'])) {
+            \$clientIP = \$_SERVER['HTTP_CF_CONNECTING_IP'];
+        } elseif (!empty(\$_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            \$clientIP = trim(explode(',', \$_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
+        } else {
+            \$clientIP = \$_SERVER['REMOTE_ADDR'];
+        }
+
+        \$ips = array_map('trim', explode(',', \$ALLOWED_IPS));
+
+        if (!in_array(\$clientIP, \$ips)) {
             header('HTTP/1.0 403 Forbidden');
-            exit('Access denied: your IP is not allowed.');
+            exit('Access denied: your IP is not allowed. Your IP: ' . \$clientIP);
         }
     }
 }
