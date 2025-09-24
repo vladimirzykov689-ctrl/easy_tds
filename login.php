@@ -2,9 +2,12 @@
 require 'config.php';
 session_start();
 
+// --- Ограничение по IP ---
+checkIP();
+
 $error = '';
 $maxAttempts = 5;
-$lockoutTime = 300;
+$lockoutTime = 300; // в секундах
 
 if (!isset($_SESSION['login_attempts'])) $_SESSION['login_attempts'] = 0;
 if (!isset($_SESSION['last_attempt'])) $_SESSION['last_attempt'] = 0;
@@ -18,7 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $user = $_POST['username'] ?? '';
         $pass = $_POST['password'] ?? '';
-        if (isset($CREDENTIALS[$user]) && $CREDENTIALS[$user] === $pass) {
+        $panelPass = decrypt(ENCRYPTED_PANEL_PASS);
+
+        if ($user === PANEL_USER && $pass === $panelPass) {
             $_SESSION['username'] = $user;
             $_SESSION['login_attempts'] = 0;
             header('Location: dashboard.php');
