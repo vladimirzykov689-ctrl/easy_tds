@@ -1,14 +1,15 @@
 <?php
-require 'config.php'; // session_start() уже вызывается здесь
+require __DIR__ . '/config.php'; // session_start() уже вызывается здесь
 
 $error = '';
 $maxAttempts = 5;
-$lockoutTime = 300;
+$lockoutTime = 300; // 5 минут
 
 if (!isset($_SESSION['login_attempts'])) $_SESSION['login_attempts'] = 0;
 if (!isset($_SESSION['last_attempt'])) $_SESSION['last_attempt'] = 0;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
     if ($_SESSION['login_attempts'] >= $maxAttempts && (time() - $_SESSION['last_attempt'] < $lockoutTime)) {
         $remaining = $lockoutTime - (time() - $_SESSION['last_attempt']);
         $minutes = floor($remaining / 60);
@@ -18,8 +19,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $_POST['username'] ?? '';
         $pass = $_POST['password'] ?? '';
 
-        // --- Проверка логина и пароля через константы ---
-        if ($user === PANEL_USER && $pass === PANEL_PASS) {
+        // --- Проверка логина и пароля через хэши ---
+        if (!empty(PANEL_USER_HASH) && !empty(PANEL_PASS_HASH) &&
+            password_verify($user, PANEL_USER_HASH) &&
+            password_verify($pass, PANEL_PASS_HASH)) {
+
             $_SESSION['username'] = $user;
             $_SESSION['login_attempts'] = 0;
             header('Location: dashboard.php');
