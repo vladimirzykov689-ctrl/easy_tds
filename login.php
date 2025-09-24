@@ -1,6 +1,5 @@
 <?php
-require 'config.php';
-session_start();
+require 'config.php'; // session_start() уже вызывается здесь
 
 // --- Ограничение по IP ---
 checkIP();
@@ -25,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Расшифровка пароля панели
         $panelPass = decrypt(ENCRYPTED_PANEL_PASS);
 
-        // Сравниваем строки строго
+        // Сравниваем строки безопасно
         if ($user === PANEL_USER && hash_equals($panelPass, $pass)) {
             $_SESSION['username'] = $user;
             $_SESSION['login_attempts'] = 0;
@@ -44,12 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="UTF-8">
 <title>Вход в Easy TDS</title>
-
 <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
-<link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico">
 <link rel="stylesheet" href="/css/style.css">
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="login-page">
 
