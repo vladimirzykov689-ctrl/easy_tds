@@ -63,13 +63,11 @@ mkdir -p "$INSTALL_DIR/db"
 mkdir -p "$INSTALL_DIR/geo"
 
 if ! command -v composer >/dev/null 2>&1; then
-    echo ">>> Установка Composer..."
     php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
     php composer-setup.php --install-dir=/usr/local/bin --filename=composer >/dev/null 2>&1
     rm composer-setup.php
 fi
 
-echo ">>> Установка GeoLite2 в $INSTALL_DIR/geo ..."
 cd "$INSTALL_DIR/geo"
 export COMPOSER_ALLOW_SUPERUSER=1
 composer init --name="easytds/geolite2" --require="geoip2/geoip2:^3.2" --no-interaction >/dev/null 2>&1
@@ -188,3 +186,4 @@ echo "Доступ: $PANEL_DOMAIN/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
+
