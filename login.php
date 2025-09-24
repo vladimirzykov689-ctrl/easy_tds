@@ -21,9 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $user = $_POST['username'] ?? '';
         $pass = $_POST['password'] ?? '';
+
+        // Расшифровка пароля панели
         $panelPass = decrypt(ENCRYPTED_PANEL_PASS);
 
-        if ($user === PANEL_USER && $pass === $panelPass) {
+        // Сравниваем строки строго
+        if ($user === PANEL_USER && hash_equals($panelPass, $pass)) {
             $_SESSION['username'] = $user;
             $_SESSION['login_attempts'] = 0;
             header('Location: dashboard.php');
