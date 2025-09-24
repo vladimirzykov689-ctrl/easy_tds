@@ -122,14 +122,19 @@ sudo systemctl reload nginx || true
 # --- Генерация ключа и шифрование пароля и IP ---
 SECRET_KEY=$(openssl rand -hex 32)
 
+# Корректное шифрование с отдельным IV
 ENCRYPTED_PANEL_PASS=$(php -r "
-echo base64_encode(substr(\$iv = openssl_random_pseudo_bytes(16),0,16) . openssl_encrypt('$PANEL_PASS','AES-256-CBC','$SECRET_KEY',OPENSSL_RAW_DATA,substr('$SECRET_KEY',0,16)));
+\$iv = openssl_random_pseudo_bytes(16);
+\$enc = openssl_encrypt('$PANEL_PASS', 'AES-256-CBC', '$SECRET_KEY', OPENSSL_RAW_DATA, \$iv);
+echo base64_encode(\$iv . \$enc);
 ")
 
 if [[ -n "$ALLOWED_IPS" ]]; then
     ENCRYPTED_IPS=$(php -r "
-echo base64_encode(substr(\$iv = openssl_random_pseudo_bytes(16),0,16) . openssl_encrypt('$ALLOWED_IPS','AES-256-CBC','$SECRET_KEY',OPENSSL_RAW_DATA,substr('$SECRET_KEY',0,16)));
-")
+    \$iv = openssl_random_pseudo_bytes(16);
+    \$enc = openssl_encrypt('$ALLOWED_IPS', 'AES-256-CBC', '$SECRET_KEY', OPENSSL_RAW_DATA, \$iv);
+    echo base64_encode(\$iv . \$enc);
+    ")
 else
     ENCRYPTED_IPS=""
 fi
