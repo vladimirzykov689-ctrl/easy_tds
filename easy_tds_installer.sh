@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -e
 
 REPO="https://github.com/vladimirzykov689-ctrl/easy_tds.git"
@@ -36,7 +35,6 @@ while true; do
 done
 
 read -rp "Введите домен для панели: " PANEL_DOMAIN
-
 read -rp "Ограничить доступ по IP? (да/нет): " IP_RESTRICT
 ALLOWED_IPS=""
 if [[ "$IP_RESTRICT" =~ ^(да|Да|yes|Yes)$ ]]; then
@@ -47,8 +45,13 @@ echo "=============================="
 echo "Начало установки Easy Tds"
 echo "=============================="
 
+# --- Обновление и установка пакетов ---
+export DEBIAN_FRONTEND=noninteractive  # отключаем интерактивные вопросы для apt
 sudo apt update
-sudo apt install -y php8.1 php8.1-fpm sqlite3 sqlcipher git unzip curl composer nginx
+sudo apt install -y php8.1 php8.1-fpm sqlite3 sqlcipher git unzip curl composer nginx needrestart >/dev/null
+
+# Отключаем needrestart интерактивный режим, чтобы не спрашивал про перезапуск демонов
+sudo sed -i 's/#\$nrconf{restart} = .*/\$nrconf{restart} = "a";/' /etc/needrestart/needrestart.conf || true
 
 sudo systemctl stop apache2 || true
 
@@ -60,10 +63,13 @@ git clone "$REPO" "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR/db"
 mkdir -p "$INSTALL_DIR/geo"
 
+# --- Устанавливаем GeoLite2 через composer ---
 cd "$INSTALL_DIR"
-composer require geoip2/geoip2 >/dev/null 2>&1
+export COMPOSER_ALLOW_SUPERUSER=1
+composer require geoip2/geoip2 --no-interaction --no-progress
 cd -
 
+# --- Создание базы с SQLCipher ---
 sqlcipher "$INSTALL_DIR/db/campaigns.db" <<EOF
 PRAGMA key = '$PANEL_PASS';
 CREATE TABLE IF NOT EXISTS streams (
@@ -91,6 +97,7 @@ CREATE TABLE IF NOT EXISTS logs (
 );
 EOF
 
+# --- Конфигурация Nginx ---
 sudo tee "$NGINX_CONF" > /dev/null <<EOL
 server {
     listen 80;
@@ -116,6 +123,7 @@ EOL
 
 sudo systemctl reload nginx || true
 
+# --- Генерация конфигурации панели ---
 SECRET_KEY=$(openssl rand -hex 32)
 ENCRYPTED_PASS=$(php -r "
 echo base64_encode(substr(\$iv = openssl_random_pseudo_bytes(16),0,16) . openssl_encrypt('$PANEL_PASS', 'AES-256-CBC', '$SECRET_KEY', OPENSSL_RAW_DATA, substr('$SECRET_KEY',0,16)));
@@ -173,6 +181,7 @@ function checkAuth() {
 }
 PHP
 
+# --- Удаление установщика ---
 rm -- "$0"
 
 echo "=============================="
