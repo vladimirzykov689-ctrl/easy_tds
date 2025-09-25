@@ -3,7 +3,7 @@ set -e
 
 REPO="https://github.com/vladimirzykov689-ctrl/easy_tds.git"
 INSTALL_DIR="/var/www/html/easy_tds"
-NGINX_DEFAULT="/etc/nginx/sites-available/default"
+NGINX_CONF="/etc/nginx/sites-available/default"
 
 echo "=============================="
 echo "Добро пожаловать в установщик Easy Tds"
@@ -102,7 +102,7 @@ EOF
 sudo chown -R www-data:www-data "$INSTALL_DIR/db"
 sudo chmod -R 770 "$INSTALL_DIR/db"
 
-sudo tee "$NGINX_DEFAULT" > /dev/null <<EOL
+sudo tee "$NGINX_CONF" > /dev/null <<EOL
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
@@ -193,5 +193,6 @@ echo "Доступ: your_domain/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
+
 
 
