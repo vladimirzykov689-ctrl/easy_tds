@@ -12,7 +12,7 @@ echo "=============================="
 echo "Режимы установщика:"
 echo "1) Установка Easy Tds"
 echo "2) Удаление Easy Tds"
-read -rp "Введите номер режима (1/2): " MODE
+read -rp "Выберите режим (1/2): " MODE
 
 if [[ "$MODE" == "2" ]]; then
     echo "Удаляем Easy Tds..."
@@ -137,11 +137,9 @@ session_start();
 
 define('DB_FILE', __DIR__ . '/db/campaigns.db');
 
-// Хэши логина и пароля
 define('PANEL_USER_HASH', '$PANEL_USER_HASH');
 define('PANEL_PASS_HASH', '$PANEL_PASS_HASH');
 
-// Разрешённые IP (через запятую)
 \$ALLOWED_IPS = '$ALLOWED_IPS';
 
 function getDB() {
@@ -180,10 +178,17 @@ function checkAuth() {
 }
 PHP
 
+sudo chmod 600 "$INSTALL_DIR/config.php"
+sudo chmod 600 "$INSTALL_DIR/dashboard.php"
+sudo chmod 600 "$INSTALL_DIR/new_campaign.php"
+sudo chmod 600 "$INSTALL_DIR/login.php"
+sudo chmod 600 "$INSTALL_DIR/stats.php"
+sudo chmod 600 "$INSTALL_DIR/stream.php"
+sudo chmod 700 "$INSTALL_DIR/logout.php"
+
 echo "=============================="
 echo "Установка Easy Tds завершена!"
 echo "Доступ: $PANEL_DOMAIN/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
-
