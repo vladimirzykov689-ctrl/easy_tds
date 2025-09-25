@@ -130,7 +130,6 @@ EOL
 
 sudo nginx -t && sudo systemctl reload nginx
 
-# Создание config.php с PDO для SQLite
 PANEL_USER_HASH=$(php -r "echo password_hash('$PANEL_USER', PASSWORD_DEFAULT);")
 PANEL_PASS_HASH=$(php -r "echo password_hash('$PANEL_PASS', PASSWORD_DEFAULT);")
 
