@@ -44,12 +44,16 @@ echo "Начало установки Easy Tds"
 echo "=============================="
 
 export DEBIAN_FRONTEND=noninteractive
+sudo systemctl mask packagekit.service || true
+sudo systemctl stop packagekit.service || true
+
 sudo apt update
+
 sudo apt install -y \
 php8.1 php8.1-fpm php8.1-curl php8.1-mbstring php8.1-xml php8.1-zip php8.1-sqlite3 \
-sqlite3 git unzip curl composer nginx
+sqlite3 git unzip curl composer nginx -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
 
-sudo systemctl stop apache2 || true
+sudo systemctl stop apache2
 
 sudo mkdir -p "$INSTALL_DIR"
 sudo chown -R $USER:$USER "$INSTALL_DIR"
@@ -98,9 +102,6 @@ CREATE TABLE IF NOT EXISTS logs (
     ptr TEXT DEFAULT 'UNKNOWN'
 );
 EOF
-
-sudo chown -R www-data:www-data "$INSTALL_DIR/db"
-sudo chmod -R 770 "$INSTALL_DIR/db"
 
 sudo tee "$NGINX_CONF" > /dev/null <<EOL
 server {
@@ -179,13 +180,19 @@ function checkAuth() {
 }
 PHP
 
-sudo chmod 600 "$INSTALL_DIR/config.php"
-sudo chmod 600 "$INSTALL_DIR/dashboard.php"
-sudo chmod 600 "$INSTALL_DIR/new_campaign.php"
-sudo chmod 600 "$INSTALL_DIR/login.php"
-sudo chmod 600 "$INSTALL_DIR/stats.php"
-sudo chmod 600 "$INSTALL_DIR/stream.php"
-sudo chmod 700 "$INSTALL_DIR/logout.php"
+sudo chown www-data:www-data $INSTALL_DIR
+sudo chmod -R 770 "$INSTALL_DIR/db"
+sudo chmod 644 "$INSTALL_DIR/bots"
+sudo chmod 644 "$INSTALL_DIR/css"
+sudo chmod 644 "$INSTALL_DIR/geo"
+sudo chmod 644 "$INSTALL_DIR/img"
+sudo chmod 644 "$INSTALL_DIR/config.php"
+sudo chmod 644 "$INSTALL_DIR/dashboard.php"
+sudo chmod 644 "$INSTALL_DIR/new_campaign.php"
+sudo chmod 644 "$INSTALL_DIR/login.php"
+sudo chmod 644 "$INSTALL_DIR/stats.php"
+sudo chmod 644 "$INSTALL_DIR/stream.php"
+sudo chmod 644 "$INSTALL_DIR/logout.php"
 
 echo "=============================="
 echo "Установка Easy Tds завершена!"
@@ -193,7 +200,3 @@ echo "Доступ: your_domain/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
-
-
-
-
