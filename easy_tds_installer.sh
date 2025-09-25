@@ -209,4 +209,3 @@ echo "Доступ: your_domain/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
-
