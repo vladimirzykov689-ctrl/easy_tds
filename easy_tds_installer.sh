@@ -3,7 +3,7 @@ set -e
 
 REPO="https://github.com/vladimirzykov689-ctrl/easy_tds.git"
 INSTALL_DIR="/var/www/html/easy_tds"
-NGINX_CONF="/etc/nginx/sites-enabled/easy_tds.conf"
+NGINX_DEFAULT="/etc/nginx/sites-available/default"
 
 echo "=============================="
 echo "Добро пожаловать в установщик Easy Tds"
@@ -32,8 +32,6 @@ while true; do
     [[ "$PANEL_PASS" == "$PANEL_PASS_CONFIRM" ]] && break
     echo "Пароли не совпадают, попробуйте снова."
 done
-
-read -p "Введите домен для панели : " PANEL_DOMAIN
 
 read -rp "Ограничить доступ по IP? (да/нет): " IP_RESTRICT
 ALLOWED_IPS=""
@@ -104,10 +102,12 @@ EOF
 sudo chown -R www-data:www-data "$INSTALL_DIR/db"
 sudo chmod -R 770 "$INSTALL_DIR/db"
 
-sudo tee "$NGINX_CONF" > /dev/null <<EOL
+sudo tee "$NGINX_DEFAULT" > /dev/null <<EOL
 server {
-    listen 80;
-    server_name $PANEL_DOMAIN;
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    server_name _;
 
     root $INSTALL_DIR;
     index stream.php;
@@ -127,7 +127,7 @@ server {
 }
 EOL
 
-sudo systemctl reload nginx || true
+sudo nginx -t && sudo systemctl reload nginx
 
 PANEL_USER_HASH=$(php -r "echo password_hash('$PANEL_USER', PASSWORD_DEFAULT);")
 PANEL_PASS_HASH=$(php -r "echo password_hash('$PANEL_PASS', PASSWORD_DEFAULT);")
@@ -193,4 +193,5 @@ echo "Доступ: your_domain/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
+
 
