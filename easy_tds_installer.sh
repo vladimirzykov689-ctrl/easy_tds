@@ -47,7 +47,7 @@ export DEBIAN_FRONTEND=noninteractive
 sudo apt update
 sudo apt install -y \
 php8.1 php8.1-fpm php8.1-curl php8.1-mbstring php8.1-xml php8.1-zip php8.1-sqlite3 \
-sqlite3 git unzip curl composer nginx >/dev/null
+sqlite3 git unzip curl composer nginx
 
 sudo systemctl stop apache2 || true
 
@@ -193,6 +193,7 @@ echo "Доступ: your_domain/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
+
 
 
 
