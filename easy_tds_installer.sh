@@ -59,8 +59,8 @@ sudo mkdir -p "$INSTALL_DIR"
 sudo chown -R $USER:$USER "$INSTALL_DIR"
 
 git clone "$REPO" "$INSTALL_DIR"
-rm -rf /var/www/html/easy_tds/easy_tds_installer.sh
-rm -rf /var/www/html/easy_tds/.git
+rm -rf "$INSTALL_DIR/easy_tds_installer.sh"
+rm -rf "$INSTALL_DIR/.git"
 
 mkdir -p "$INSTALL_DIR/db"
 mkdir -p "$INSTALL_DIR/geo"
@@ -130,6 +130,7 @@ EOL
 
 sudo nginx -t && sudo systemctl reload nginx
 
+# Создание config.php с PDO для SQLite
 PANEL_USER_HASH=$(php -r "echo password_hash('$PANEL_USER', PASSWORD_DEFAULT);")
 PANEL_PASS_HASH=$(php -r "echo password_hash('$PANEL_PASS', PASSWORD_DEFAULT);")
 
@@ -180,19 +181,13 @@ function checkAuth() {
 }
 PHP
 
-sudo chown www-data:www-data $INSTALL_DIR
-sudo chmod -R 770 "$INSTALL_DIR/db"
-sudo chmod 644 "$INSTALL_DIR/bots"
-sudo chmod 644 "$INSTALL_DIR/css"
-sudo chmod 644 "$INSTALL_DIR/geo"
-sudo chmod 644 "$INSTALL_DIR/img"
-sudo chmod 644 "$INSTALL_DIR/config.php"
-sudo chmod 644 "$INSTALL_DIR/dashboard.php"
-sudo chmod 644 "$INSTALL_DIR/new_campaign.php"
-sudo chmod 644 "$INSTALL_DIR/login.php"
-sudo chmod 644 "$INSTALL_DIR/stats.php"
-sudo chmod 644 "$INSTALL_DIR/stream.php"
-sudo chmod 644 "$INSTALL_DIR/logout.php"
+sudo chown -R www-data:www-data "$INSTALL_DIR"
+sudo find "$INSTALL_DIR" -type d -exec chmod 755 {} \;
+sudo find "$INSTALL_DIR" -type f -exec chmod 644 {} \;
+sudo chmod 660 "$INSTALL_DIR/db/campaigns.db"
+
+sudo systemctl restart php8.1-fpm
+sudo systemctl reload nginx
 
 echo "=============================="
 echo "Установка Easy Tds завершена!"
@@ -200,4 +195,3 @@ echo "Доступ: your_domain/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
-
