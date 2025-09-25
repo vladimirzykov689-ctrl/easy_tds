@@ -1,10 +1,10 @@
 <?php
-require __DIR__ . '/config.php'; // session_start() уже вызывается здесь
+require __DIR__ . '/config.php';
 checkIP();
 
 $error = '';
 $maxAttempts = 5;
-$lockoutTime = 300; // 5 минут
+$lockoutTime = 300;
 
 if (!isset($_SESSION['login_attempts'])) $_SESSION['login_attempts'] = 0;
 if (!isset($_SESSION['last_attempt'])) $_SESSION['last_attempt'] = 0;
@@ -20,7 +20,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $_POST['username'] ?? '';
         $pass = $_POST['password'] ?? '';
 
-        // --- Проверка логина и пароля через хэши ---
         if (!empty(PANEL_USER_HASH) && !empty(PANEL_PASS_HASH) &&
             password_verify($user, PANEL_USER_HASH) &&
             password_verify($pass, PANEL_PASS_HASH)) {
