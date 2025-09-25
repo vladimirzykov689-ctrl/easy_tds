@@ -33,6 +33,8 @@ while true; do
     echo "Пароли не совпадают, попробуйте снова."
 done
 
+read -p "Введите домен для панели : " PANEL_DOMAIN
+
 read -rp "Ограничить доступ по IP? (да/нет): " IP_RESTRICT
 ALLOWED_IPS=""
 if [[ "$IP_RESTRICT" =~ ^(да)$ ]]; then
@@ -105,7 +107,7 @@ sudo chmod -R 770 "$INSTALL_DIR/db"
 sudo tee "$NGINX_CONF" > /dev/null <<EOL
 server {
     listen 80;
-    server_name _;
+    server_name $PANEL_DOMAIN;
 
     root $INSTALL_DIR;
     index stream.php;
@@ -191,3 +193,4 @@ echo "Доступ: your_domain/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
+
