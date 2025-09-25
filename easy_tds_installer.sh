@@ -17,7 +17,22 @@ read -rp "Выберите режим (1/2): " MODE
 if [[ "$MODE" == "2" ]]; then
     echo "Удаляем Easy Tds..."
     sudo rm -rf "$INSTALL_DIR"
-    sudo rm -f "$NGINX_CONF"
+    sudo tee "$NGINX_CONF" > /dev/null << 'EOF'
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    root /var/www/html;
+    index index.html index.htm index.nginx-debian.html;
+
+    server_name _;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+EOF
+
     sudo systemctl reload nginx || true
     echo "Удаление завершено!"
     exit 0
@@ -194,3 +209,4 @@ echo "Доступ: your_domain/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
+
