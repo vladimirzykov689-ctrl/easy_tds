@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
+initDB();
 checkIP();
 
 $error = '';
@@ -26,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $_SESSION['username'] = $user;
             $_SESSION['login_attempts'] = 0;
-            header('Location: dashboard.php');
+            header('Location: campaigns.php');
             exit;
         } else {
             $_SESSION['login_attempts']++;
