@@ -222,7 +222,8 @@ sudo systemctl reload nginx
 
 echo "=============================="
 echo "Установка Easy Tds завершена!"
-echo "Доступ: your_domain/login.php"
+echo "Доступ: ip or your_domain/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
+
