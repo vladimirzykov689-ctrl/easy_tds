@@ -54,12 +54,6 @@ if [[ "$IP_RESTRICT" =~ ^(да)$ ]]; then
     read -rp "Введите IP-адреса через запятую (без пробелов): " ALLOWED_IPS
 fi
 
-read -rp "Установить SSL сертификат? (да/нет): " INSTALL_SSL
-SSL_DOMAIN=""
-if [[ "$INSTALL_SSL" =~ ^(да)$ ]]; then
-    read -rp "Введите домен (например: example.com): " SSL_DOMAIN
-fi
-
 echo "=============================="
 echo "Начало установки Easy Tds"
 echo "=============================="
@@ -236,27 +230,22 @@ sudo chmod 660 "$INSTALL_DIR/db/campaigns.db"
 sudo systemctl restart php8.1-fpm
 sudo systemctl reload nginx
 
-# ========== SSL ==========
-if [[ "$INSTALL_SSL" =~ ^(да)$ ]] && [[ -n "$SSL_DOMAIN" ]]; then
-    echo "=============================="
-    echo "Установка SSL сертификата..."
-    echo "=============================="
+# ========== Certbot ==========
+echo "Установка Certbot для управления SSL из панели..."
+sudo apt install -y certbot python3-certbot-nginx -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
 
-    sudo apt install -y certbot python3-certbot-nginx -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
+# Автопродление
+(crontab -l 2>/dev/null | grep -q 'certbot renew') || (crontab -l 2>/dev/null; echo "0 3 * * * certbot renew --quiet --nginx") | crontab -
+(crontab -l 2>/dev/null | grep -q 'reload nginx') || (crontab -l 2>/dev/null; echo "30 3 * * * systemctl reload nginx") | crontab -
 
-    sudo certbot --nginx -d "$SSL_DOMAIN" --non-interactive --agree-tos --register-unsafely-without-email --redirect
-
-    # Автопродление через cron (каждый день в 3:00 и 3:30)
-    (crontab -l 2>/dev/null | grep -v certbot; echo "0 3 * * * certbot renew --quiet --nginx") | crontab -
-    (crontab -l 2>/dev/null | grep -v "nginx -s reload"; echo "30 3 * * * systemctl reload nginx") | crontab -
-
-    echo "Доступ: https://your_ip или your_domain/login.php"
-else
-    echo "Доступ: http://your_ip или your_domain/login.php"
-fi
+# Разрешаем www-data запускать certbot через sudo без пароля (для управления SSL из панели)
+echo "www-data ALL=(ALL) NOPASSWD: /usr/bin/certbot, /usr/sbin/nginx" | sudo tee /etc/sudoers.d/easytds-certbot > /dev/null
+sudo chmod 440 /etc/sudoers.d/easytds-certbot
 
 echo "=============================="
 echo "Установка Easy Tds завершена!"
+echo "Доступ: http://your_ip/login.php"
+echo "Для HTTPS: Учетная запись -> Редактировать SSL домены"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
