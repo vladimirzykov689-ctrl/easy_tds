@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $_SESSION['username'] = $user;
             $_SESSION['login_attempts'] = 0;
-            header('Location: campaigns.php');
+            header('Location: main.php');
             exit;
         } else {
             $_SESSION['login_attempts']++;
