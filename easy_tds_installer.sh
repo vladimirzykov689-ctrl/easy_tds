@@ -244,8 +244,8 @@ sudo chmod 440 /etc/sudoers.d/easytds-certbot
 
 echo "=============================="
 echo "Установка Easy Tds завершена!"
-echo "Доступ: http://your_ip/login.php"
-echo "Для HTTPS: Учетная запись -> Редактировать SSL домены"
+echo "Доступ: http://your_ip или your_domain /login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
+
