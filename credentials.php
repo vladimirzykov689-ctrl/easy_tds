@@ -6,7 +6,85 @@ checkIP();
 
 $errors  = [];
 $success = '';
-$sslOutput = '';
+
+/**
+ * Удаляет redirect-блок certbot для указанного домена.
+ *
+ * Certbot добавляет примерно такой блок:
+ *   server {
+ *       listen 80;
+ *       server_name example.com;
+ *       return 301 https://example.com$request_uri;
+ *   }
+ *
+ * Функция находит server-блок, в котором одновременно присутствуют:
+ *   - server_name, содержащий нужный домен
+ *   - return 301 https://<домен>
+ * и удаляет его целиком, не трогая другие блоки.
+ */
+function removeRedirectBlock(string $nginx, string $domain): string
+{
+    $lines  = explode("\n", $nginx);
+    $total  = count($lines);
+    $result = [];
+    $i      = 0;
+
+    while ($i < $total) {
+        // Ищем начало server-блока
+        if (!preg_match('/^\s*server\s*\{/', $lines[$i])) {
+            $result[] = $lines[$i];
+            $i++;
+            continue;
+        }
+
+        // Собираем весь блок, считая вложенные { }
+        $blockLines = [];
+        $depth      = 0;
+        $j          = $i;
+
+        while ($j < $total) {
+            $blockLines[] = $lines[$j];
+            $depth += substr_count($lines[$j], '{');
+            $depth -= substr_count($lines[$j], '}');
+            $j++;
+            if ($depth <= 0) {
+                break; // блок закрыт
+            }
+        }
+
+        $blockText    = implode("\n", $blockLines);
+        $domainQuoted = preg_quote($domain, '/');
+
+        // Проверяем: есть ли в блоке server_name с нашим доменом
+        $hasServerName = (bool) preg_match(
+            '/^\s*server_name\s+[^\n]*\b' . $domainQuoted . '\b/m',
+            $blockText
+        );
+        // Проверяем: есть ли return 301 на наш домен (certbot-редирект)
+        $hasReturn301 = (bool) preg_match(
+            '/^\s*return\s+301\s+https:\/\/' . $domainQuoted . '[\/\s$]/m',
+            $blockText
+        );
+
+        if ($hasServerName && $hasReturn301) {
+            // Это redirect-блок нашего домена — пропускаем его целиком.
+            // Также убираем пустую строку перед блоком, если она есть.
+            if (!empty($result) && trim(end($result)) === '') {
+                array_pop($result);
+            }
+            $i = $j;
+            continue;
+        }
+
+        // Обычный блок — оставляем как есть
+        foreach ($blockLines as $bl) {
+            $result[] = $bl;
+        }
+        $i = $j;
+    }
+
+    return implode("\n", $result);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -62,44 +140,106 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newAllowedIPs = implode(',', $ipList);
     }
 
-    // --- SSL домены ---
+    // --- SSL домен (только один за раз) ---
     if (in_array($sslAction, ['add', 'remove'])) {
-        $domainsRaw = trim($_POST['ssl_domains'] ?? '');
-        $domainList = array_filter(array_map('trim', explode(',', $domainsRaw)));
+        $domain = trim($_POST['ssl_domain'] ?? '');
 
-        if (empty($domainList)) {
-            $errors[] = 'Укажите хотя бы один домен для SSL.';
+        if (empty($domain)) {
+            $errors[] = 'Укажите домен.';
+        } elseif (!preg_match('/^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/', $domain)) {
+            $errors[] = 'Некорректный домен: ' . htmlspecialchars($domain);
         } else {
-            // Валидация доменов
-            foreach ($domainList as $d) {
-                if (!preg_match('/^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/', $d)) {
-                    $errors[] = 'Некорректный домен: ' . htmlspecialchars($d);
+            if ($sslAction === 'add') {
+                $cmd = "sudo certbot --nginx -d " . escapeshellarg($domain) . " --non-interactive --agree-tos --register-unsafely-without-email --redirect > /dev/null 2>&1; echo $?";
+                $exitCode = trim(shell_exec($cmd));
+
+                shell_exec("(crontab -l 2>/dev/null | grep -q 'certbot renew') || (crontab -l 2>/dev/null; echo '0 3 * * * certbot renew --quiet --nginx') | crontab -");
+                shell_exec("(crontab -l 2>/dev/null | grep -q 'reload nginx') || (crontab -l 2>/dev/null; echo '30 3 * * * systemctl reload nginx') | crontab -");
+
+                if ($exitCode === '0') {
+                    $success = 'SSL сертификат успешно выдан для: ' . $domain;
+                } else {
+                    $errors[] = 'Certbot вернул ошибку. Убедитесь что домен ' . htmlspecialchars($domain) . ' указывает на этот сервер.';
                 }
-            }
 
-            if (empty($errors)) {
-                if ($sslAction === 'add') {
-                    // Формируем -d домен1 -d домен2 ...
-                    $dArgs = implode(' ', array_map(fn($d) => '-d ' . escapeshellarg($d), $domainList));
-                    $cmd = "sudo certbot --nginx $dArgs --non-interactive --agree-tos --register-unsafely-without-email --redirect 2>&1";
-                    $sslOutput = shell_exec($cmd);
+            } elseif ($sslAction === 'remove') {
+                // 1. Удаляем сертификат и ключ из /etc/letsencrypt/
+                shell_exec("sudo certbot delete --cert-name " . escapeshellarg($domain) . " --non-interactive 2>/dev/null");
 
-                    // Настраиваем автопродление если ещё не настроено
-                    shell_exec("(crontab -l 2>/dev/null | grep -q 'certbot renew') || (crontab -l 2>/dev/null; echo '0 3 * * * certbot renew --quiet --nginx') | crontab -");
-                    shell_exec("(crontab -l 2>/dev/null | grep -q 'reload nginx') || (crontab -l 2>/dev/null; echo '30 3 * * * systemctl reload nginx') | crontab -");
+                // 2. Патчим /etc/nginx/sites-enabled/default построчно —
+                //    удаляем только строки, содержащие путь к сертификату именно этого домена.
+                //    Строки других доменов не затрагиваются.
+                $nginxConf = '/etc/nginx/sites-enabled/default';
+                $nginx = file_get_contents($nginxConf);
 
-                    if (strpos($sslOutput, 'Congratulations') !== false || strpos($sslOutput, 'Certificate not yet due') !== false || strpos($sslOutput, 'Successfully') !== false) {
-                        $success = 'SSL сертификат успешно выдан для: ' . implode(', ', $domainList);
-                    } else {
-                        $errors[] = 'Certbot вернул ошибку. Убедитесь что домены указывают на этот сервер.';
+                if ($nginx !== false) {
+                    $domainPattern = preg_quote($domain, '/');
+                    $lines  = explode("\n", $nginx);
+                    $result = [];
+                    $i      = 0;
+
+                    while ($i < count($lines)) {
+                        $line = $lines[$i];
+
+                        // Удаляем строки ssl_certificate и ssl_certificate_key только для этого домена
+                        if (preg_match('/^\s*ssl_certificate(?:_key)?\s+[^\n]*\/live\/' . $domainPattern . '\//i', $line)) {
+                            // Пропускаем и предшествующий комментарий "# managed by Certbot" если он есть
+                            if (!empty($result) && preg_match('/^\s*#[^\n]*managed by Certbot/i', end($result))) {
+                                array_pop($result);
+                            }
+                            $i++;
+                            continue;
+                        }
+
+                        // Удаляем listen 443 ssl — но только если после удаления сертификата
+                        // этого домена в конфиге не осталось других ssl_certificate.
+                        // Решение: собираем сначала, проверим после цикла.
+
+                        // Удаляем строки include options-ssl-nginx и ssl_dhparam —
+                        // они глобальные (один экземпляр на весь блок), удаляем только если
+                        // это последний домен с SSL (т.е. других ssl_certificate не останется).
+                        // Решение: тоже после цикла.
+
+                        $result[] = $line;
+                        $i++;
                     }
 
-                } elseif ($sslAction === 'remove') {
-                    foreach ($domainList as $domain) {
-                        $cmd = "sudo certbot delete --cert-name " . escapeshellarg($domain) . " --non-interactive 2>&1";
-                        $sslOutput .= shell_exec($cmd) . "\n";
+                    $nginx = implode("\n", $result);
+
+                    // Проверяем: остались ли ещё ssl_certificate от других доменов?
+                    $hasOtherSSL = (bool) preg_match('/^\s*ssl_certificate\s+/m', $nginx);
+
+                    if (!$hasOtherSSL) {
+                        // Последний SSL-домен удалён — убираем общие ssl-директивы и listen 443
+                        $nginx = preg_replace('/^\s*listen\s+443\s+ssl[^\n]*\n?/m',         '', $nginx);
+                        $nginx = preg_replace('/^\s*listen\s+\[::\]:443\s+ssl[^\n]*\n?/m',  '', $nginx);
+                        $nginx = preg_replace('/^\s*include\s+[^\n]*options-ssl-nginx[^\n]*\n?/m', '', $nginx);
+                        $nginx = preg_replace('/^\s*ssl_dhparam\s+[^\n]+\n?/m',             '', $nginx);
+                        // Убираем оставшиеся комментарии "# managed by Certbot" без пары
+                        $nginx = preg_replace('/^\s*#[^\n]*managed by Certbot[^\n]*\n?/m',  '', $nginx);
+                        // Восстанавливаем listen 80 если certbot его убрал при --redirect
+                        if (!preg_match('/^\s*listen\s+80/m', $nginx)) {
+                            $nginx = preg_replace('/(\bserver\s*\{)/', "$1\n    listen 80;\n    listen [::]:80;", $nginx, 1);
+                        }
                     }
-                    $success = 'Сертификаты удалены для: ' . implode(', ', $domainList);
+
+                    // Удаляем redirect-блок certbot для этого домена построчно.
+                    // Ищем server { ... }, который содержит server_name с нашим доменом
+                    // и return 301 https://domain — и удаляем его целиком.
+                    $nginx = removeRedirectBlock($nginx, $domain);
+
+                    file_put_contents($nginxConf, $nginx);
+                }
+
+                // 3. Проверяем конфиг и перезагружаем nginx только если он валиден
+                $testCode = trim(shell_exec("sudo nginx -t > /dev/null 2>&1; echo $?"));
+                $testOut  = shell_exec("sudo nginx -t 2>&1");
+
+                if ($testCode === '0') {
+                    shell_exec("sudo systemctl reload nginx > /dev/null 2>&1");
+                    $success = 'Сертификат удалён для: ' . htmlspecialchars($domain);
+                } else {
+                    $errors[] = 'Сертификат удалён, но nginx -t вернул ошибку — перезагрузка отменена. Проверьте конфиг вручную: ' . htmlspecialchars($testOut);
                 }
             }
         }
@@ -122,8 +262,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $configContent
         );
         $configContent = str_replace(
-            "$ALLOWED_IPS = '" . ($oldIP[1] ?? '') . "';",
-            "$ALLOWED_IPS = '" . $newAllowedIPs . "';",
+            '$ALLOWED_IPS = \'' . ($oldIP[1] ?? '') . '\';',
+            '$ALLOWED_IPS = \'' . $newAllowedIPs . '\';',
             $configContent
         );
 
@@ -140,9 +280,6 @@ $configContent = file_get_contents(__DIR__ . '/config.php');
 preg_match("/\\\$ALLOWED_IPS\s*=\s*'([^']*)';/", $configContent, $mIP);
 $currentIPs = $mIP[1] ?? '';
 
-// Текущие сертификаты
-$certList = shell_exec("sudo certbot certificates 2>/dev/null | grep 'Domains:' | sed 's/.*Domains: //'") ?? '';
-$certList = trim($certList);
 ?>
 <!DOCTYPE html>
 <html>
@@ -315,9 +452,6 @@ window.addEventListener('DOMContentLoaded', function () {
                     </div>
                 <?php endif; ?>
 
-                <?php if (!empty($sslOutput)): ?>
-                    <div style="background:#1a1a35;border:1px solid #444;border-radius:5px;padding:10px;margin-bottom:15px;font-family:monospace;font-size:12px;color:#ccc;white-space:pre-wrap;max-height:150px;overflow-y:auto;"><?= htmlspecialchars($sslOutput) ?></div>
-                <?php endif; ?>
 
                 <form method="post">
 
@@ -371,12 +505,10 @@ window.addEventListener('DOMContentLoaded', function () {
                     </select>
 
                     <div id="section_ssl" style="display:none;">
-                        <label for="ssl_domains">Список доменов:</label>
-                        <textarea id="ssl_domains" name="ssl_domains"><?= htmlspecialchars($_POST['ssl_domains'] ?? '') ?></textarea>
-                        <div class="note">Укажите домены через запятую. Например: domain1.com,domain2.com</div>
-                        <?php if (!empty($certList)): ?>
-                            <div class="note" style="margin-top:5px;">Текущие сертификаты: <strong style="color:#9b00ff;"><?= htmlspecialchars($certList) ?></strong></div>
-                        <?php endif; ?>
+                        <label for="ssl_domain">Домен:</label>
+                        <input type="text" id="ssl_domain" name="ssl_domain"
+                               value="<?= htmlspecialchars($_POST['ssl_domain'] ?? '') ?>"
+                               placeholder="example.com" autocomplete="off">
                     </div>
 
                     <button type="submit">Сохранить изменения</button>
