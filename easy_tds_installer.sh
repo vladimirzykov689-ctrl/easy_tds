@@ -220,7 +220,7 @@ sudo chown -R www-data:www-data "$INSTALL_DIR"
 
 # Папки
 sudo find "$INSTALL_DIR" -type d -exec chmod 755 {} \;
-sudo chmod 750 "$INSTALL_DIR/db"
+sudo chmod 770 "$INSTALL_DIR/db"
 
 # Файлы
 sudo find "$INSTALL_DIR" -type f -exec chmod 644 {} \;
