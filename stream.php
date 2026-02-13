@@ -24,6 +24,7 @@ $excluded = [
     'campaigns.php',
     'new_campaign.php',
     'stats.php',
+    'bots.php',
     'logout.php',
     'login.php',
     'style.css',
@@ -270,3 +271,4 @@ function cidrMatch($ip, $cidr) {
     }
     return true;
 }
+
