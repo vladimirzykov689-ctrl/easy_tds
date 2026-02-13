@@ -25,6 +25,7 @@ $excluded = [
     'new_campaign.php',
     'stats.php',
     'bots.php',
+    'credentials.php',
     'logout.php',
     'login.php',
     'style.css',
