@@ -117,7 +117,7 @@ server {
         deny all;
     }
 
-    location ~ ^/(db|config\.php)/ {
+    location ~ ^/(db/|config\.php$) {
         deny all;
     }
 }
