@@ -6,15 +6,17 @@ checkIP();
 
 $errors  = [];
 $success = '';
+$sslOutput = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $changeLogin = ($_POST['change_login'] ?? 'no') === 'yes';
     $changePass  = ($_POST['change_pass']  ?? 'no') === 'yes';
     $changeIP    = ($_POST['change_ip']    ?? 'no') === 'yes';
+    $sslAction   = $_POST['ssl_action']   ?? 'none';
 
     // Читаем текущий config.php
-    $configPath = __DIR__ . '/config.php';
+    $configPath    = __DIR__ . '/config.php';
     $configContent = file_get_contents($configPath);
 
     // Извлекаем текущие хэши
@@ -30,7 +32,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($changeLogin) {
         $currentLogin = trim($_POST['current_login'] ?? '');
         $newLogin     = trim($_POST['new_login'] ?? '');
-
         if (empty($currentLogin) || empty($newLogin)) {
             $errors[] = 'Заполните оба поля для смены логина.';
         } elseif (!password_verify($currentLogin, $currentUserHash)) {
@@ -44,7 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($changePass) {
         $currentPass = trim($_POST['current_pass'] ?? '');
         $newPass     = trim($_POST['new_pass'] ?? '');
-
         if (empty($currentPass) || empty($newPass)) {
             $errors[] = 'Заполните оба поля для смены пароля.';
         } elseif (!password_verify($currentPass, $currentPassHash)) {
@@ -57,15 +57,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // --- Смена IP ---
     $newAllowedIPs = '';
     if ($changeIP) {
-        $ipRaw = trim($_POST['allowed_ips'] ?? '');
+        $ipRaw  = trim($_POST['allowed_ips'] ?? '');
         $ipList = array_filter(array_map('trim', explode(',', $ipRaw)));
         $newAllowedIPs = implode(',', $ipList);
     }
 
-    // Записываем если нет ошибок
-    if (empty($errors)) {
-        // Используем str_replace вместо preg_replace —
-        // bcrypt хэши содержат $2y$10$... что preg_replace воспринимает как backreferences
+    // --- SSL домены ---
+    if (in_array($sslAction, ['add', 'remove'])) {
+        $domainsRaw = trim($_POST['ssl_domains'] ?? '');
+        $domainList = array_filter(array_map('trim', explode(',', $domainsRaw)));
+
+        if (empty($domainList)) {
+            $errors[] = 'Укажите хотя бы один домен для SSL.';
+        } else {
+            // Валидация доменов
+            foreach ($domainList as $d) {
+                if (!preg_match('/^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/', $d)) {
+                    $errors[] = 'Некорректный домен: ' . htmlspecialchars($d);
+                }
+            }
+
+            if (empty($errors)) {
+                if ($sslAction === 'add') {
+                    // Формируем -d домен1 -d домен2 ...
+                    $dArgs = implode(' ', array_map(fn($d) => '-d ' . escapeshellarg($d), $domainList));
+                    $cmd = "sudo certbot --nginx $dArgs --non-interactive --agree-tos --register-unsafely-without-email --redirect 2>&1";
+                    $sslOutput = shell_exec($cmd);
+
+                    // Настраиваем автопродление если ещё не настроено
+                    shell_exec("(crontab -l 2>/dev/null | grep -q 'certbot renew') || (crontab -l 2>/dev/null; echo '0 3 * * * certbot renew --quiet --nginx') | crontab -");
+                    shell_exec("(crontab -l 2>/dev/null | grep -q 'reload nginx') || (crontab -l 2>/dev/null; echo '30 3 * * * systemctl reload nginx') | crontab -");
+
+                    if (strpos($sslOutput, 'Congratulations') !== false || strpos($sslOutput, 'Certificate not yet due') !== false || strpos($sslOutput, 'Successfully') !== false) {
+                        $success = 'SSL сертификат успешно выдан для: ' . implode(', ', $domainList);
+                    } else {
+                        $errors[] = 'Certbot вернул ошибку. Убедитесь что домены указывают на этот сервер.';
+                    }
+
+                } elseif ($sslAction === 'remove') {
+                    foreach ($domainList as $domain) {
+                        $cmd = "sudo certbot delete --cert-name " . escapeshellarg($domain) . " --non-interactive 2>&1";
+                        $sslOutput .= shell_exec($cmd) . "\n";
+                    }
+                    $success = 'Сертификаты удалены для: ' . implode(', ', $domainList);
+                }
+            }
+        }
+    }
+
+    // --- Записываем config.php если нет ошибок ---
+    if (empty($errors) && ($changeLogin || $changePass || $changeIP)) {
         preg_match("/define\('PANEL_USER_HASH',\s*'([^']*)'\)/", $configContent, $oldUser);
         preg_match("/define\('PANEL_PASS_HASH',\s*'([^']*)'\)/", $configContent, $oldPass);
         preg_match("/\$ALLOWED_IPS\s*=\s*'([^']*)';/", $configContent, $oldIP);
@@ -98,6 +139,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $configContent = file_get_contents(__DIR__ . '/config.php');
 preg_match("/\\\$ALLOWED_IPS\s*=\s*'([^']*)';/", $configContent, $mIP);
 $currentIPs = $mIP[1] ?? '';
+
+// Текущие сертификаты
+$certList = shell_exec("sudo certbot certificates 2>/dev/null | grep 'Domains:' | sed 's/.*Domains: //'") ?? '';
+$certList = trim($certList);
 ?>
 <!DOCTYPE html>
 <html>
@@ -112,10 +157,15 @@ function toggleSection(selectId, sectionId) {
     const val = document.getElementById(selectId).value;
     document.getElementById(sectionId).style.display = val === 'yes' ? 'block' : 'none';
 }
+function toggleSSL() {
+    const val = document.getElementById('ssl_action').value;
+    document.getElementById('section_ssl').style.display = (val === 'add' || val === 'remove') ? 'block' : 'none';
+}
 window.addEventListener('DOMContentLoaded', function () {
     toggleSection('change_login', 'section_login');
     toggleSection('change_pass',  'section_pass');
     toggleSection('change_ip',    'section_ip');
+    toggleSSL();
 });
 </script>
 </head>
@@ -245,7 +295,6 @@ window.addEventListener('DOMContentLoaded', function () {
 
         </ul>
     </nav>
-    <!-- /sidebar -->
 
     <!-- ========== PAGE CONTENT ========== -->
     <div class="page-content">
@@ -266,6 +315,10 @@ window.addEventListener('DOMContentLoaded', function () {
                     </div>
                 <?php endif; ?>
 
+                <?php if (!empty($sslOutput)): ?>
+                    <div style="background:#1a1a35;border:1px solid #444;border-radius:5px;padding:10px;margin-bottom:15px;font-family:monospace;font-size:12px;color:#ccc;white-space:pre-wrap;max-height:150px;overflow-y:auto;"><?= htmlspecialchars($sslOutput) ?></div>
+                <?php endif; ?>
+
                 <form method="post">
 
                     <!-- === Смена логина === -->
@@ -278,7 +331,6 @@ window.addEventListener('DOMContentLoaded', function () {
                     <div id="section_login" style="display:none;">
                         <label for="current_login">Текущий логин:</label>
                         <input type="text" id="current_login" name="current_login" autocomplete="off">
-
                         <label for="new_login">Новый логин:</label>
                         <input type="text" id="new_login" name="new_login" autocomplete="off">
                     </div>
@@ -293,7 +345,6 @@ window.addEventListener('DOMContentLoaded', function () {
                     <div id="section_pass" style="display:none;">
                         <label for="current_pass">Текущий пароль:</label>
                         <input type="password" id="current_pass" name="current_pass" autocomplete="off">
-
                         <label for="new_pass">Новый пароль:</label>
                         <input type="password" id="new_pass" name="new_pass" autocomplete="off">
                     </div>
@@ -309,6 +360,23 @@ window.addEventListener('DOMContentLoaded', function () {
                         <label for="allowed_ips">Список IP-адресов:</label>
                         <textarea id="allowed_ips" name="allowed_ips"><?= htmlspecialchars($currentIPs) ?></textarea>
                         <div class="note">Укажите IP-адреса через запятую. Например: 192.168.1.1,10.0.0.1</div>
+                    </div>
+
+                    <!-- === SSL домены === -->
+                    <label for="ssl_action">Редактировать SSL домены:</label>
+                    <select id="ssl_action" name="ssl_action" onchange="toggleSSL()">
+                        <option value="none">Нет</option>
+                        <option value="add" <?= ($_POST['ssl_action'] ?? '') === 'add' ? 'selected' : '' ?>>Добавить</option>
+                        <option value="remove" <?= ($_POST['ssl_action'] ?? '') === 'remove' ? 'selected' : '' ?>>Удалить</option>
+                    </select>
+
+                    <div id="section_ssl" style="display:none;">
+                        <label for="ssl_domains">Список доменов:</label>
+                        <textarea id="ssl_domains" name="ssl_domains"><?= htmlspecialchars($_POST['ssl_domains'] ?? '') ?></textarea>
+                        <div class="note">Укажите домены через запятую. Например: domain1.com,domain2.com</div>
+                        <?php if (!empty($certList)): ?>
+                            <div class="note" style="margin-top:5px;">Текущие сертификаты: <strong style="color:#9b00ff;"><?= htmlspecialchars($certList) ?></strong></div>
+                        <?php endif; ?>
                     </div>
 
                     <button type="submit">Сохранить изменения</button>
