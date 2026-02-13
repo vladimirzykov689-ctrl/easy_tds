@@ -78,7 +78,7 @@ rm -rf "$INSTALL_DIR/easy_tds_installer.sh"
 rm -rf "$INSTALL_DIR/.git"
 
 mkdir -p "$INSTALL_DIR/db"
-mkdir -p "$INSTALL_DIR/geo"
+touch "$INSTALL_DIR/db/campaigns.db"
 
 if ! command -v composer >/dev/null 2>&1; then
     php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
@@ -226,5 +226,3 @@ echo "Доступ: your_ip или your_domain/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
-
-
