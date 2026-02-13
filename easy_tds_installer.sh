@@ -54,6 +54,12 @@ if [[ "$IP_RESTRICT" =~ ^(да)$ ]]; then
     read -rp "Введите IP-адреса через запятую (без пробелов): " ALLOWED_IPS
 fi
 
+read -rp "Установить SSL сертификат? (да/нет): " INSTALL_SSL
+SSL_DOMAIN=""
+if [[ "$INSTALL_SSL" =~ ^(да)$ ]]; then
+    read -rp "Введите домен (например: example.com): " SSL_DOMAIN
+fi
+
 echo "=============================="
 echo "Начало установки Easy Tds"
 echo "=============================="
@@ -230,9 +236,27 @@ sudo chmod 660 "$INSTALL_DIR/db/campaigns.db"
 sudo systemctl restart php8.1-fpm
 sudo systemctl reload nginx
 
+# ========== SSL ==========
+if [[ "$INSTALL_SSL" =~ ^(да)$ ]] && [[ -n "$SSL_DOMAIN" ]]; then
+    echo "=============================="
+    echo "Установка SSL сертификата..."
+    echo "=============================="
+
+    sudo apt install -y certbot python3-certbot-nginx -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
+
+    sudo certbot --nginx -d "$SSL_DOMAIN" --non-interactive --agree-tos --register-unsafely-without-email --redirect
+
+    # Автопродление через cron (каждый день в 3:00 и 3:30)
+    (crontab -l 2>/dev/null | grep -v certbot; echo "0 3 * * * certbot renew --quiet --nginx") | crontab -
+    (crontab -l 2>/dev/null | grep -v "nginx -s reload"; echo "30 3 * * * systemctl reload nginx") | crontab -
+
+    echo "Доступ: https://your_ip или your_domain/login.php"
+else
+    echo "Доступ: http://your_ip или your_domain/login.php"
+fi
+
 echo "=============================="
 echo "Установка Easy Tds завершена!"
-echo "Доступ: your_ip или your_domain/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
