@@ -92,31 +92,7 @@ composer init --name="easytds/geolite2" --require="geoip2/geoip2:^3.2" --no-inte
 composer install --no-interaction --no-progress >/dev/null 2>&1
 cd -
 
-sqlite3 "$INSTALL_DIR/db/campaigns.db" <<EOF
-CREATE TABLE IF NOT EXISTS streams (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    slug TEXT NOT NULL UNIQUE,
-    url TEXT NOT NULL,
-    geo_filter_type TEXT NOT NULL DEFAULT 'none',
-    geo_filter_list TEXT,
-    geo_redirect_urls TEXT,
-    bot_filter TEXT NOT NULL DEFAULT 'off',
-    bot_redirect_urls TEXT
-);
-CREATE TABLE IF NOT EXISTS logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    stream_id INTEGER NOT NULL,
-    device TEXT NOT NULL,
-    ip TEXT NOT NULL,
-    geo TEXT NOT NULL,
-    provider TEXT,
-    keyword TEXT,
-    timestamp DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now','localtime')),
-    useragent TEXT,
-    ptr TEXT DEFAULT 'UNKNOWN'
-);
-EOF
+# Таблицы БД создаются автоматически при первом обращении к панели (initDB в config.php)
 
 sudo tee "$NGINX_CONF" > /dev/null <<EOL
 server {
@@ -162,6 +138,47 @@ define('PANEL_PASS_HASH', '$PANEL_PASS_HASH');
 function getDB() {
     \$db = new PDO('sqlite:' . DB_FILE);
     \$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    return \$db;
+}
+
+function initDB() {
+    \$db = getDB();
+
+    \$db->exec("CREATE TABLE IF NOT EXISTS streams (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        url TEXT NOT NULL,
+        geo_filter_type TEXT NOT NULL DEFAULT 'none',
+        geo_filter_list TEXT,
+        geo_redirect_urls TEXT,
+        bot_filter TEXT NOT NULL DEFAULT 'off',
+        bot_redirect_urls TEXT
+    )");
+
+    \$db->exec("CREATE TABLE IF NOT EXISTS logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        stream_id INTEGER NOT NULL,
+        device TEXT NOT NULL,
+        ip TEXT NOT NULL,
+        geo TEXT NOT NULL,
+        provider TEXT,
+        keyword TEXT,
+        timestamp DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now','localtime')),
+        useragent TEXT,
+        ptr TEXT DEFAULT 'UNKNOWN'
+    )");
+
+    \$db->exec("CREATE TABLE IF NOT EXISTS bot_settings (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        filter_ip  TEXT NOT NULL DEFAULT 'no',
+        filter_isp TEXT NOT NULL DEFAULT 'no',
+        filter_ptr TEXT NOT NULL DEFAULT 'no',
+        filter_ua  TEXT NOT NULL DEFAULT 'no'
+    )");
+
+    \$db->exec("INSERT OR IGNORE INTO bot_settings (id) VALUES (1)");
+
     return \$db;
 }
 
