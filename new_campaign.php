@@ -95,7 +95,7 @@ window.addEventListener('DOMContentLoaded', () => {
         <span></span>
         <span></span>
     </button>
-    <span class="top-header-title">Easy TDS</span>
+    <a href="main.php" class="top-header-title" style="text-decoration:none; color:inherit;">Easy TDS</a>
 </header>
 
 <!-- ========== MAIN WRAPPER ========== -->
