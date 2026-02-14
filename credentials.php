@@ -62,9 +62,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newAllowedIPs = implode(',', $ipList);
     }
 
-    // --- SSL домены (можно указать несколько через запятую) ---
-    if (in_array($sslAction, ['add', 'remove'])) {
-        $rawDomains = trim($_POST['ssl_domain'] ?? '');
+    // ---  домены (можно указать несколько через запятую) ---
+    if (in_array($Action, ['add', 'remove'])) {
+        $rawDomains = trim($_POST['_domain'] ?? '');
 
         if (empty($rawDomains)) {
             $errors[] = 'Укажите домен.';
@@ -428,7 +428,7 @@ window.addEventListener('DOMContentLoaded', function () {
                     </div>
 
                     <!-- === SSL домены === -->
-                    <label for="ssl_action">Редактировать SSL домены:</label>
+                    <label for="ssl_action">SSL для доменов:</label>
                     <select id="ssl_action" name="ssl_action" onchange="toggleSSL()">
                         <option value="none">Нет</option>
                         <option value="add" <?= ($_POST['ssl_action'] ?? '') === 'add' ? 'selected' : '' ?>>Добавить</option>
@@ -494,3 +494,4 @@ window.addEventListener('DOMContentLoaded', function () {
 
 </body>
 </html>
+
