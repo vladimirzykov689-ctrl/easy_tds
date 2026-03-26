@@ -172,8 +172,9 @@ EOF
 sudo chown -R www-data:www-data "$INSTALL_DIR"
 sudo find "$INSTALL_DIR" -type d -exec chmod 755 {} \;
 sudo chmod 770 "$INSTALL_DIR/db"
+sudo chmod 750 "$INSTALL_DIR/geo"
 sudo find "$INSTALL_DIR" -type f -exec chmod 644 {} \;
-sudo chmod 640 "$INSTALL_DIR/config.php"
+sudo find "$INSTALL_DIR" -name "*.php" -exec chmod 640 {} \;
 sudo chmod 660 "$INSTALL_DIR/db/campaigns.db"
 
 sudo systemctl restart php8.1-fpm
