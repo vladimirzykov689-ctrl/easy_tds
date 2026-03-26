@@ -170,7 +170,7 @@ server {
     }
 
     location / {
-        try_files $uri $uri/ /stream.php;
+        try_files $uri $uri/ /stream.php$is_args$args;
     }
 
     location ~ \.php$ {
