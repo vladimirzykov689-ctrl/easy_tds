@@ -21,12 +21,9 @@ if [[ "$MODE" == "2" ]]; then
 server {
 listen 80 default_server;
 listen [::]:80 default_server;
-
 root /var/www/html;
 index index.html index.htm index.nginx-debian.html;
-
 server_name _;
-
 location / {
 try_files $uri $uri/ =404;
 }
@@ -62,10 +59,11 @@ sudo systemctl mask packagekit.service || true
 sudo systemctl stop packagekit.service || true
 
 sudo apt update
-
 sudo apt install -y \
     php8.1 php8.1-fpm php8.1-curl php8.1-mbstring php8.1-xml php8.1-zip php8.1-sqlite3 \
-    sqlite3 git unzip curl composer nginx -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
+    sqlite3 git unzip curl composer nginx \
+    -o Dpkg::Options::="--force-confdef" \
+    -o Dpkg::Options::="--force-confold"
 
 sudo systemctl stop apache2 || true
 
@@ -91,88 +89,79 @@ composer init --name="easytds/geolite2" --require="geoip2/geoip2:^3.2" --no-inte
 composer install --no-interaction --no-progress >/dev/null 2>&1
 cd -
 
-# Генерация config.php через временный файл
-PANEL_USER_ESC=$(printf '%s' "$PANEL_USER" | sed "s/'/\\\\'/g")
-PANEL_PASS_ESC=$(printf '%s' "$PANEL_PASS" | sed "s/'/\\\\'/g")
-ALLOWED_IPS_ESC=$(printf '%s' "$ALLOWED_IPS" | sed "s/'/\\\\'/g")
+# Создаём make_config.php через printf — без heredoc, без экранирования
+MCP=/tmp/make_config.php
+printf '%s\n' '<?php' > $MCP
+printf '%s\n' '$user       = $argv[1];' >> $MCP
+printf '%s\n' '$pass       = $argv[2];' >> $MCP
+printf '%s\n' '$allowedIps = $argv[3];' >> $MCP
+printf '%s\n' '$installDir = $argv[4];' >> $MCP
+printf '%s\n' '$userHash = password_hash($user, PASSWORD_BCRYPT);' >> $MCP
+printf '%s\n' '$passHash = password_hash($pass, PASSWORD_BCRYPT);' >> $MCP
+printf '%s\n' '$c  = "<?php\n";' >> $MCP
+printf '%s\n' '$c .= "session_start();\n";' >> $MCP
+printf '%s\n' '$c .= "\$ALLOWED_IPS = \"" . $allowedIps . "\";\n";' >> $MCP
+printf '%s\n' '$c .= "define('"'"'PANEL_USER_HASH'"'"', '"'"'" . $userHash . "'"'"');\n";' >> $MCP
+printf '%s\n' '$c .= "define('"'"'PANEL_PASS_HASH'"'"', '"'"'" . $passHash . "'"'"');\n";' >> $MCP
+printf '%s\n' '$c .= "define('"'"'DB_PATH'"'"', '"'"'" . $installDir . "'"'"'/db/tds.db'"'"');\n\n";' >> $MCP
+printf '%s\n' '$c .= "function getDB() {\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db = new PDO('"'"'sqlite:'"'"' . DB_PATH);\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);\n";' >> $MCP
+printf '%s\n' '$c .= "    return \$db;\n";' >> $MCP
+printf '%s\n' '$c .= "}\n\n";' >> $MCP
+printf '%s\n' '$c .= "function initDB() {\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db = getDB();\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS streams (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, url TEXT NOT NULL, geo_filter_type TEXT NOT NULL DEFAULT '"'"'none'"'"', geo_filter_list TEXT, geo_redirect_urls TEXT, bot_filter TEXT NOT NULL DEFAULT '"'"'off'"'"', bot_redirect_urls TEXT)\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, stream_id INTEGER NOT NULL, device TEXT NOT NULL, ip TEXT NOT NULL, geo TEXT NOT NULL, provider TEXT, keyword TEXT, timestamp DATETIME NOT NULL DEFAULT (strftime('"'"'%Y-%m-%d %H:%M:%S'"'"','"'"'now'"'"','"'"'localtime'"'"')), useragent TEXT, ptr TEXT DEFAULT '"'"'UNKNOWN'"'"')\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS bot_settings (id INTEGER PRIMARY KEY DEFAULT 1, filter_ip TEXT NOT NULL DEFAULT '"'"'no'"'"', filter_isp TEXT NOT NULL DEFAULT '"'"'no'"'"', filter_ptr TEXT NOT NULL DEFAULT '"'"'no'"'"', filter_ua TEXT NOT NULL DEFAULT '"'"'no'"'"')\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\"INSERT OR IGNORE INTO bot_settings (id) VALUES (1)\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_stream_id ON logs(stream_id)\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON logs(timestamp)\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_geo ON logs(geo)\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_device ON logs(device)\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_keyword ON logs(keyword)\");\n";' >> $MCP
+printf '%s\n' '$c .= "    return \$db;\n";' >> $MCP
+printf '%s\n' '$c .= "}\n\n";' >> $MCP
+printf '%s\n' '$c .= "function checkIP() {\n";' >> $MCP
+printf '%s\n' '$c .= "    global \$ALLOWED_IPS;\n";' >> $MCP
+printf '%s\n' '$c .= "    if (!empty(\$ALLOWED_IPS)) {\n";' >> $MCP
+printf '%s\n' '$c .= "        if (!empty(\$_SERVER['"'"'HTTP_CF_CONNECTING_IP'"'"'])) {\n";' >> $MCP
+printf '%s\n' '$c .= "            \$clientIP = \$_SERVER['"'"'HTTP_CF_CONNECTING_IP'"'"'];\n";' >> $MCP
+printf '%s\n' '$c .= "        } elseif (!empty(\$_SERVER['"'"'HTTP_X_FORWARDED_FOR'"'"'])) {\n";' >> $MCP
+printf '%s\n' '$c .= "            \$clientIP = trim(explode('"'"','"'"', \$_SERVER['"'"'HTTP_X_FORWARDED_FOR'"'"'])[0]);\n";' >> $MCP
+printf '%s\n' '$c .= "        } else {\n";' >> $MCP
+printf '%s\n' '$c .= "            \$clientIP = \$_SERVER['"'"'REMOTE_ADDR'"'"'];\n";' >> $MCP
+printf '%s\n' '$c .= "        }\n";' >> $MCP
+printf '%s\n' '$c .= "        \$ips = array_map('"'"'trim'"'"', explode('"'"','"'"', \$ALLOWED_IPS));\n";' >> $MCP
+printf '%s\n' '$c .= "        if (!in_array(\$clientIP, \$ips)) {\n";' >> $MCP
+printf '%s\n' '$c .= "            header('"'"'HTTP/1.0 403 Forbidden'"'"');\n";' >> $MCP
+printf '%s\n' '$c .= "            exit('"'"'Access denied: your IP is not allowed. Your IP: '"'"' . \$clientIP);\n";' >> $MCP
+printf '%s\n' '$c .= "        }\n";' >> $MCP
+printf '%s\n' '$c .= "    }\n";' >> $MCP
+printf '%s\n' '$c .= "}\n\n";' >> $MCP
+printf '%s\n' '$c .= "function checkAuth() {\n";' >> $MCP
+printf '%s\n' '$c .= "    checkIP();\n";' >> $MCP
+printf '%s\n' '$c .= "    if (!isset(\$_SESSION['"'"'username'"'"'])) {\n";' >> $MCP
+printf '%s\n' '$c .= "        header('"'"'Location: login.php'"'"');\n";' >> $MCP
+printf '%s\n' '$c .= "        exit;\n";' >> $MCP
+printf '%s\n' '$c .= "    }\n";' >> $MCP
+printf '%s\n' '$c .= "}\n";' >> $MCP
+printf '%s\n' 'file_put_contents($installDir . "/config.php", $c);' >> $MCP
+printf '%s\n' 'echo "config.php создан успешно" . PHP_EOL;' >> $MCP
 
-php -r "
-\$userHash = password_hash('${PANEL_USER_ESC}', PASSWORD_BCRYPT);
-\$passHash = password_hash('${PANEL_PASS_ESC}', PASSWORD_BCRYPT);
-\$allowedIps = '${ALLOWED_IPS_ESC}';
-\$installDir = '${INSTALL_DIR}';
-
-\$c  = '<?php' . PHP_EOL;
-\$c .= 'session_start();' . PHP_EOL;
-\$c .= '\\\$ALLOWED_IPS = \"' . \$allowedIps . '\";' . PHP_EOL;
-\$c .= 'define(\'PANEL_USER_HASH\', \'' . \$userHash . '\');' . PHP_EOL;
-\$c .= 'define(\'PANEL_PASS_HASH\', \'' . \$passHash . '\');' . PHP_EOL;
-\$c .= 'define(\'DB_PATH\', \'' . \$installDir . '/db/tds.db\');' . PHP_EOL;
-\$c .= '' . PHP_EOL;
-\$c .= 'function getDB() {' . PHP_EOL;
-\$c .= '    \\\$db = new PDO(\'sqlite:\' . DB_PATH);' . PHP_EOL;
-\$c .= '    \\\$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);' . PHP_EOL;
-\$c .= '    return \\\$db;' . PHP_EOL;
-\$c .= '}' . PHP_EOL;
-\$c .= '' . PHP_EOL;
-\$c .= 'function initDB() {' . PHP_EOL;
-\$c .= '    \\\$db = getDB();' . PHP_EOL;
-\$c .= '    \\\$db->exec(\"CREATE TABLE IF NOT EXISTS streams (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, url TEXT NOT NULL, geo_filter_type TEXT NOT NULL DEFAULT \'none\', geo_filter_list TEXT, geo_redirect_urls TEXT, bot_filter TEXT NOT NULL DEFAULT \'off\', bot_redirect_urls TEXT)\");' . PHP_EOL;
-\$c .= '    \\\$db->exec(\"CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, stream_id INTEGER NOT NULL, device TEXT NOT NULL, ip TEXT NOT NULL, geo TEXT NOT NULL, provider TEXT, keyword TEXT, timestamp DATETIME NOT NULL DEFAULT (strftime(\'%Y-%m-%d %H:%M:%S\',\'now\',\'localtime\')), useragent TEXT, ptr TEXT DEFAULT \'UNKNOWN\')\");' . PHP_EOL;
-\$c .= '    \\\$db->exec(\"CREATE TABLE IF NOT EXISTS bot_settings (id INTEGER PRIMARY KEY DEFAULT 1, filter_ip TEXT NOT NULL DEFAULT \'no\', filter_isp TEXT NOT NULL DEFAULT \'no\', filter_ptr TEXT NOT NULL DEFAULT \'no\', filter_ua TEXT NOT NULL DEFAULT \'no\')\");' . PHP_EOL;
-\$c .= '    \\\$db->exec(\"INSERT OR IGNORE INTO bot_settings (id) VALUES (1)\");' . PHP_EOL;
-\$c .= '    \\\$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_stream_id ON logs(stream_id)\");' . PHP_EOL;
-\$c .= '    \\\$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON logs(timestamp)\");' . PHP_EOL;
-\$c .= '    \\\$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_geo ON logs(geo)\");' . PHP_EOL;
-\$c .= '    \\\$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_device ON logs(device)\");' . PHP_EOL;
-\$c .= '    \\\$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_keyword ON logs(keyword)\");' . PHP_EOL;
-\$c .= '    return \\\$db;' . PHP_EOL;
-\$c .= '}' . PHP_EOL;
-\$c .= '' . PHP_EOL;
-\$c .= 'function checkIP() {' . PHP_EOL;
-\$c .= '    global \\\$ALLOWED_IPS;' . PHP_EOL;
-\$c .= '    if (!empty(\\\$ALLOWED_IPS)) {' . PHP_EOL;
-\$c .= '        if (!empty(\\\$_SERVER[\'HTTP_CF_CONNECTING_IP\'])) {' . PHP_EOL;
-\$c .= '            \\\$clientIP = \\\$_SERVER[\'HTTP_CF_CONNECTING_IP\'];' . PHP_EOL;
-\$c .= '        } elseif (!empty(\\\$_SERVER[\'HTTP_X_FORWARDED_FOR\'])) {' . PHP_EOL;
-\$c .= '            \\\$clientIP = trim(explode(\',\', \\\$_SERVER[\'HTTP_X_FORWARDED_FOR\'])[0]);' . PHP_EOL;
-\$c .= '        } else {' . PHP_EOL;
-\$c .= '            \\\$clientIP = \\\$_SERVER[\'REMOTE_ADDR\'];' . PHP_EOL;
-\$c .= '        }' . PHP_EOL;
-\$c .= '        \\\$ips = array_map(\'trim\', explode(\',\', \\\$ALLOWED_IPS));' . PHP_EOL;
-\$c .= '        if (!in_array(\\\$clientIP, \\\$ips)) {' . PHP_EOL;
-\$c .= '            header(\'HTTP/1.0 403 Forbidden\');' . PHP_EOL;
-\$c .= '            exit(\'Access denied: your IP is not allowed. Your IP: \' . \\\$clientIP);' . PHP_EOL;
-\$c .= '        }' . PHP_EOL;
-\$c .= '    }' . PHP_EOL;
-\$c .= '}' . PHP_EOL;
-\$c .= '' . PHP_EOL;
-\$c .= 'function checkAuth() {' . PHP_EOL;
-\$c .= '    checkIP();' . PHP_EOL;
-\$c .= '    if (!isset(\\\$_SESSION[\'username\'])) {' . PHP_EOL;
-\$c .= '        header(\'Location: login.php\');' . PHP_EOL;
-\$c .= '        exit;' . PHP_EOL;
-\$c .= '    }' . PHP_EOL;
-\$c .= '}' . PHP_EOL;
-
-file_put_contents('${INSTALL_DIR}/config.php', \$c);
-echo 'config.php создан успешно' . PHP_EOL;
-"
+php $MCP "$PANEL_USER" "$PANEL_PASS" "$ALLOWED_IPS" "$INSTALL_DIR"
+rm $MCP
 
 sudo tee "$NGINX_CONF" > /dev/null << 'EOF'
 server {
 listen 80 default_server;
 listen [::]:80 default_server;
-
 root /var/www/html/easy_tds;
 index index.php index.html;
-
 server_name _;
-
 location / {
 try_files $uri $uri/ /stream.php;
 }
-
 location ~ \.php$ {
 include snippets/fastcgi-php.conf;
 fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
@@ -181,10 +170,8 @@ fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
 EOF
 
 sudo chown -R www-data:www-data "$INSTALL_DIR"
-
 sudo find "$INSTALL_DIR" -type d -exec chmod 755 {} \;
 sudo chmod 770 "$INSTALL_DIR/db"
-
 sudo find "$INSTALL_DIR" -type f -exec chmod 644 {} \;
 sudo chmod 640 "$INSTALL_DIR/config.php"
 sudo chmod 660 "$INSTALL_DIR/db/tds.db"
@@ -194,7 +181,9 @@ sudo systemctl reload nginx
 
 echo "=============================="
 echo "Установка Certbot для управления SSL из панели..."
-sudo apt install -y certbot python3-certbot-nginx -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
+sudo apt install -y certbot python3-certbot-nginx \
+    -o Dpkg::Options::="--force-confdef" \
+    -o Dpkg::Options::="--force-confold"
 
 (crontab -l 2>/dev/null | grep -q 'certbot renew') || (crontab -l 2>/dev/null; echo "0 3 * * * certbot renew --quiet --nginx") | crontab -
 (crontab -l 2>/dev/null | grep -q 'reload nginx') || (crontab -l 2>/dev/null; echo "30 3 * * * systemctl reload nginx") | crontab -
@@ -204,7 +193,7 @@ sudo chmod 440 /etc/sudoers.d/easytds-certbot
 
 echo "=============================="
 echo "Установка Easy Tds завершена!"
-echo "Доступ: http://your_ip или your_domain/login.php"
+echo "Доступ: http://your_ip/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
