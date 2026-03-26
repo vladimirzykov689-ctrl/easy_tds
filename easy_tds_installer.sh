@@ -100,7 +100,7 @@ printf '%s\n' '$userHash = password_hash($user, PASSWORD_BCRYPT);' >> $MCP
 printf '%s\n' '$passHash = password_hash($pass, PASSWORD_BCRYPT);' >> $MCP
 printf '%s\n' '$c  = "<?php\n";' >> $MCP
 printf '%s\n' '$c .= "session_start();\n";' >> $MCP
-printf '%s\n' '$c .= "\$ALLOWED_IPS = \"" . $allowedIps . "\";\n";' >> $MCP
+printf '%s\n' '$c .= "\$ALLOWED_IPS = '\''" . $allowedIps . "'\'';\n";' >> $MCP
 printf '%s\n' '$c .= "define('"'"'PANEL_USER_HASH'"'"', '"'"'" . $userHash . "'"'"');\n";' >> $MCP
 printf '%s\n' '$c .= "define('"'"'PANEL_PASS_HASH'"'"', '"'"'" . $passHash . "'"'"');\n";' >> $MCP
 printf '%s\n' '$c .= "define('"'"'DB_PATH'"'"', '"'"'" . $installDir . "/db/campaigns.db'"'"');\n\n";' >> $MCP
