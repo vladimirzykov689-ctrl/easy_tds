@@ -92,99 +92,97 @@ composer init --name="easytds/geolite2" --require="geoip2/geoip2:^3.2" --no-inte
 composer install --no-interaction --no-progress >/dev/null 2>&1
 cd -
 
-PANEL_USER_HASH=$(php -r "echo password_hash('${PANEL_USER}', PASSWORD_BCRYPT);")
-PANEL_PASS_HASH=$(php -r "echo password_hash('${PANEL_PASS}', PASSWORD_BCRYPT);")
+php -r "
+\$user = '${PANEL_USER}';
+\$pass = '${PANEL_PASS}';
+\$allowedIps = '${ALLOWED_IPS}';
+\$userHash = password_hash(\$user, PASSWORD_BCRYPT);
+\$passHash = password_hash(\$pass, PASSWORD_BCRYPT);
 
-cat > "$INSTALL_DIR/config.php" << PHP
-<?php
-\$ALLOWED_IPS = "${ALLOWED_IPS}";
-
-define('PANEL_USER_HASH', '${PANEL_USER_HASH}');
-define('PANEL_PASS_HASH', '${PANEL_PASS_HASH}');
-
+\$config = '<?php' . PHP_EOL;
+\$config .= '\$ALLOWED_IPS = ' . var_export(\$allowedIps, true) . ';' . PHP_EOL;
+\$config .= PHP_EOL;
+\$config .= 'define(\'PANEL_USER_HASH\', ' . var_export(\$userHash, true) . ');' . PHP_EOL;
+\$config .= 'define(\'PANEL_PASS_HASH\', ' . var_export(\$passHash, true) . ');' . PHP_EOL;
+\$config .= '
 function getDB() {
-\$dbPath = __DIR__ . '/db/campaigns.db';
-\$db = new PDO('sqlite:' . \$dbPath);
-\$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-return \$db;
+    \$dbPath = __DIR__ . \'/db/campaigns.db\';
+    \$db = new PDO(\'sqlite:\' . \$dbPath);
+    \$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    return \$db;
 }
 
 function initDB() {
-\$db = getDB();
-
-\$db->exec("CREATE TABLE IF NOT EXISTS streams (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-name TEXT NOT NULL,
-slug TEXT NOT NULL UNIQUE,
-url TEXT NOT NULL,
-geo_filter_type TEXT NOT NULL DEFAULT 'none',
-geo_filter_list TEXT,
-geo_redirect_urls TEXT,
-bot_filter TEXT NOT NULL DEFAULT 'off',
-bot_redirect_urls TEXT
-)");
-
-\$db->exec("CREATE TABLE IF NOT EXISTS logs (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-stream_id INTEGER NOT NULL,
-device TEXT NOT NULL,
-ip TEXT NOT NULL,
-geo TEXT NOT NULL,
-provider TEXT,
-keyword TEXT,
-timestamp DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now','localtime')),
-useragent TEXT,
-ptr TEXT DEFAULT 'UNKNOWN'
-)");
-
-\$db->exec("CREATE TABLE IF NOT EXISTS bot_settings (
-id INTEGER PRIMARY KEY DEFAULT 1,
-filter_ip TEXT NOT NULL DEFAULT 'no',
-filter_isp TEXT NOT NULL DEFAULT 'no',
-filter_ptr TEXT NOT NULL DEFAULT 'no',
-filter_ua TEXT NOT NULL DEFAULT 'no'
-)");
-
-\$db->exec("INSERT OR IGNORE INTO bot_settings (id) VALUES (1)");
-
-\$db->exec("CREATE INDEX IF NOT EXISTS idx_logs_stream_id ON logs(stream_id)");
-\$db->exec("CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON logs(timestamp)");
-\$db->exec("CREATE INDEX IF NOT EXISTS idx_logs_geo ON logs(geo)");
-\$db->exec("CREATE INDEX IF NOT EXISTS idx_logs_device ON logs(device)");
-\$db->exec("CREATE INDEX IF NOT EXISTS idx_logs_keyword ON logs(keyword)");
-
-return \$db;
+    \$db = getDB();
+    \$db->exec(\"CREATE TABLE IF NOT EXISTS streams (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        url TEXT NOT NULL,
+        geo_filter_type TEXT NOT NULL DEFAULT \'none\',
+        geo_filter_list TEXT,
+        geo_redirect_urls TEXT,
+        bot_filter TEXT NOT NULL DEFAULT \'off\',
+        bot_redirect_urls TEXT
+    )\");
+    \$db->exec(\"CREATE TABLE IF NOT EXISTS logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        stream_id INTEGER NOT NULL,
+        device TEXT NOT NULL,
+        ip TEXT NOT NULL,
+        geo TEXT NOT NULL,
+        provider TEXT,
+        keyword TEXT,
+        timestamp DATETIME NOT NULL DEFAULT (strftime(\'%Y-%m-%d %H:%M:%S\',\'now\',\'localtime\')),
+        useragent TEXT,
+        ptr TEXT DEFAULT \'UNKNOWN\'
+    )\");
+    \$db->exec(\"CREATE TABLE IF NOT EXISTS bot_settings (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        filter_ip TEXT NOT NULL DEFAULT \'no\',
+        filter_isp TEXT NOT NULL DEFAULT \'no\',
+        filter_ptr TEXT NOT NULL DEFAULT \'no\',
+        filter_ua TEXT NOT NULL DEFAULT \'no\'
+    )\");
+    \$db->exec(\"INSERT OR IGNORE INTO bot_settings (id) VALUES (1)\");
+    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_stream_id ON logs(stream_id)\");
+    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON logs(timestamp)\");
+    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_geo ON logs(geo)\");
+    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_device ON logs(device)\");
+    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_keyword ON logs(keyword)\");
+    return \$db;
 }
 
 function checkIP() {
-global \$ALLOWED_IPS;
-
-if (!empty(\$ALLOWED_IPS)) {
-if (!empty(\$_SERVER['HTTP_CF_CONNECTING_IP'])) {
-\$clientIP = \$_SERVER['HTTP_CF_CONNECTING_IP'];
-} elseif (!empty(\$_SERVER['HTTP_X_FORWARDED_FOR'])) {
-\$clientIP = trim(explode(',', \$_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
-} else {
-\$clientIP = \$_SERVER['REMOTE_ADDR'];
-}
-
-\$ips = array_map('trim', explode(',', \$ALLOWED_IPS));
-
-if (!in_array(\$clientIP, \$ips)) {
-header('HTTP/1.0 403 Forbidden');
-exit('Access denied: your IP is not allowed. Your IP: ' . \$clientIP);
-}
-}
+    global \$ALLOWED_IPS;
+    if (!empty(\$ALLOWED_IPS)) {
+        if (!empty(\$_SERVER[\'HTTP_CF_CONNECTING_IP\'])) {
+            \$clientIP = \$_SERVER[\'HTTP_CF_CONNECTING_IP\'];
+        } elseif (!empty(\$_SERVER[\'HTTP_X_FORWARDED_FOR\'])) {
+            \$clientIP = trim(explode(\',\', \$_SERVER[\'HTTP_X_FORWARDED_FOR\'])[0]);
+        } else {
+            \$clientIP = \$_SERVER[\'REMOTE_ADDR\'];
+        }
+        \$ips = array_map(\'trim\', explode(\',\', \$ALLOWED_IPS));
+        if (!in_array(\$clientIP, \$ips)) {
+            header(\'HTTP/1.0 403 Forbidden\');
+            exit(\'Access denied: your IP is not allowed. Your IP: \' . \$clientIP);
+        }
+    }
 }
 
 function checkAuth() {
-checkIP();
-if (!isset(\$_SESSION['username'])) {
-header('Location: login.php');
-exit;
+    checkIP();
+    if (!isset(\$_SESSION[\'username\'])) {
+        header(\'Location: login.php\');
+        exit;
+    }
 }
-}
-PHP
+';
+
+file_put_contents('${INSTALL_DIR}/config.php', \$config);
+echo 'config.php создан успешно' . PHP_EOL;
+"
 
 sudo tee "$NGINX_CONF" > /dev/null << 'EOF'
 server {
