@@ -1,8 +1,10 @@
 <?php
 session_start();
 
-require_once __DIR__ . '/vendor/autoload.php';
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/geo/vendor/autoload.php';
+require_once __DIR__ . '/config.php';
+
+$db = getDB();
 
 use GeoIp2\Database\Reader;
 
