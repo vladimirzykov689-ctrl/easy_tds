@@ -165,7 +165,7 @@ server {
         deny all;
     }
 
-    location ~* ^/(config|credentials)\.php$ {
+    location ~* ^/config\.php$ {
         deny all;
     }
 
