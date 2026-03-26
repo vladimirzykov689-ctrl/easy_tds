@@ -154,18 +154,29 @@ rm $MCP
 
 sudo tee "$NGINX_CONF" > /dev/null << 'EOF'
 server {
-listen 80 default_server;
-listen [::]:80 default_server;
-root /var/www/html/easy_tds;
-index index.php index.html;
-server_name _;
-location / {
-try_files $uri $uri/ /stream.php;
-}
-location ~ \.php$ {
-include snippets/fastcgi-php.conf;
-fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
-}
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    root /var/www/html/easy_tds;
+    index index.php index.html;
+    server_name _;
+    server_tokens off;
+
+    location ^~ /db/ {
+        deny all;
+    }
+
+    location ~* ^/(config|credentials)\.php$ {
+        deny all;
+    }
+
+    location / {
+        try_files $uri $uri/ /stream.php;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+    }
 }
 EOF
 
