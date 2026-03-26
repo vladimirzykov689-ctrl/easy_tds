@@ -15,43 +15,43 @@ echo "2) Удаление Easy Tds"
 read -rp "Выберите режим (1/2): " MODE
 
 if [[ "$MODE" == "2" ]]; then
-    echo "Удаляем Easy Tds..."
-    sudo rm -rf "$INSTALL_DIR"
-    sudo tee "$NGINX_CONF" > /dev/null << 'EOF'
+echo "Удаляем Easy Tds..."
+sudo rm -rf "$INSTALL_DIR"
+sudo tee "$NGINX_CONF" > /dev/null << 'EOF'
 server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
+listen 80 default_server;
+listen [::]:80 default_server;
 
-    root /var/www/html;
-    index index.html index.htm index.nginx-debian.html;
+root /var/www/html;
+index index.html index.htm index.nginx-debian.html;
 
-    server_name _;
+server_name _;
 
-    location / {
-        try_files $uri $uri/ =404;
-    }
+location / {
+try_files $uri $uri/ =404;
+}
 }
 EOF
 
-    sudo systemctl reload nginx || true
-    echo "Удаление завершено!"
-    exit 0
+sudo systemctl reload nginx || true
+echo "Удаление завершено!"
+exit 0
 fi
 
 read -rp "Введите желаемый логин: " PANEL_USER
 while true; do
-    read -rp "Введите желаемый пароль: " PANEL_PASS
-    echo
-    read -rp "Подтвердите свой пароль: " PANEL_PASS_CONFIRM
-    echo
-    [[ "$PANEL_PASS" == "$PANEL_PASS_CONFIRM" ]] && break
-    echo "Пароли не совпадают, попробуйте снова."
+read -rp "Введите желаемый пароль: " PANEL_PASS
+echo
+read -rp "Подтвердите свой пароль: " PANEL_PASS_CONFIRM
+echo
+[[ "$PANEL_PASS" == "$PANEL_PASS_CONFIRM" ]] && break
+echo "Пароли не совпадают, попробуйте снова."
 done
 
 read -rp "Ограничить доступ по IP? (да/нет): " IP_RESTRICT
 ALLOWED_IPS=""
 if [[ "$IP_RESTRICT" =~ ^(да)$ ]]; then
-    read -rp "Введите IP-адреса через запятую (без пробелов): " ALLOWED_IPS
+read -rp "Введите IP-адреса через запятую (без пробелов): " ALLOWED_IPS
 fi
 
 echo "=============================="
@@ -81,9 +81,9 @@ mkdir -p "$INSTALL_DIR/db"
 touch "$INSTALL_DIR/db/campaigns.db"
 
 if ! command -v composer >/dev/null 2>&1; then
-    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-    php composer-setup.php --install-dir=/usr/local/bin --filename=composer >/dev/null 2>&1
-    rm composer-setup.php
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+php composer-setup.php --install-dir=/usr/local/bin --filename=composer >/dev/null 2>&1
+rm composer-setup.php
 fi
 
 cd "$INSTALL_DIR/geo"
@@ -92,137 +92,122 @@ composer init --name="easytds/geolite2" --require="geoip2/geoip2:^3.2" --no-inte
 composer install --no-interaction --no-progress >/dev/null 2>&1
 cd -
 
-# Таблицы БД создаются автоматически при первом обращении к панели (initDB в config.php)
-
-sudo tee "$NGINX_CONF" > /dev/null <<EOL
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-
-    server_name _;
-
-    root $INSTALL_DIR;
-    index stream.php;
-
-    location / {
-        try_files \$uri \$uri/ /stream.php?\$query_string;
-    }
-
-    location ~ \.php\$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
-    }
-
-    location ~ /\.ht {
-        deny all;
-    }
-
-    location ~ ^/(db/|config\.php$) {
-        deny all;
-    }
-}
-EOL
-
-sudo nginx -t && sudo systemctl reload nginx
-
-PANEL_USER_HASH=$(php -r "echo password_hash('$PANEL_USER', PASSWORD_DEFAULT);")
-PANEL_PASS_HASH=$(php -r "echo password_hash('$PANEL_PASS', PASSWORD_DEFAULT);")
-
-cat > "$INSTALL_DIR/config.php" <<PHP
+cat > "$INSTALL_DIR/config.php" << PHP
 <?php
-session_start();
-
-define('DB_FILE', __DIR__ . '/db/campaigns.db');
-
-define('PANEL_USER_HASH', '$PANEL_USER_HASH');
-define('PANEL_PASS_HASH', '$PANEL_PASS_HASH');
-
-\$ALLOWED_IPS = '$ALLOWED_IPS';
+\$ALLOWED_IPS = "${ALLOWED_IPS}";
+\$PANEL_USER  = "${PANEL_USER}";
+\$PANEL_PASS  = "${PANEL_PASS}";
 
 function getDB() {
-    \$db = new PDO('sqlite:' . DB_FILE);
-    \$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    return \$db;
+\$dbPath = __DIR__ . '/db/campaigns.db';
+\$db = new PDO('sqlite:' . \$dbPath);
+\$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+return \$db;
 }
 
 function initDB() {
-    \$db = getDB();
+\$db = getDB();
 
-    \$db->exec("CREATE TABLE IF NOT EXISTS streams (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        slug TEXT NOT NULL UNIQUE,
-        url TEXT NOT NULL,
-        geo_filter_type TEXT NOT NULL DEFAULT 'none',
-        geo_filter_list TEXT,
-        geo_redirect_urls TEXT,
-        bot_filter TEXT NOT NULL DEFAULT 'off',
-        bot_redirect_urls TEXT
-    )");
+\$db->exec("CREATE TABLE IF NOT EXISTS streams (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+name TEXT NOT NULL,
+slug TEXT NOT NULL UNIQUE,
+url TEXT NOT NULL,
+geo_filter_type TEXT NOT NULL DEFAULT 'none',
+geo_filter_list TEXT,
+geo_redirect_urls TEXT,
+bot_filter TEXT NOT NULL DEFAULT 'off',
+bot_redirect_urls TEXT
+)");
 
-    \$db->exec("CREATE TABLE IF NOT EXISTS logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        stream_id INTEGER NOT NULL,
-        device TEXT NOT NULL,
-        ip TEXT NOT NULL,
-        geo TEXT NOT NULL,
-        provider TEXT,
-        keyword TEXT,
-        timestamp DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now','localtime')),
-        useragent TEXT,
-        ptr TEXT DEFAULT 'UNKNOWN'
-    )");
+\$db->exec("CREATE TABLE IF NOT EXISTS logs (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+stream_id INTEGER NOT NULL,
+device TEXT NOT NULL,
+ip TEXT NOT NULL,
+geo TEXT NOT NULL,
+provider TEXT,
+keyword TEXT,
+timestamp DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now','localtime')),
+useragent TEXT,
+ptr TEXT DEFAULT 'UNKNOWN'
+)");
 
-    \$db->exec("CREATE TABLE IF NOT EXISTS bot_settings (
-        id INTEGER PRIMARY KEY DEFAULT 1,
-        filter_ip  TEXT NOT NULL DEFAULT 'no',
-        filter_isp TEXT NOT NULL DEFAULT 'no',
-        filter_ptr TEXT NOT NULL DEFAULT 'no',
-        filter_ua  TEXT NOT NULL DEFAULT 'no'
-    )");
+\$db->exec("CREATE TABLE IF NOT EXISTS bot_settings (
+id INTEGER PRIMARY KEY DEFAULT 1,
+filter_ip TEXT NOT NULL DEFAULT 'no',
+filter_isp TEXT NOT NULL DEFAULT 'no',
+filter_ptr TEXT NOT NULL DEFAULT 'no',
+filter_ua TEXT NOT NULL DEFAULT 'no'
+)");
 
-    \$db->exec("INSERT OR IGNORE INTO bot_settings (id) VALUES (1)");
+\$db->exec("INSERT OR IGNORE INTO bot_settings (id) VALUES (1)");
 
-    return \$db;
+\$db->exec("CREATE INDEX IF NOT EXISTS idx_logs_stream_id ON logs(stream_id)");
+\$db->exec("CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON logs(timestamp)");
+\$db->exec("CREATE INDEX IF NOT EXISTS idx_logs_geo ON logs(geo)");
+\$db->exec("CREATE INDEX IF NOT EXISTS idx_logs_device ON logs(device)");
+\$db->exec("CREATE INDEX IF NOT EXISTS idx_logs_keyword ON logs(keyword)");
+
+return \$db;
 }
 
 function checkIP() {
-    global \$ALLOWED_IPS;
+global \$ALLOWED_IPS;
 
-    if (!empty(\$ALLOWED_IPS)) {
-        if (!empty(\$_SERVER['HTTP_CF_CONNECTING_IP'])) {
-            \$clientIP = \$_SERVER['HTTP_CF_CONNECTING_IP'];
-        } elseif (!empty(\$_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            \$clientIP = trim(explode(',', \$_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
-        } else {
-            \$clientIP = \$_SERVER['REMOTE_ADDR'];
-        }
+if (!empty(\$ALLOWED_IPS)) {
+if (!empty(\$_SERVER['HTTP_CF_CONNECTING_IP'])) {
+\$clientIP = \$_SERVER['HTTP_CF_CONNECTING_IP'];
+} elseif (!empty(\$_SERVER['HTTP_X_FORWARDED_FOR'])) {
+\$clientIP = trim(explode(',', \$_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
+} else {
+\$clientIP = \$_SERVER['REMOTE_ADDR'];
+}
 
-        \$ips = array_map('trim', explode(',', \$ALLOWED_IPS));
+\$ips = array_map('trim', explode(',', \$ALLOWED_IPS));
 
-        if (!in_array(\$clientIP, \$ips)) {
-            header('HTTP/1.0 403 Forbidden');
-            exit('Access denied: your IP is not allowed. Your IP: ' . \$clientIP);
-        }
-    }
+if (!in_array(\$clientIP, \$ips)) {
+header('HTTP/1.0 403 Forbidden');
+exit('Access denied: your IP is not allowed. Your IP: ' . \$clientIP);
+}
+}
 }
 
 function checkAuth() {
-    checkIP();
-    if (!isset(\$_SESSION['username'])) {
-        header('Location: login.php');
-        exit;
-    }
+checkIP();
+if (!isset(\$_SESSION['username'])) {
+header('Location: login.php');
+exit;
+}
 }
 PHP
 
+sudo tee "$NGINX_CONF" > /dev/null << 'EOF'
+server {
+listen 80 default_server;
+listen [::]:80 default_server;
+
+root /var/www/html/easy_tds;
+index index.php index.html;
+
+server_name _;
+
+location / {
+try_files $uri $uri/ /stream.php;
+}
+
+location ~ \.php$ {
+include snippets/fastcgi-php.conf;
+fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+}
+}
+EOF
+
 sudo chown -R www-data:www-data "$INSTALL_DIR"
 
-# Папки
 sudo find "$INSTALL_DIR" -type d -exec chmod 755 {} \;
 sudo chmod 770 "$INSTALL_DIR/db"
 
-# Файлы
 sudo find "$INSTALL_DIR" -type f -exec chmod 644 {} \;
 sudo chmod 640 "$INSTALL_DIR/config.php"
 sudo chmod 660 "$INSTALL_DIR/db/campaigns.db"
@@ -230,15 +215,13 @@ sudo chmod 660 "$INSTALL_DIR/db/campaigns.db"
 sudo systemctl restart php8.1-fpm
 sudo systemctl reload nginx
 
-# ========== Certbot ==========
+echo "=============================="
 echo "Установка Certbot для управления SSL из панели..."
 sudo apt install -y certbot python3-certbot-nginx -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
 
-# Автопродление
 (crontab -l 2>/dev/null | grep -q 'certbot renew') || (crontab -l 2>/dev/null; echo "0 3 * * * certbot renew --quiet --nginx") | crontab -
 (crontab -l 2>/dev/null | grep -q 'reload nginx') || (crontab -l 2>/dev/null; echo "30 3 * * * systemctl reload nginx") | crontab -
 
-# Разрешаем www-data запускать certbot через sudo без пароля (для управления SSL из панели)
 echo "www-data ALL=(ALL) NOPASSWD: /usr/bin/certbot, /usr/sbin/nginx" | sudo tee /etc/sudoers.d/easytds-certbot > /dev/null
 sudo chmod 440 /etc/sudoers.d/easytds-certbot
 
@@ -248,4 +231,3 @@ echo "Доступ: http://your_ip или your_domain /login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
-
