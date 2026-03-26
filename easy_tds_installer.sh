@@ -92,11 +92,15 @@ composer init --name="easytds/geolite2" --require="geoip2/geoip2:^3.2" --no-inte
 composer install --no-interaction --no-progress >/dev/null 2>&1
 cd -
 
+PANEL_USER_HASH=$(php -r "echo password_hash('${PANEL_USER}', PASSWORD_BCRYPT);")
+PANEL_PASS_HASH=$(php -r "echo password_hash('${PANEL_PASS}', PASSWORD_BCRYPT);")
+
 cat > "$INSTALL_DIR/config.php" << PHP
 <?php
 \$ALLOWED_IPS = "${ALLOWED_IPS}";
-\$PANEL_USER  = "${PANEL_USER}";
-\$PANEL_PASS  = "${PANEL_PASS}";
+
+define('PANEL_USER_HASH', '${PANEL_USER_HASH}');
+define('PANEL_PASS_HASH', '${PANEL_PASS_HASH}');
 
 function getDB() {
 \$dbPath = __DIR__ . '/db/campaigns.db';
