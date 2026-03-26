@@ -75,7 +75,7 @@ rm -rf "$INSTALL_DIR/easy_tds_installer.sh"
 rm -rf "$INSTALL_DIR/.git"
 
 mkdir -p "$INSTALL_DIR/db"
-touch "$INSTALL_DIR/db/tds.db"
+touch "$INSTALL_DIR/db/campaigns.db"
 
 if ! command -v composer >/dev/null 2>&1; then
     php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
@@ -103,7 +103,7 @@ printf '%s\n' '$c .= "session_start();\n";' >> $MCP
 printf '%s\n' '$c .= "\$ALLOWED_IPS = \"" . $allowedIps . "\";\n";' >> $MCP
 printf '%s\n' '$c .= "define('"'"'PANEL_USER_HASH'"'"', '"'"'" . $userHash . "'"'"');\n";' >> $MCP
 printf '%s\n' '$c .= "define('"'"'PANEL_PASS_HASH'"'"', '"'"'" . $passHash . "'"'"');\n";' >> $MCP
-printf '%s\n' '$c .= "define('"'"'DB_PATH'"'"', '"'"'" . $installDir . "'"'"'/db/tds.db'"'"');\n\n";' >> $MCP
+printf '%s\n' '$c .= "define('"'"'DB_PATH'"'"', '"'"'" . $installDir . "/db/campaigns.db'"'"');\n\n";' >> $MCP
 printf '%s\n' '$c .= "function getDB() {\n";' >> $MCP
 printf '%s\n' '$c .= "    \$db = new PDO('"'"'sqlite:'"'"' . DB_PATH);\n";' >> $MCP
 printf '%s\n' '$c .= "    \$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);\n";' >> $MCP
@@ -174,7 +174,7 @@ sudo find "$INSTALL_DIR" -type d -exec chmod 755 {} \;
 sudo chmod 770 "$INSTALL_DIR/db"
 sudo find "$INSTALL_DIR" -type f -exec chmod 644 {} \;
 sudo chmod 640 "$INSTALL_DIR/config.php"
-sudo chmod 660 "$INSTALL_DIR/db/tds.db"
+sudo chmod 660 "$INSTALL_DIR/db/campaigns.db"
 
 sudo systemctl restart php8.1-fpm
 sudo systemctl reload nginx
