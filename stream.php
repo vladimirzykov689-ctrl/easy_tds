@@ -1,35 +1,24 @@
 <?php
-require __DIR__ . '/config.php';
-require_once __DIR__ . '/geo/vendor/autoload.php';
+session_start();
+
+require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/db.php';
+
 use GeoIp2\Database\Reader;
 
-$db = initDB();
+$slug = basename(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+$basename = basename($_SERVER['PHP_SELF']);
 
-$path = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
-$segments = explode('/', $path);
-
-$slug    = $segments[0] ?? '';
-$keyword = $segments[1] ?? '';
-
-$basename = basename($path);
-
-if ($slug === '') {
+if ($slug === '' || $slug === 'index.php') {
     http_response_code(404);
-    echo "<h1>404 Not Found</h1><p>Nothing here</p>";
+    echo "<html><body><h1>404 Not Found</h1><p>Nothing here</p></body></html>";
     exit;
 }
 
 $excluded = [
-    'main.php',
-    'campaigns.php',
-    'new_campaign.php',
-    'stats.php',
-    'bots.php',
-    'credentials.php',
-    'logout.php',
-    'login.php',
-    'style.css',
-    'favicon.ico'
+    'main.php', 'campaigns.php', 'new_campaign.php', 'stats.php',
+    'bots.php', 'credentials.php', 'logout.php', 'login.php',
+    'style.css', 'favicon.ico'
 ];
 
 if (!in_array($basename, $excluded)) {
@@ -40,14 +29,14 @@ if (!in_array($basename, $excluded)) {
 
     if (!$row) {
         http_response_code(404);
-        echo "<h1>404 Not Found</h1><p>Campaign not found</p>";
+        echo "<html><body><h1>Campaign not found</h1></body></html>";
         exit;
     }
 
-    // ── Определяем устройство ──────────────────────────────────────────────
+    // ── Определяем устройство ────────────────────────────────────────────────
     $device = preg_match('/mobile|android|iphone|ipad/i', $_SERVER['HTTP_USER_AGENT']) ? 'mobile' : 'desktop';
 
-    // ── Определяем IP ──────────────────────────────────────────────────────
+    // ── Определяем IP ────────────────────────────────────────────────────────
     if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
         $ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
     } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
@@ -57,38 +46,38 @@ if (!in_array($basename, $excluded)) {
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
     }
 
-    // ── PTR ────────────────────────────────────────────────────────────────
+    // ── PTR ──────────────────────────────────────────────────────────────────
     $ptr = 'UNKNOWN';
     if ($ip !== 'UNKNOWN') {
         $ptrHost = gethostbyaddr($ip);
         if ($ptrHost !== false) $ptr = $ptrHost;
     }
 
-    // ── Провайдер (ASN) ────────────────────────────────────────────────────
+    // ── Провайдер (ASN) ──────────────────────────────────────────────────────
     $provider = 'UNKNOWN';
     try {
         $readerASN = new Reader(__DIR__ . '/geo/GeoLite2-ASN.mmdb');
-        $record    = $readerASN->asn($ip);
-        $provider  = $record->autonomousSystemOrganization ?? 'UNKNOWN';
+        $record = $readerASN->asn($ip);
+        $provider = $record->autonomousSystemOrganization ?? 'UNKNOWN';
     } catch (\GeoIp2\Exception\AddressNotFoundException $e) {
         $provider = 'UNKNOWN';
     } catch (Exception $e) {
         $provider = 'UNKNOWN';
     }
 
-    // ── GEO ────────────────────────────────────────────────────────────────
+    // ── GEO ──────────────────────────────────────────────────────────────────
     $geo = 'UNKNOWN';
     try {
         $reader = new Reader(__DIR__ . '/geo/GeoLite2-Country.mmdb');
-        $record  = $reader->country($ip);
-        $geo     = strtoupper($record->country->isoCode ?? 'UNKNOWN');
+        $record = $reader->country($ip);
+        $geo = strtoupper($record->country->isoCode ?? 'UNKNOWN');
     } catch (\GeoIp2\Exception\AddressNotFoundException $e) {
         $geo = 'UNKNOWN';
     } catch (Exception $e) {
         $geo = 'UNKNOWN';
     }
 
-    // ── GEO-фильтр ─────────────────────────────────────────────────────────
+    // ── GEO-фильтр ───────────────────────────────────────────────────────────
     $geoPass = true;
     if ($row['geo_filter_type'] !== 'none' && !empty($row['geo_filter_list'])) {
         $geoList = array_map('trim', explode(',', strtoupper($row['geo_filter_list'])));
@@ -97,7 +86,7 @@ if (!in_array($basename, $excluded)) {
             : !in_array($geo, $geoList);
     }
 
-    // ── Загружаем настройки фильтра ботов из БД ────────────────────────────
+    // ── Загружаем настройки фильтра ботов из БД ──────────────────────────────
     $botSettings = [
         'filter_ip'  => 'no',
         'filter_isp' => 'no',
@@ -106,17 +95,14 @@ if (!in_array($basename, $excluded)) {
     ];
     try {
         $bsStmt = $db->query("SELECT filter_ip, filter_isp, filter_ptr, filter_ua FROM bot_settings LIMIT 1");
-        $bsRow  = $bsStmt->fetch(PDO::FETCH_ASSOC);
-        if ($bsRow) {
-            $botSettings = $bsRow;
-        }
+        $bsRow = $bsStmt->fetch(PDO::FETCH_ASSOC);
+        if ($bsRow) $botSettings = $bsRow;
     } catch (Exception $e) {
         // таблица ещё не создана — все фильтры выключены
     }
 
-    // ── Фильтрация ботов ───────────────────────────────────────────────────
+    // ── Фильтрация ботов ─────────────────────────────────────────────────────
     $isBot = false;
-
     if ($row['bot_filter'] === 'on') {
 
         // Фильтр по IP
@@ -140,15 +126,12 @@ if (!in_array($basename, $excluded)) {
         if (!$isBot && $botSettings['filter_ua'] === 'yes') {
             $botFileUA = __DIR__ . '/bots/bots_ua.dat';
             if (file_exists($botFileUA)) {
-                $ua    = $_SERVER['HTTP_USER_AGENT'] ?? '';
+                $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
                 $lines = file($botFileUA, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
                 foreach ($lines as $line) {
                     $line = trim($line);
                     if ($line === '') continue;
-                    if ($ua === $line || stripos($ua, $line) !== false) {
-                        $isBot = true;
-                        break;
-                    }
+                    if ($ua === $line || stripos($ua, $line) !== false) { $isBot = true; break; }
                 }
             }
         }
@@ -161,10 +144,7 @@ if (!in_array($basename, $excluded)) {
                 foreach ($lines as $line) {
                     $line = strtolower(trim($line));
                     if ($line === '') continue;
-                    if (strpos(strtolower($provider), $line) !== false) {
-                        $isBot = true;
-                        break;
-                    }
+                    if (strpos(strtolower($provider), $line) !== false) { $isBot = true; break; }
                 }
             }
         }
@@ -177,39 +157,36 @@ if (!in_array($basename, $excluded)) {
                 foreach ($lines as $line) {
                     $line = strtolower(trim($line));
                     if ($line === '') continue;
-                    if (strpos(strtolower($ptr), $line) !== false) {
-                        $isBot = true;
-                        break;
-                    }
+                    if (strpos(strtolower($ptr), $line) !== false) { $isBot = true; break; }
                 }
             }
         }
     }
 
-    // ── Ключевики ──────────────────────────────────────────────────────────
+    // ── Получаем ключевик из любого GET-параметра ───────────────────────────
+    $keyword = implode(',', array_filter(array_map('trim', array_values($_GET))));
+
+    // ── Ключевики ────────────────────────────────────────────────────────────
     if (!empty($keyword)) {
         $keywords = array_filter(array_map('trim', explode(',', $keyword)));
     } else {
         $keywords = [];
     }
-
     if ($isBot) {
         $keywords[] = 'bot';
     }
-
     $keyword = implode(',', $keywords);
 
-    // ── Запись лога ────────────────────────────────────────────────────────
-    $mskTime   = (new DateTime('now', new DateTimeZone('Europe/Moscow')))->format('Y-m-d H:i:s');
+    // ── Запись лога ──────────────────────────────────────────────────────────
+    $mskTime = (new DateTime('now', new DateTimeZone('Europe/Moscow')))->format('Y-m-d H:i:s');
     $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
-
     $stmt2 = $db->prepare("
         INSERT INTO logs (stream_id, device, ip, geo, keyword, provider, timestamp, useragent, ptr)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
     $stmt2->execute([$row['id'], $device, $ip, $geo, $keyword, $provider, $mskTime, $userAgent, $ptr]);
 
-    // ── Редирект: бот ──────────────────────────────────────────────────────
+    // ── Редирект: бот ────────────────────────────────────────────────────────
     if ($isBot) {
         $botUrls = array_filter(array_map('trim', explode(',', $row['bot_redirect_urls'] ?? '')));
         if (!empty($botUrls)) {
@@ -223,7 +200,7 @@ if (!in_array($basename, $excluded)) {
         }
     }
 
-    // ── Редирект: GEO-фильтр ───────────────────────────────────────────────
+    // ── Редирект: GEO-фильтр ─────────────────────────────────────────────────
     if (!$geoPass) {
         $redirectUrls = array_filter(array_map('trim', explode(',', $row['geo_redirect_urls'] ?? '')));
         if (!empty($redirectUrls)) {
@@ -236,23 +213,22 @@ if (!in_array($basename, $excluded)) {
             exit;
         } else {
             http_response_code(403);
-            echo "<h1>403 Forbidden</h1><p>Access restricted by GEO filter</p>";
+            echo "<html><body><h1>Access restricted by GEO filter</h1></body></html>";
             exit;
         }
     }
 
-    // ── Редирект: обычный ──────────────────────────────────────────────────
+    // ── Редирект: обычный ────────────────────────────────────────────────────
     $urls = array_values(array_filter(array_map('trim', explode(',', $row['url']))));
     if (!isset($_SESSION['redirect_index'][$row['id']])) $_SESSION['redirect_index'][$row['id']] = 0;
     $index = $_SESSION['redirect_index'][$row['id']];
     $redirectUrl = $urls[$index];
     $_SESSION['redirect_index'][$row['id']] = ($index + 1) % count($urls);
-
     header("Location: " . $redirectUrl);
     exit;
 }
 
-// ── CIDR-матчинг ───────────────────────────────────────────────────────────
+// ── CIDR-матчинг ─────────────────────────────────────────────────────────────
 function cidrMatch($ip, $cidr) {
     [$subnet, $mask] = explode('/', $cidr);
     $ipBin     = inet_pton($ip);
@@ -272,4 +248,3 @@ function cidrMatch($ip, $cidr) {
     }
     return true;
 }
-
