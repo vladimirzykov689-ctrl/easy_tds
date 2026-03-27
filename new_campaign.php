@@ -41,11 +41,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['slug'
             $botRedirectUrls = implode(',', array_filter($botRedirectList, fn($u) => !empty($u)));
 
             $stmt = $db->prepare("
-                INSERT INTO streams 
-                (name, slug, url, geo_filter_type, geo_filter_list, geo_redirect_urls, bot_filter, bot_redirect_urls) 
+                INSERT INTO streams
+                (name, slug, url, geo_filter_type, geo_filter_list, geo_redirect_urls, bot_filter, bot_redirect_urls)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([$name, $slug, $url, $geoFilterType, $geoFilterList, $geoRedirectUrls, $botFilter, $botRedirectUrls]);
+
+            $streamId = $db->lastInsertId();
+
+            // Сохраняем цели если включены
+            $goalsMode = $_POST['goals_mode'] ?? 'none';
+            if ($goalsMode === 'add') {
+                $goalNames  = $_POST['goal_name']  ?? [];
+                $goalParams = $_POST['goal_param'] ?? [];
+                $goalTypes  = $_POST['goal_type']  ?? [];
+
+                $stmtGoal = $db->prepare("
+                    INSERT INTO goals (stream_id, name, param_name, value_type, is_revenue)
+                    VALUES (?, ?, ?, ?, ?)
+                ");
+
+                foreach ($goalNames as $i => $goalName) {
+                    $goalName  = trim($goalName);
+                    $goalParam = trim($goalParams[$i] ?? '');
+                    $goalType  = $goalTypes[$i] ?? 'flag';
+
+                    if (empty($goalName) || empty($goalParam)) continue;
+
+                    $valueType = $goalType === 'profit' ? 'amount' : 'flag';
+                    $isRevenue = $goalType === 'profit' ? 1 : 0;
+
+                    $stmtGoal->execute([$streamId, $goalName, $goalParam, $valueType, $isRevenue]);
+                }
+            }
 
             header('Location: campaigns.php');
             exit;
@@ -80,9 +108,39 @@ function toggleBotInputs() {
     document.getElementById('bot_redirect_note').style.display = type === 'on' ? 'block' : 'none';
 }
 
+function toggleGoalsInputs() {
+    const mode = document.getElementById('goals_mode').value;
+    document.getElementById('goals_container').style.display = mode === 'add' ? 'block' : 'none';
+}
+
+function addGoal() {
+    const container = document.getElementById('goals_list');
+    const div = document.createElement('div');
+    div.className = 'goal-item';
+    div.style.cssText = 'border:1px solid #444;border-radius:6px;padding:12px;margin-bottom:10px;position:relative;';
+    div.innerHTML = '<button type="button" onclick="removeGoal(this)" style="position:absolute;top:8px;right:8px;background:none;border:none;color:#ff6666;font-size:18px;cursor:pointer;line-height:1;">&times;</button>'
+        + '<label>Имя цели:</label>'
+        + '<input type="text" name="goal_name[]" placeholder="Например: Регистрация" required style="margin-bottom:8px;">'
+        + '<label>Параметр:</label>'
+        + '<input type="text" name="goal_param[]" placeholder="Например: reg" required style="margin-bottom:8px;">'
+        + '<label>Тип цели:</label>'
+        + '<select name="goal_type[]"><option value="flag">Целевое действие</option><option value="profit">Профит</option></select>';
+    container.appendChild(div);
+}
+
+function removeGoal(btn) {
+    const item = btn.closest('.goal-item');
+    const container = document.getElementById('goals_list');
+    if (container.querySelectorAll('.goal-item').length > 1) {
+        item.remove();
+    }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
     toggleGeoInputs();
     toggleBotInputs();
+    toggleGoalsInputs();
+    addGoal();
 });
 </script>
 </head>
@@ -268,6 +326,17 @@ window.addEventListener('DOMContentLoaded', () => {
                     <textarea id="bot_redirect_urls" name="bot_redirect_urls" style="display:none;"></textarea>
                     <div id="bot_redirect_note" class="note" style="display:none;">
                         Можно указать несколько ссылок через запятую
+                    </div>
+
+                    <label for="goals_mode">Цели кампании:</label>
+                    <select id="goals_mode" name="goals_mode" onchange="toggleGoalsInputs()">
+                        <option value="none">Не использовать</option>
+                        <option value="add">Добавить</option>
+                    </select>
+
+                    <div id="goals_container" style="display:none;">
+                        <div id="goals_list"></div>
+                        <button type="button" onclick="addGoal()" class="add-goal-btn" style="margin-bottom:16px;">+ Добавить цель</button>
                     </div>
 
                     <button type="submit">Создать кампанию</button>
