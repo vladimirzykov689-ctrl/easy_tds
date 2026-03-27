@@ -112,7 +112,7 @@ printf '%s\n' '$c .= "}\n\n";' >> $MCP
 printf '%s\n' '$c .= "function initDB() {\n";' >> $MCP
 printf '%s\n' '$c .= "    \$db = getDB();\n";' >> $MCP
 printf '%s\n' '$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS streams (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, url TEXT NOT NULL, geo_filter_type TEXT NOT NULL DEFAULT '"'"'none'"'"', geo_filter_list TEXT, geo_redirect_urls TEXT, bot_filter TEXT NOT NULL DEFAULT '"'"'off'"'"', bot_redirect_urls TEXT)\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, stream_id INTEGER NOT NULL, device TEXT NOT NULL, ip TEXT NOT NULL, geo TEXT NOT NULL, provider TEXT, keyword TEXT, timestamp DATETIME NOT NULL DEFAULT (strftime('"'"'%Y-%m-%d %H:%M:%S'"'"','"'"'now'"'"','"'"'localtime'"'"')), useragent TEXT, ptr TEXT DEFAULT '"'"'UNKNOWN'"'"')\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, stream_id INTEGER NOT NULL, device TEXT NOT NULL, ip TEXT NOT NULL, geo TEXT NOT NULL, provider TEXT, keyword TEXT, timestamp DATETIME NOT NULL DEFAULT (strftime('"'"'%Y-%m-%d %H:%M:%S'"'"','"'"'now'"'"','"'"'localtime'"'"')), useragent TEXT, ptr TEXT DEFAULT '"'"'UNKNOWN'"'"', click_id TEXT)\");\n";' >> $MCP
 printf '%s\n' '$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS bot_settings (id INTEGER PRIMARY KEY DEFAULT 1, filter_ip TEXT NOT NULL DEFAULT '"'"'no'"'"', filter_isp TEXT NOT NULL DEFAULT '"'"'no'"'"', filter_ptr TEXT NOT NULL DEFAULT '"'"'no'"'"', filter_ua TEXT NOT NULL DEFAULT '"'"'no'"'"')\");\n";' >> $MCP
 printf '%s\n' '$c .= "    \$db->exec(\"INSERT OR IGNORE INTO bot_settings (id) VALUES (1)\");\n";' >> $MCP
 printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_stream_id ON logs(stream_id)\");\n";' >> $MCP
@@ -120,6 +120,7 @@ printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_times
 printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_geo ON logs(geo)\");\n";' >> $MCP
 printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_device ON logs(device)\");\n";' >> $MCP
 printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_keyword ON logs(keyword)\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_click_id ON logs(click_id)\");\n";' >> $MCP
 printf '%s\n' '$c .= "    return \$db;\n";' >> $MCP
 printf '%s\n' '$c .= "}\n\n";' >> $MCP
 printf '%s\n' '$c .= "function checkIP() {\n";' >> $MCP
