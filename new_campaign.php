@@ -110,7 +110,18 @@ function toggleBotInputs() {
 
 function toggleGoalsInputs() {
     const mode = document.getElementById('goals_mode').value;
-    document.getElementById('goals_container').style.display = mode === 'add' ? 'block' : 'none';
+    const container = document.getElementById('goals_container');
+    container.style.display = mode === 'add' ? 'block' : 'none';
+
+    // Снимаем/ставим required чтобы браузер не блокировал сабмит
+    const inputs = container.querySelectorAll('input');
+    inputs.forEach(input => {
+        if (mode === 'add') {
+            input.setAttribute('required', '');
+        } else {
+            input.removeAttribute('required');
+        }
+    });
 }
 
 function addGoal() {
@@ -120,9 +131,9 @@ function addGoal() {
     // стили берутся из .goal-item в style.css
     div.innerHTML = '<button type="button" class="remove-goal-btn" onclick="removeGoal(this)">&times;</button>'
         + '<label>Имя цели:</label>'
-        + '<input type="text" name="goal_name[]" placeholder="Например: Регистрация" required style="margin-bottom:8px;">'
+        + '<input type="text" name="goal_name[]" placeholder="Например: Регистрация" style="margin-bottom:8px;">'
         + '<label>Параметр:</label>'
-        + '<input type="text" name="goal_param[]" placeholder="Например: reg" required style="margin-bottom:8px;">'
+        + '<input type="text" name="goal_param[]" placeholder="Например: reg" style="margin-bottom:8px;">'
         + '<label>Тип цели:</label>'
         + '<select name="goal_type[]"><option value="flag">Целевое действие</option><option value="profit">Профит</option></select>';
     container.appendChild(div);
