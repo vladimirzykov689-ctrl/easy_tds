@@ -117,8 +117,8 @@ function addGoal() {
     const container = document.getElementById('goals_list');
     const div = document.createElement('div');
     div.className = 'goal-item';
-    div.style.cssText = 'border:1px solid #444;border-radius:6px;padding:12px;margin-bottom:10px;position:relative;';
-    div.innerHTML = '<button type="button" onclick="removeGoal(this)" style="position:absolute;top:8px;right:8px;background:none;border:none;color:#ff6666;font-size:18px;cursor:pointer;line-height:1;">&times;</button>'
+    // стили берутся из .goal-item в style.css
+    div.innerHTML = '<button type="button" class="remove-goal-btn" onclick="removeGoal(this)">&times;</button>'
         + '<label>Имя цели:</label>'
         + '<input type="text" name="goal_name[]" placeholder="Например: Регистрация" required style="margin-bottom:8px;">'
         + '<label>Параметр:</label>'
