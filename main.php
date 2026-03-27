@@ -51,6 +51,36 @@ foreach ($logs as $row) {
 }
 
 $total_campaigns = (int)$db->query("SELECT COUNT(*) FROM streams")->fetchColumn();
+
+// ── Общий профит всех кампаний ────────────────────────────────────────────────
+$totalProfit = 0;
+try {
+    $stmtP = $db->prepare("
+        SELECT COALESCE(SUM(c.value), 0)
+        FROM conversions c
+        JOIN goals g ON g.id = c.goal_id
+        WHERE g.is_revenue = 1
+    ");
+    $stmtP->execute();
+    $totalProfit = (float)$stmtP->fetchColumn();
+} catch (Exception $e) { $totalProfit = 0; }
+
+// ── Самая профитная кампания ───────────────────────────────────────────────────
+$topCampaign = null;
+try {
+    $stmtTop = $db->prepare("
+        SELECT s.name, COALESCE(SUM(c.value), 0) AS profit
+        FROM conversions c
+        JOIN goals g ON g.id = c.goal_id
+        JOIN streams s ON s.id = c.stream_id
+        WHERE g.is_revenue = 1
+        GROUP BY c.stream_id
+        ORDER BY profit DESC
+        LIMIT 1
+    ");
+    $stmtTop->execute();
+    $topCampaign = $stmtTop->fetch(PDO::FETCH_ASSOC);
+} catch (Exception $e) { $topCampaign = null; }
 ?>
 <!DOCTYPE html>
 <html>
@@ -134,7 +164,7 @@ $total_campaigns = (int)$db->query("SELECT COUNT(*) FROM streams")->fetchColumn(
 
             <li class="sidebar-divider"></li>
 
-            <!-- === Кампании — группа с аккордеоном === -->
+            <!-- === Кампании === -->
             <li data-tooltip="Кампании">
                 <div class="sidebar-group-row">
                     <a href="campaigns.php" class="sidebar-group-link">
@@ -164,13 +194,23 @@ $total_campaigns = (int)$db->query("SELECT COUNT(*) FROM streams")->fetchColumn(
                         </a>
                     </li>
                     <li>
-                        <a href="dashboard.php?export=csv">
+                        <a href="campaigns.php?export=csv">
                             <span class="nav-icon">
                                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
                                 </svg>
                             </span>
-                            <span class="nav-label">Экспорт CSV</span>
+                            <span class="nav-label">Экспорт логов</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="campaigns.php?export=goals_csv">
+                            <span class="nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
+                                </svg>
+                            </span>
+                            <span class="nav-label">Экспорт целей</span>
                         </a>
                     </li>
                     <li>
@@ -182,7 +222,7 @@ $total_campaigns = (int)$db->query("SELECT COUNT(*) FROM streams")->fetchColumn(
                             </span>
                             <span class="nav-label">Удалить все</span>
                         </a>
-                        <form id="deleteAllForm" method="post" action="dashboard.php" style="display:none;">
+                        <form id="deleteAllForm" method="post" action="campaigns.php" style="display:none;">
                             <input type="hidden" name="delete_all" value="1">
                         </form>
                     </li>
@@ -293,12 +333,20 @@ $total_campaigns = (int)$db->query("SELECT COUNT(*) FROM streams")->fetchColumn(
 
                 <div class="info-card">
                     <h3>Самая профитная кампания</h3>
-                    <div class="info-card-value">Name</div>
+                    <div class="info-card-value">
+                        <?php if ($topCampaign): ?>
+                            <?= htmlspecialchars($topCampaign['name']) ?>
+                        <?php else: ?>
+                            <span class="info-card-placeholder" style="font-size:16px;">Нет данных</span>
+                        <?php endif; ?>
+                    </div>
                 </div>
 
                 <div class="info-card">
                     <h3>Общий профит</h3>
-                    <div class="info-card-value">0$</div>
+                    <div class="info-card-value">
+                        <?= number_format($totalProfit, 2) ?>$
+                    </div>
                 </div>
 
             </div>
@@ -391,7 +439,7 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
             .attr('stroke', 'rgba(155,0,255,0.2)')
             .attr('stroke-width', 0.3);
 
-        /* Device stats overlay — left top corner */
+        /* Device stats overlay */
         var desktop = <?= $data['desktop'] ?>;
         var mobile  = <?= $data['mobile'] ?>;
         var total   = desktop + mobile || 1;
@@ -440,7 +488,7 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
             });
         })();
 
-        /* Top-GEO overlay — right top corner */
+        /* Top-GEO overlay */
         var topEntries = Object.entries(geoData)
             .sort(function(a,b){ return b[1]-a[1]; })
             .slice(0, 5);
@@ -583,5 +631,4 @@ function isoNumericToAlpha2(id) {
 </script>
 
 </body>
-
 </html>
