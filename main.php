@@ -41,7 +41,6 @@ arsort($geo_counts);
 $geo_data   = array_slice($geo_counts, 0, 10, true);
 $geo_labels = array_keys($geo_data);
 $geo_values = array_values($geo_data);
-$geo_colors = ['#ff6384','#36a2eb','#ffcd56','#4bc0c0','#9966ff','#ff9f40','#c9cbcf','#8e5ea2','#3cba9f','#e8c3b9'];
 $top_geo    = $geo_labels[0] ?? '—';
 
 $botCount = 0;
@@ -52,7 +51,7 @@ foreach ($logs as $row) {
 
 $total_campaigns = (int)$db->query("SELECT COUNT(*) FROM streams")->fetchColumn();
 
-// ── Общий профит всех кампаний ────────────────────────────────────────────────
+// ── Общий профит ──────────────────────────────────────────────────────────────
 $totalProfit = 0;
 try {
     $stmtP = $db->prepare("
@@ -81,6 +80,39 @@ try {
     $stmtTop->execute();
     $topCampaign = $stmtTop->fetch(PDO::FETCH_ASSOC);
 } catch (Exception $e) { $topCampaign = null; }
+
+// ── Топ-3 профитных кампании ──────────────────────────────────────────────────
+$topCampaigns = [];
+try {
+    $stmtTopN = $db->prepare("
+        SELECT s.name, COALESCE(SUM(c.value), 0) AS profit
+        FROM conversions c
+        JOIN goals g ON g.id = c.goal_id
+        JOIN streams s ON s.id = c.stream_id
+        WHERE g.is_revenue = 1
+        GROUP BY c.stream_id
+        ORDER BY profit DESC
+        LIMIT 3
+    ");
+    $stmtTopN->execute();
+    $topCampaigns = $stmtTopN->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) { $topCampaigns = []; }
+
+// ── Топ-3 целей по конверсиям ─────────────────────────────────────────────────
+$topGoals = [];
+try {
+    $stmtGoals = $db->prepare("
+        SELECT g.name, COUNT(c.id) AS cnt
+        FROM conversions c
+        JOIN goals g ON g.id = c.goal_id
+        WHERE g.is_revenue = 0
+        GROUP BY c.goal_id
+        ORDER BY cnt DESC
+        LIMIT 3
+    ");
+    $stmtGoals->execute();
+    $topGoals = $stmtGoals->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) { $topGoals = []; }
 ?>
 <!DOCTYPE html>
 <html>
@@ -150,7 +182,6 @@ try {
     <nav class="sidebar" id="sidebar">
         <ul class="sidebar-nav">
 
-            <!-- === Главная === -->
             <li data-tooltip="Главная">
                 <a href="main.php">
                     <span class="nav-icon">
@@ -164,7 +195,6 @@ try {
 
             <li class="sidebar-divider"></li>
 
-            <!-- === Кампании === -->
             <li data-tooltip="Кампании">
                 <div class="sidebar-group-row">
                     <a href="campaigns.php" class="sidebar-group-link">
@@ -231,7 +261,6 @@ try {
 
             <li class="sidebar-divider"></li>
 
-            <!-- === Фильтр ботов === -->
             <li data-tooltip="Фильтр ботов">
                 <a href="bots.php">
                     <span class="nav-icon">
@@ -245,7 +274,6 @@ try {
 
             <li class="sidebar-divider"></li>
 
-            <!-- === Учетная запись === -->
             <li data-tooltip="Учетная запись">
                 <a href="credentials.php">
                     <span class="nav-icon">
@@ -284,6 +312,7 @@ try {
                 <div class="no-data">Нету статистики</div>
             <?php else: ?>
                 <div class="stats-row">
+
                     <!-- Карта слева -->
                     <div class="map-block">
                         <h3>Детализация трафика</h3>
@@ -292,23 +321,41 @@ try {
                         </div>
                     </div>
 
-                    <!-- Статистика справа -->
+                    <!-- Топ кампаний и целей справа -->
                     <div class="chart-block">
-                        <h3>Статистика трафика</h3>
+
+                        <h3>Топ профитных кампаний</h3>
                         <div class="stat-list">
-                            <div class="stat-item">
-                                <span class="stat-label">Клики</span>
-                                <span class="stat-value"><?= $total_logs ?></span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Уники</span>
-                                <span class="stat-value"><?= $unique ?></span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Боты</span>
-                                <span class="stat-value"><?= $botCount ?></span>
-                            </div>
+                            <?php if (empty($topCampaigns)): ?>
+                                <div class="stat-item">
+                                    <span class="stat-label" style="color:#888;font-size:13px;">Не используется</span>
+                                </div>
+                            <?php else: ?>
+                                <?php foreach ($topCampaigns as $i => $tc): ?>
+                                <div class="stat-item">
+                                    <span class="stat-label"><?= ($i + 1) . '. ' . htmlspecialchars($tc['name']) ?></span>
+                                    <span class="stat-value"><?= number_format((float)$tc['profit'], 2) ?>$</span>
+                                </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
+
+                        <h3 style="margin-top:16px;">Топ целей кампаний</h3>
+                        <div class="stat-list">
+                            <?php if (empty($topGoals)): ?>
+                                <div class="stat-item">
+                                    <span class="stat-label" style="color:#888;font-size:13px;">Нету целей</span>
+                                </div>
+                            <?php else: ?>
+                                <?php foreach ($topGoals as $i => $tg): ?>
+                                <div class="stat-item">
+                                    <span class="stat-label"><?= ($i + 1) . '. ' . htmlspecialchars($tg['name']) ?></span>
+                                    <span class="stat-value"><?= (int)$tg['cnt'] ?></span>
+                                </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+
                     </div>
                 </div>
             <?php endif; ?>
@@ -323,7 +370,7 @@ try {
                 </form>
             </div>
 
-            <!-- ========== INFO CARDS ROW ========== -->
+            <!-- ========== INFO CARDS ========== -->
             <div class="info-cards-row">
 
                 <div class="info-card">
@@ -439,7 +486,7 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
             .attr('stroke', 'rgba(155,0,255,0.2)')
             .attr('stroke-width', 0.3);
 
-        /* Device stats overlay */
+        /* ── Девайсы (лево-верх) ── */
         var desktop = <?= $data['desktop'] ?>;
         var mobile  = <?= $data['mobile'] ?>;
         var total   = desktop + mobile || 1;
@@ -488,7 +535,49 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
             });
         })();
 
-        /* Top-GEO overlay */
+        /* ── Трафик (лево-низ, под девайсами) ── */
+        (function() {
+            var padX = 10, padY = 8, lineH = 18, fontSize = 11;
+            var trafficEntries = [
+                { label: 'Клики', val: <?= $total_logs ?> },
+                { label: 'Уники', val: <?= $unique ?> },
+                { label: 'Боты',  val: <?= $botCount ?> }
+            ];
+            var devBoxH = padY * 2 + lineH * 3;
+            var boxH = padY * 2 + lineH * (trafficEntries.length + 1);
+            var bx = 10, by = 10 + devBoxH + 8;
+            var boxW = 110;
+
+            var g3 = svg.append('g').attr('class', 'traffic-legend');
+
+            g3.append('rect')
+                .attr('x', bx).attr('y', by)
+                .attr('width', boxW).attr('height', boxH)
+                .attr('rx', 6)
+                .attr('fill', 'rgba(20,10,40,0.75)')
+                .attr('stroke', 'rgba(155,0,255,0.5)')
+                .attr('stroke-width', 1);
+
+            g3.append('text')
+                .attr('x', bx + padX).attr('y', by + padY + fontSize)
+                .attr('fill', '#ff77ff')
+                .attr('font-size', fontSize)
+                .attr('font-weight', 'bold')
+                .attr('font-family', 'sans-serif')
+                .text('ТРАФИК');
+
+            trafficEntries.forEach(function(d, i) {
+                var ty = by + padY + lineH * (i + 2);
+                g3.append('text')
+                    .attr('x', bx + padX).attr('y', ty)
+                    .attr('fill', '#fff')
+                    .attr('font-size', fontSize)
+                    .attr('font-family', 'sans-serif')
+                    .text(d.label + ' — ' + d.val);
+            });
+        })();
+
+        /* ── Топ Гео (право-верх) ── */
         var topEntries = Object.entries(geoData)
             .sort(function(a,b){ return b[1]-a[1]; })
             .slice(0, 5);
