@@ -17,8 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $configPath    = __DIR__ . '/config.php';
     $configContent = file_get_contents($configPath);
 
-    preg_match("/define\\('PANEL_USER_HASH',\\s*'([^']+)'\\)/", $configContent, $mUser);
-    preg_match("/define\\('PANEL_PASS_HASH',\\s*'([^']+)'\\)/", $configContent, $mPass);
+    preg_match("/define\('PANEL_USER_HASH',\s*'([^']+)'\)/", $configContent, $mUser);
+    preg_match("/define\('PANEL_PASS_HASH',\s*'([^']+)'\)/", $configContent, $mPass);
     $currentUserHash = $mUser[1] ?? '';
     $currentPassHash = $mPass[1] ?? '';
 
@@ -164,9 +164,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // --- Записываем config.php ---
     if (empty($errors) && ($changeLogin || $changePass || $changeIP)) {
-        preg_match("/define\\('PANEL_USER_HASH',\\s*'([^']*)'\\)/", $configContent, $oldUser);
-        preg_match("/define\\('PANEL_PASS_HASH',\\s*'([^']*)'\\)/", $configContent, $oldPass);
-        preg_match("/\\\$ALLOWED_IPS\\s*=\\s*'([^']*)';/", $configContent, $oldIP);
+        preg_match("/define\('PANEL_USER_HASH',\s*'([^']*)'\)/", $configContent, $oldUser);
+        preg_match("/define\('PANEL_PASS_HASH',\s*'([^']*)'\)/", $configContent, $oldPass);
+        preg_match('/\$ALLOWED_IPS\s*=\s*\'([^\']*)\';/', $configContent, $oldIP);
 
         $configContent = str_replace(
             "define('PANEL_USER_HASH', '" . ($oldUser[1] ?? '') . "')",
@@ -192,10 +192,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Читаем текущий IP список для отображения
+// Читаем текущий IP список из config.php
 $configContent = file_get_contents(__DIR__ . '/config.php');
-preg_match("/\\\$ALLOWED_IPS\\s*=\\s*'([^']*)';/", $configContent, $mIP);
-$currentIPs = $mIP[1] ?? '';
+preg_match('/\$ALLOWED_IPS\s*=\s*\'([^\']*)\';/', $configContent, $mIP);
+$currentIPs   = $mIP[1] ?? '';
+$ipRestricted = !empty($currentIPs); // true = список не пустой
 ?>
 <!DOCTYPE html>
 <html>
@@ -411,11 +412,11 @@ window.addEventListener('DOMContentLoaded', function () {
                     <!-- === Ограничение по IP === -->
                     <label for="change_ip">Ограничить доступ по IP:</label>
                     <select id="change_ip" name="change_ip" onchange="toggleSection('change_ip', 'section_ip')">
-                        <option value="no">Нет</option>
-                        <option value="yes" <?= ($_POST['change_ip'] ?? '') === 'yes' ? 'selected' : '' ?>>Да</option>
+                        <option value="no" <?= !$ipRestricted ? 'selected' : '' ?>>Нет</option>
+                        <option value="yes" <?= $ipRestricted ? 'selected' : '' ?>>Да</option>
                     </select>
 
-                    <div id="section_ip" style="display:none;">
+                    <div id="section_ip" style="display:<?= $ipRestricted ? 'block' : 'none' ?>;">
                         <label for="allowed_ips">Список IP-адресов:</label>
                         <textarea id="allowed_ips" name="allowed_ips"><?= htmlspecialchars($currentIPs) ?></textarea>
                         <div class="note">Укажите IP-адреса через запятую. Например: 192.168.1.1,10.0.0.1</div>
