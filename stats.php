@@ -77,7 +77,6 @@ $totalProfit = null;
 $goalStats = [];
 
 if (!empty($goals)) {
-    // Общий профит — сумма конверсий где is_revenue=1
     try {
         $stmtProfit = $db->prepare("
             SELECT COALESCE(SUM(c.value), 0)
@@ -89,14 +88,13 @@ if (!empty($goals)) {
         $totalProfit = (float)$stmtProfit->fetchColumn();
     } catch (Exception $e) { $totalProfit = 0; }
 
-    // Кол-во по каждой цели
     foreach ($goals as $goal) {
         try {
             $stmtCnt = $db->prepare("SELECT COUNT(*) FROM conversions WHERE stream_id = ? AND goal_id = ?");
             $stmtCnt->execute([$stream_id, $goal['id']]);
             $goalStats[] = [
-                'name'  => $goal['name'],
-                'count' => (int)$stmtCnt->fetchColumn(),
+                'name'       => $goal['name'],
+                'count'      => (int)$stmtCnt->fetchColumn(),
                 'is_revenue' => (int)$goal['is_revenue'],
             ];
         } catch (Exception $e) {
@@ -174,7 +172,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
             <li class="sidebar-divider"></li>
 
-            <!-- === Кампании — группа с аккордеоном === -->
+            <!-- === Кампании === -->
             <li data-tooltip="Кампании">
                 <div class="sidebar-group-row">
                     <a href="campaigns.php" class="sidebar-group-link">
@@ -192,7 +190,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     </button>
                 </div>
 
-                <!-- Sub-items -->
                 <ul class="sidebar-subnav open" id="campaignsSubnav">
                     <li>
                         <a href="new_campaign.php">
@@ -297,31 +294,36 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     <div class="chart-block">
                         <h3>Профит кампании</h3>
                         <div class="stat-list">
-                            <div class="stat-item">
-                                <span class="stat-label">Профит</span>
-                                <span class="stat-value">
-                                    <?php if ($totalProfit === null): ?>
-                                        <span style="font-size:13px;color:#888;">Не используется</span>
-                                    <?php else: ?>
-                                        <?= number_format($totalProfit, 2) ?>
-                                    <?php endif; ?>
-                                </span>
-                            </div>
+                            <?php if ($totalProfit === null): ?>
+                                <div class="stat-item">
+                                    <span class="stat-label" style="color:#888;font-size:13px;">Не используется</span>
+                                </div>
+                            <?php else: ?>
+                                <div class="stat-item">
+                                    <span class="stat-label">Профит</span>
+                                    <span class="stat-value"><?= number_format($totalProfit, 2) ?></span>
+                                </div>
+                            <?php endif; ?>
                         </div>
 
-                        <?php if (!empty($goalStats)): ?>
                         <h3 style="margin-top:16px;">Цели кампании</h3>
                         <div class="stat-list">
-                            <?php foreach ($goalStats as $gs): ?>
-                            <?php if (!$gs['is_revenue']): ?>
-                            <div class="stat-item">
-                                <span class="stat-label"><?= htmlspecialchars($gs['name']) ?></span>
-                                <span class="stat-value"><?= $gs['count'] ?></span>
-                            </div>
+                            <?php
+                            $nonRevenueGoals = array_filter($goalStats, fn($gs) => !$gs['is_revenue']);
+                            if (empty($nonRevenueGoals)):
+                            ?>
+                                <div class="stat-item">
+                                    <span class="stat-label" style="color:#888;font-size:13px;">Нету целей</span>
+                                </div>
+                            <?php else: ?>
+                                <?php foreach ($nonRevenueGoals as $gs): ?>
+                                <div class="stat-item">
+                                    <span class="stat-label"><?= htmlspecialchars($gs['name']) ?></span>
+                                    <span class="stat-value"><?= $gs['count'] ?></span>
+                                </div>
+                                <?php endforeach; ?>
                             <?php endif; ?>
-                            <?php endforeach; ?>
                         </div>
-                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -378,7 +380,6 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
         var projection = d3.geoNaturalEarth1();
         var path = d3.geoPath().projection(projection);
 
-        /* fitSize автоматически масштабирует карту под W x H */
         projection.fitSize([W, H], {type: 'Sphere'});
         var countries = topojson.feature(worldData, worldData.objects.countries).features;
 
@@ -395,7 +396,6 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
             return 'rgb('+r+','+g+','+b+')';
         }
 
-        /* Tooltip */
         var tip = d3.select('body').append('div')
             .style('position','fixed')
             .style('background','#2a2a4d')
@@ -433,7 +433,6 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
                 tip.style('display','none');
             });
 
-        /* Borders between countries */
         svg.append('path')
             .datum(topojson.mesh(worldData, worldData.objects.countries, function(a,b){ return a !== b; }))
             .attr('d', path)
@@ -441,7 +440,7 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
             .attr('stroke', 'rgba(155,0,255,0.2)')
             .attr('stroke-width', 0.3);
 
-        /* Device stats overlay — left top corner */
+        /* Device stats overlay */
         var desktop = <?= $data['desktop'] ?>;
         var mobile  = <?= $data['mobile'] ?>;
         var total   = desktop + mobile || 1;
@@ -490,7 +489,7 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
             });
         })();
 
-        /* Traffic stats overlay — left, under devices block */
+        /* Traffic stats overlay */
         (function() {
             var padX = 10, padY = 8, lineH = 18, fontSize = 11;
             var trafficEntries = [
@@ -532,7 +531,7 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
             });
         })();
 
-        /* Top-GEO overlay — right top corner */
+        /* Top-GEO overlay */
         var topEntries = Object.entries(geoData)
             .sort(function(a,b){ return b[1]-a[1]; })
             .slice(0, 5);
@@ -632,16 +631,13 @@ function isoNumericToAlpha2(id) {
     var toggle  = document.getElementById('campaignsToggle');
     var subnav  = document.getElementById('campaignsSubnav');
 
-    /* --- Restore sidebar state --- */
     if (localStorage.getItem(SIDEBAR_KEY) === '1') {
         body.classList.add('sidebar-collapsed');
     }
 
-    /* --- Restore accordion state (default: open) --- */
     var accordionOpen = localStorage.getItem(ACCORDION_KEY) !== '0';
     setAccordion(accordionOpen, false);
 
-    /* --- Hamburger click --- */
     btn.addEventListener('click', function () {
         body.classList.toggle('sidebar-collapsed');
         localStorage.setItem(
@@ -650,13 +646,11 @@ function isoNumericToAlpha2(id) {
         );
     });
 
-    /* --- Accordion toggle click --- */
     toggle.addEventListener('click', function () {
         var isOpen = subnav.classList.contains('open');
         setAccordion(!isOpen, true);
     });
 
-    /* --- Delete all confirmation --- */
     window.confirmDeleteAll = function (e) {
         e.preventDefault();
         if (confirm('Вы уверены, что хотите удалить все кампании и всю статистику?')) {
