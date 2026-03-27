@@ -65,6 +65,46 @@ foreach ($logs as $row) {
     }
 }
 
+// ── Цели и профит ────────────────────────────────────────────────────────────
+$goals = [];
+try {
+    $stmtGoals = $db->prepare("SELECT * FROM goals WHERE stream_id = ?");
+    $stmtGoals->execute([$stream_id]);
+    $goals = $stmtGoals->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) { $goals = []; }
+
+$totalProfit = null;
+$goalStats = [];
+
+if (!empty($goals)) {
+    // Общий профит — сумма конверсий где is_revenue=1
+    try {
+        $stmtProfit = $db->prepare("
+            SELECT COALESCE(SUM(c.value), 0)
+            FROM conversions c
+            JOIN goals g ON g.id = c.goal_id
+            WHERE c.stream_id = ? AND g.is_revenue = 1
+        ");
+        $stmtProfit->execute([$stream_id]);
+        $totalProfit = (float)$stmtProfit->fetchColumn();
+    } catch (Exception $e) { $totalProfit = 0; }
+
+    // Кол-во по каждой цели
+    foreach ($goals as $goal) {
+        try {
+            $stmtCnt = $db->prepare("SELECT COUNT(*) FROM conversions WHERE stream_id = ? AND goal_id = ?");
+            $stmtCnt->execute([$stream_id, $goal['id']]);
+            $goalStats[] = [
+                'name'  => $goal['name'],
+                'count' => (int)$stmtCnt->fetchColumn(),
+                'is_revenue' => (int)$goal['is_revenue'],
+            ];
+        } catch (Exception $e) {
+            $goalStats[] = ['name' => $goal['name'], 'count' => 0, 'is_revenue' => 0];
+        }
+    }
+}
+
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $campaign_name) . '.csv"');
@@ -255,21 +295,33 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
                     <!-- Статистика справа -->
                     <div class="chart-block">
-                        <h3>Статистика трафика</h3>
+                        <h3>Профит кампании</h3>
                         <div class="stat-list">
                             <div class="stat-item">
-                                <span class="stat-label">Клики</span>
-                                <span class="stat-value"><?= $total_logs ?></span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Уники</span>
-                                <span class="stat-value"><?= $unique ?></span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Боты</span>
-                                <span class="stat-value"><?= $botCount ?></span>
+                                <span class="stat-label">Профит</span>
+                                <span class="stat-value">
+                                    <?php if ($totalProfit === null): ?>
+                                        <span style="font-size:13px;color:#888;">Не используется</span>
+                                    <?php else: ?>
+                                        <?= number_format($totalProfit, 2) ?>
+                                    <?php endif; ?>
+                                </span>
                             </div>
                         </div>
+
+                        <?php if (!empty($goalStats)): ?>
+                        <h3 style="margin-top:16px;">Цели кампании</h3>
+                        <div class="stat-list">
+                            <?php foreach ($goalStats as $gs): ?>
+                            <?php if (!$gs['is_revenue']): ?>
+                            <div class="stat-item">
+                                <span class="stat-label"><?= htmlspecialchars($gs['name']) ?></span>
+                                <span class="stat-value"><?= $gs['count'] ?></span>
+                            </div>
+                            <?php endif; ?>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -435,6 +487,48 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
                     .attr('font-size', fontSize)
                     .attr('font-family', 'sans-serif')
                     .text(d.label + ' — ' + d.pct + '%');
+            });
+        })();
+
+        /* Traffic stats overlay — left, under devices block */
+        (function() {
+            var padX = 10, padY = 8, lineH = 18, fontSize = 11;
+            var trafficEntries = [
+                { label: 'Клики',  val: <?= $total_logs ?> },
+                { label: 'Уники',  val: <?= $unique ?> },
+                { label: 'Боты',   val: <?= $botCount ?> }
+            ];
+            var devBoxH = padY * 2 + lineH * 3;
+            var boxH = padY * 2 + lineH * (trafficEntries.length + 1);
+            var bx = 10, by = 10 + devBoxH + 8;
+            var boxW = 110;
+
+            var g3 = svg.append('g').attr('class', 'traffic-legend');
+
+            g3.append('rect')
+                .attr('x', bx).attr('y', by)
+                .attr('width', boxW).attr('height', boxH)
+                .attr('rx', 6)
+                .attr('fill', 'rgba(20,10,40,0.75)')
+                .attr('stroke', 'rgba(155,0,255,0.5)')
+                .attr('stroke-width', 1);
+
+            g3.append('text')
+                .attr('x', bx + padX).attr('y', by + padY + fontSize)
+                .attr('fill', '#ff77ff')
+                .attr('font-size', fontSize)
+                .attr('font-weight', 'bold')
+                .attr('font-family', 'sans-serif')
+                .text('ТРАФИК');
+
+            trafficEntries.forEach(function(d, i) {
+                var ty = by + padY + lineH * (i + 2);
+                g3.append('text')
+                    .attr('x', bx + padX).attr('y', ty)
+                    .attr('fill', '#fff')
+                    .attr('font-size', fontSize)
+                    .attr('font-family', 'sans-serif')
+                    .text(d.label + ' — ' + d.val);
             });
         })();
 
