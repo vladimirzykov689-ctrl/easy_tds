@@ -71,7 +71,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
     $output = fopen('php://output', 'w');
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-    fputcsv($output, ['Дата','Девайс','UA','IP','Гео','Провайдер','PTR','Ключевики'], ';');
+    fputcsv($output, ['Дата','Девайс','UA','IP','Гео','Провайдер','PTR','Ключевики','Click ID'], ';');
 
     foreach ($logs as $row) {
         fputcsv($output, [
@@ -82,7 +82,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             $row['geo'] ?? '',
             $row['provider'] ?? '',
             $row['ptr'] ?? '',
-            $row['keyword'] ?? ''
+            $row['keyword'] ?? '',
+            $row['click_id'] ?? ''
         ], ';');
     }
     fclose($output);
