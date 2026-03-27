@@ -16,6 +16,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     $stmt = $db->prepare("UPDATE streams SET id = id - 1 WHERE id > ?");
     $stmt->execute([$delete_id]);
 
+    $stmt = $db->prepare("DELETE FROM goals WHERE stream_id=?");
+    $stmt->execute([$delete_id]);
+    
+    $stmt = $db->prepare("DELETE FROM conversions WHERE stream_id=?");
+    $stmt->execute([$delete_id]);
+
     $db->exec("UPDATE sqlite_sequence SET seq = (SELECT MAX(id) FROM streams) WHERE name='streams'");
 
     header('Location: campaigns.php'); 
@@ -25,6 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_all'])) {
     $db->exec("DELETE FROM logs");
     $db->exec("DELETE FROM streams");
+    $db->exec("DELETE FROM conversions");
+    $db->exec("DELETE FROM goals");
     $db->exec("UPDATE sqlite_sequence SET seq = 0 WHERE name='streams'");
 
     header('Location: campaigns.php'); 
