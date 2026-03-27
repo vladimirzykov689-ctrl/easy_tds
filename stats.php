@@ -197,7 +197,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
     <nav class="sidebar" id="sidebar">
         <ul class="sidebar-nav">
 
-            <!-- === Главная === -->
             <li data-tooltip="Главная">
                 <a href="main.php">
                     <span class="nav-icon">
@@ -211,7 +210,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
 
             <li class="sidebar-divider"></li>
 
-            <!-- === Кампании === -->
             <li data-tooltip="Кампании">
                 <div class="sidebar-group-row">
                     <a href="campaigns.php" class="sidebar-group-link">
@@ -247,7 +245,17 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
                                     <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
                                 </svg>
                             </span>
-                            <span class="nav-label">Экспорт CSV</span>
+                            <span class="nav-label">Экспорт логов</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="campaigns.php?export=goals_csv">
+                            <span class="nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
+                                </svg>
+                            </span>
+                            <span class="nav-label">Экспорт целей</span>
                         </a>
                     </li>
                     <li>
@@ -268,7 +276,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
 
             <li class="sidebar-divider"></li>
 
-            <!-- === Фильтр ботов === -->
             <li data-tooltip="Фильтр ботов">
                 <a href="bots.php">
                     <span class="nav-icon">
@@ -282,7 +289,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
 
             <li class="sidebar-divider"></li>
 
-            <!-- === Учетная запись === -->
             <li data-tooltip="Учетная запись">
                 <a href="credentials.php">
                     <span class="nav-icon">
@@ -321,7 +327,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
                 <div class="no-data">Нету статистики</div>
             <?php else: ?>
                 <div class="stats-row">
-                    <!-- Карта слева -->
                     <div class="map-block">
                         <h3>Детализация трафика</h3>
                         <div id="geoMapWrapper">
@@ -329,7 +334,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
                         </div>
                     </div>
 
-                    <!-- Статистика справа -->
                     <div class="chart-block">
                         <h3>Профит кампании</h3>
                         <div class="stat-list">
@@ -365,7 +369,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
                         </div>
                     </div>
                 </div>
-
             <?php endif; ?>
 
             <div class="redirect-block">
