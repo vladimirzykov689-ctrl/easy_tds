@@ -27,7 +27,7 @@ $botDir  = '/var/www/html/easy_tds/bots/';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_file'], $_POST['file'], $_POST['content'])) {
     $f = $_POST['file'];
     if (in_array($f, $allowed)) {
-        $result = file_put_contents($botDir . $f, str_replace("\r\n", "\n", $_POST['content']));
+        $result = file_put_contents($botDir . $f, str_replace("\\r\\n", "\\n", $_POST['content']));
         echo $result !== false ? 'ok' : 'error';
     } else {
         echo 'error';
@@ -193,9 +193,7 @@ window.addEventListener('DOMContentLoaded', function () {
     toggleEditBtn('filter_ua',  'edit_ua');
 });
 
-// --- Модальное окно ---
 var currentFile = '';
-
 var titles = {
     'bots_ip.dat':  'IP-адреса',
     'bots_isp.dat': 'ISP (провайдеры)',
@@ -259,12 +257,10 @@ function saveFile() {
         });
 }
 
-// Закрыть по клику на оверлей
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('modalOverlay').addEventListener('click', function(e) {
         if (e.target === this) closeModal();
     });
-    // Ctrl+S для сохранения
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 's' &&
             document.getElementById('modalOverlay').classList.contains('active')) {
@@ -359,7 +355,17 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
                                 </svg>
                             </span>
-                            <span class="nav-label">Экспорт CSV</span>
+                            <span class="nav-label">Экспорт логов</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="campaigns.php?export=goals_csv">
+                            <span class="nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
+                                </svg>
+                            </span>
+                            <span class="nav-label">Экспорт целей</span>
                         </a>
                     </li>
                     <li>
