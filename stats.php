@@ -103,9 +103,10 @@ if (!empty($goals)) {
     }
 }
 
+// ── Экспорт лога ─────────────────────────────────────────────────────────────
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $campaign_name) . '.csv"');
+    header('Content-Disposition: attachment; filename="log_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $campaign_name) . '.csv"');
 
     $output = fopen('php://output', 'w');
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
@@ -124,6 +125,44 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             $row['click_id'] ?? ''
         ], ';');
     }
+    fclose($output);
+    exit;
+}
+
+// ── Экспорт целей ─────────────────────────────────────────────────────────────
+if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="goals_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $campaign_name) . '.csv"');
+
+    $output = fopen('php://output', 'w');
+    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+    fputcsv($output, ['Название цели', 'Параметр', 'Тип', 'Доходная', 'Значение', 'Click ID', 'Время конверсии'], ';');
+
+    try {
+        $stmtExp = $db->prepare("
+            SELECT g.name, g.param_name, g.value_type, g.is_revenue,
+                   c.value, c.click_id, c.created_at
+            FROM conversions c
+            JOIN goals g ON g.id = c.goal_id
+            WHERE c.stream_id = ?
+            ORDER BY c.created_at DESC
+        ");
+        $stmtExp->execute([$stream_id]);
+        $rows = $stmtExp->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($rows as $row) {
+            fputcsv($output, [
+                $row['name'],
+                $row['param_name'],
+                $row['value_type'],
+                $row['is_revenue'] ? 'Да' : 'Нет',
+                $row['value'],
+                $row['click_id'],
+                $row['created_at']
+            ], ';');
+        }
+    } catch (Exception $e) {}
+
     fclose($output);
     exit;
 }
@@ -335,7 +374,12 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     <form method="get" style="display:inline;">
                         <input type="hidden" name="stream_id" value="<?= $stream_id ?>">
                         <input type="hidden" name="export" value="csv">
-                        <button type="submit" class="export-btn">Экспорт кампании CSV</button>
+                        <button type="submit" class="export-btn">Экспорт Лога</button>
+                    </form>
+                    <form method="get" style="display:inline;">
+                        <input type="hidden" name="stream_id" value="<?= $stream_id ?>">
+                        <input type="hidden" name="export" value="goals_csv">
+                        <button type="submit" class="export-btn">Экспорт Целей</button>
                     </form>
                     <a href="<?= $redirect_link ?>" target="_blank" class="redirect-btn">Перейти к кампании</a>
                 </div>
