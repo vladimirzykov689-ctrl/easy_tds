@@ -49,7 +49,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['slug'
 
             $streamId = $db->lastInsertId();
 
-            // Сохраняем цели если включены
             $goalsMode = $_POST['goals_mode'] ?? 'none';
             if ($goalsMode === 'add') {
                 $goalNames  = $_POST['goal_name']  ?? [];
@@ -113,7 +112,6 @@ function toggleGoalsInputs() {
     const container = document.getElementById('goals_container');
     container.style.display = mode === 'add' ? 'block' : 'none';
 
-    // Снимаем/ставим required чтобы браузер не блокировал сабмит
     const inputs = container.querySelectorAll('input');
     inputs.forEach(input => {
         if (mode === 'add') {
@@ -128,7 +126,6 @@ function addGoal() {
     const container = document.getElementById('goals_list');
     const div = document.createElement('div');
     div.className = 'goal-item';
-    // стили берутся из .goal-item в style.css
     div.innerHTML = '<button type="button" class="remove-goal-btn" onclick="removeGoal(this)">&times;</button>'
         + '<label>Имя цели:</label>'
         + '<input type="text" name="goal_name[]" placeholder="Например: Регистрация" style="margin-bottom:8px;">'
@@ -174,7 +171,6 @@ window.addEventListener('DOMContentLoaded', () => {
     <nav class="sidebar" id="sidebar">
         <ul class="sidebar-nav">
 
-            <!-- === Главная === -->
             <li data-tooltip="Главная">
                 <a href="main.php">
                     <span class="nav-icon">
@@ -188,7 +184,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
             <li class="sidebar-divider"></li>
 
-            <!-- === Кампании — группа с аккордеоном === -->
             <li data-tooltip="Кампании">
                 <div class="sidebar-group-row">
                     <a href="campaigns.php" class="sidebar-group-link">
@@ -224,7 +219,17 @@ window.addEventListener('DOMContentLoaded', () => {
                                     <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
                                 </svg>
                             </span>
-                            <span class="nav-label">Экспорт CSV</span>
+                            <span class="nav-label">Экспорт логов</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="campaigns.php?export=goals_csv">
+                            <span class="nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
+                                </svg>
+                            </span>
+                            <span class="nav-label">Экспорт целей</span>
                         </a>
                     </li>
                     <li>
@@ -245,7 +250,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
             <li class="sidebar-divider"></li>
 
-            <!-- === Фильтр ботов === -->
             <li data-tooltip="Фильтр ботов">
                 <a href="bots.php">
                     <span class="nav-icon">
@@ -259,7 +263,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
             <li class="sidebar-divider"></li>
 
-            <!-- === Учетная запись === -->
             <li data-tooltip="Учетная запись">
                 <a href="credentials.php">
                     <span class="nav-icon">
@@ -370,16 +373,13 @@ window.addEventListener('DOMContentLoaded', () => {
     var toggle  = document.getElementById('campaignsToggle');
     var subnav  = document.getElementById('campaignsSubnav');
 
-    /* --- Restore sidebar state --- */
     if (localStorage.getItem(SIDEBAR_KEY) === '1') {
         body.classList.add('sidebar-collapsed');
     }
 
-    /* --- Restore accordion state (default: open) --- */
     var accordionOpen = localStorage.getItem(ACCORDION_KEY) !== '0';
     setAccordion(accordionOpen, false);
 
-    /* --- Hamburger click --- */
     btn.addEventListener('click', function () {
         body.classList.toggle('sidebar-collapsed');
         localStorage.setItem(
@@ -388,13 +388,11 @@ window.addEventListener('DOMContentLoaded', () => {
         );
     });
 
-    /* --- Accordion toggle click --- */
     toggle.addEventListener('click', function () {
         var isOpen = subnav.classList.contains('open');
         setAccordion(!isOpen, true);
     });
 
-    /* --- Delete all confirmation --- */
     window.confirmDeleteAll = function (e) {
         e.preventDefault();
         if (confirm('Вы уверены, что хотите удалить все кампании и всю статистику?')) {
