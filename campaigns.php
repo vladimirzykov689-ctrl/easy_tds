@@ -10,16 +10,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     $stmt = $db->prepare("DELETE FROM logs WHERE stream_id=?");
     $stmt->execute([$delete_id]);
 
-    $stmt = $db->prepare("DELETE FROM streams WHERE id=?");
-    $stmt->execute([$delete_id]);
-
-    $stmt = $db->prepare("UPDATE streams SET id = id - 1 WHERE id > ?");
+    $stmt = $db->prepare("DELETE FROM conversions WHERE stream_id=?");
     $stmt->execute([$delete_id]);
 
     $stmt = $db->prepare("DELETE FROM goals WHERE stream_id=?");
     $stmt->execute([$delete_id]);
-    
-    $stmt = $db->prepare("DELETE FROM conversions WHERE stream_id=?");
+
+    $stmt = $db->prepare("DELETE FROM streams WHERE id=?");
+    $stmt->execute([$delete_id]);
+
+    $stmt = $db->prepare("UPDATE streams SET id = id - 1 WHERE id > ?");
     $stmt->execute([$delete_id]);
 
     $db->exec("UPDATE sqlite_sequence SET seq = (SELECT MAX(id) FROM streams) WHERE name='streams'");
@@ -30,15 +30,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_all'])) {
     $db->exec("DELETE FROM logs");
-    $db->exec("DELETE FROM streams");
     $db->exec("DELETE FROM conversions");
     $db->exec("DELETE FROM goals");
+    $db->exec("DELETE FROM streams");
     $db->exec("UPDATE sqlite_sequence SET seq = 0 WHERE name='streams'");
 
     header('Location: campaigns.php'); 
     exit;
 }
 
+// ── Экспорт логов всех кампаний ───────────────────────────────────────────────
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
     $stmt = $db->prepare("
@@ -51,7 +52,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="All_Campaigns.csv"');
+    header('Content-Disposition: attachment; filename="All_Campaigns_Log.csv"');
 
     $output = fopen('php://output', 'w');
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
@@ -72,6 +73,48 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             $row['click_id'] ?? ''
         ], ';');
     }
+
+    fclose($output);
+    exit;
+}
+
+// ── Экспорт целей всех кампаний ───────────────────────────────────────────────
+if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
+
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="All_Campaigns_Goals.csv"');
+
+    $output = fopen('php://output', 'w');
+    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+
+    fputcsv($output, ['Кампания','Название цели','Параметр','Тип','Доходная','Значение','Click ID','Время конверсии'], ';');
+
+    try {
+        $stmtExp = $db->prepare("
+            SELECT s.name AS campaign_name,
+                   g.name, g.param_name, g.value_type, g.is_revenue,
+                   c.value, c.click_id, c.created_at
+            FROM conversions c
+            JOIN goals g ON g.id = c.goal_id
+            JOIN streams s ON s.id = c.stream_id
+            ORDER BY c.created_at DESC
+        ");
+        $stmtExp->execute();
+        $rows = $stmtExp->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($rows as $row) {
+            fputcsv($output, [
+                $row['campaign_name'],
+                $row['name'],
+                $row['param_name'],
+                $row['value_type'],
+                $row['is_revenue'] ? 'Да' : 'Нет',
+                $row['value'],
+                $row['click_id'],
+                $row['created_at']
+            ], ';');
+        }
+    } catch (Exception $e) {}
 
     fclose($output);
     exit;
@@ -131,7 +174,7 @@ $streams = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             <li class="sidebar-divider"></li>
 
-            <!-- === Кампании — группа с аккордеоном === -->
+            <!-- === Кампании === -->
             <li data-tooltip="Кампании">
                 <div class="sidebar-group-row active">
                     <a href="campaigns.php" class="sidebar-group-link">
@@ -167,7 +210,17 @@ $streams = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
                                 </svg>
                             </span>
-                            <span class="nav-label">Экспорт CSV</span>
+                            <span class="nav-label">Экспорт логов</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="?export=goals_csv">
+                            <span class="nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
+                                </svg>
+                            </span>
+                            <span class="nav-label">Экспорт целей</span>
                         </a>
                     </li>
                     <li>
@@ -235,7 +288,6 @@ $streams = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <div class="page-content">
         <div class="content">
 
-            <!-- Campaigns list -->
             <?php if(empty($streams)): ?>
                 <div style="text-align:center; margin:40px; font-size:20px; color:#ccc;">Не найдено кампаний</div>
             <?php else: ?>
@@ -298,16 +350,13 @@ $streams = $stmt->fetchAll(PDO::FETCH_ASSOC);
     var toggle   = document.getElementById('campaignsToggle');
     var subnav   = document.getElementById('campaignsSubnav');
 
-    /* --- Restore sidebar state --- */
     if (localStorage.getItem(SIDEBAR_KEY) === '1') {
         body.classList.add('sidebar-collapsed');
     }
 
-    /* --- Restore accordion state (default: open) --- */
     var accordionOpen = localStorage.getItem(ACCORDION_KEY) !== '0';
     setAccordion(accordionOpen, false);
 
-    /* --- Hamburger click --- */
     btn.addEventListener('click', function () {
         body.classList.toggle('sidebar-collapsed');
         localStorage.setItem(
@@ -316,13 +365,11 @@ $streams = $stmt->fetchAll(PDO::FETCH_ASSOC);
         );
     });
 
-    /* --- Accordion toggle click --- */
     toggle.addEventListener('click', function () {
         var isOpen = subnav.classList.contains('open');
         setAccordion(!isOpen, true);
     });
 
-    /* --- Delete all confirmation --- */
     window.confirmDeleteAll = function (e) {
         e.preventDefault();
         if (confirm('Вы уверены, что хотите удалить все кампании и всю статистику?')) {
