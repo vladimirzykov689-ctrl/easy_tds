@@ -7,7 +7,6 @@ checkIP();
 $errors  = [];
 $success = '';
 
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $changeLogin = ($_POST['change_login'] ?? 'no') === 'yes';
@@ -15,13 +14,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $changeIP    = ($_POST['change_ip']    ?? 'no') === 'yes';
     $sslAction   = $_POST['ssl_action']   ?? 'none';
 
-    // Читаем текущий config.php
     $configPath    = __DIR__ . '/config.php';
     $configContent = file_get_contents($configPath);
 
-    // Извлекаем текущие хэши
-    preg_match("/define\('PANEL_USER_HASH',\s*'([^']+)'\)/", $configContent, $mUser);
-    preg_match("/define\('PANEL_PASS_HASH',\s*'([^']+)'\)/", $configContent, $mPass);
+    preg_match("/define\\('PANEL_USER_HASH',\\s*'([^']+)'\\)/", $configContent, $mUser);
+    preg_match("/define\\('PANEL_PASS_HASH',\\s*'([^']+)'\\)/", $configContent, $mPass);
     $currentUserHash = $mUser[1] ?? '';
     $currentPassHash = $mPass[1] ?? '';
 
@@ -62,20 +59,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newAllowedIPs = implode(',', $ipList);
     }
 
-    // ---  домены (можно указать несколько через запятую) ---
-    if (in_array($Action, ['add', 'remove'])) {
-        $rawDomains = trim($_POST['_domain'] ?? '');
+    // --- SSL ---
+    if (in_array($sslAction, ['add', 'remove'])) {
+        $rawDomains = trim($_POST['ssl_domain'] ?? '');
 
         if (empty($rawDomains)) {
             $errors[] = 'Укажите домен.';
         } else {
-            // Разбиваем по запятой и чистим пробелы
             $domains = array_filter(array_map('trim', explode(',', $rawDomains)));
 
-            $sslSuccess = []; // домены успешно обработанные
-            $sslErrors  = []; // домены с ошибками
+            $sslSuccess = [];
+            $sslErrors  = [];
 
-            // Валидируем все домены до начала операций
             $validDomains   = [];
             $invalidDomains = [];
             foreach ($domains as $d) {
@@ -92,14 +87,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!empty($validDomains)) {
                 if ($sslAction === 'add') {
-                    // Cron добавляем один раз перед циклом
                     shell_exec("(crontab -l 2>/dev/null | grep -q 'certbot renew') || (crontab -l 2>/dev/null; echo '0 3 * * * certbot renew --quiet --nginx') | crontab -");
                     shell_exec("(crontab -l 2>/dev/null | grep -q 'reload nginx') || (crontab -l 2>/dev/null; echo '30 3 * * * systemctl reload nginx') | crontab -");
 
                     foreach ($validDomains as $domain) {
                         $cmd = "sudo certbot --nginx -d " . escapeshellarg($domain) . " --non-interactive --agree-tos --register-unsafely-without-email > /dev/null 2>&1; echo $?";
                         $exitCode = trim(shell_exec($cmd));
-
                         if ($exitCode === '0') {
                             $sslSuccess[] = $domain;
                         } else {
@@ -118,12 +111,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $nginxConf = '/etc/nginx/sites-enabled/default';
 
                     foreach ($validDomains as $domain) {
-                        // 1. Удаляем сертификат из /etc/letsencrypt/
                         shell_exec("sudo certbot delete --cert-name " . escapeshellarg($domain) . " --non-interactive 2>/dev/null");
 
-                        // 2. Патчим nginx-конфиг — удаляем только две строки этого домена
                         $nginx = file_get_contents($nginxConf);
-
                         if ($nginx !== false) {
                             $domainPattern = preg_quote($domain, '/');
                             $lines  = explode("\n", $nginx);
@@ -131,7 +121,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             foreach ($lines as $line) {
                                 if (preg_match('/^\s*ssl_certificate(?:_key)?\s+[^\n]*\/live\/' . $domainPattern . '\//i', $line)) {
-                                    // Убираем предшествующий комментарий "# managed by Certbot" если есть
                                     if (!empty($result) && preg_match('/^\s*#[^\n]*managed by Certbot/i', end($result))) {
                                         array_pop($result);
                                     }
@@ -141,8 +130,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
 
                             $nginx = implode("\n", $result);
-
-                            // Если это был последний SSL-домен — убираем общие ssl-директивы
                             $hasOtherSSL = (bool) preg_match('/^\s*ssl_certificate\s+/m', $nginx);
 
                             if (!$hasOtherSSL) {
@@ -159,7 +146,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $sslSuccess[] = $domain;
                     }
 
-                    // Проверяем конфиг и перезагружаем nginx один раз после всех удалений
                     $testCode = trim(shell_exec("sudo nginx -t > /dev/null 2>&1; echo $?"));
                     $testOut  = shell_exec("sudo nginx -t 2>&1");
 
@@ -176,11 +162,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // --- Записываем config.php если нет ошибок ---
+    // --- Записываем config.php ---
     if (empty($errors) && ($changeLogin || $changePass || $changeIP)) {
-        preg_match("/define\('PANEL_USER_HASH',\s*'([^']*)'\)/", $configContent, $oldUser);
-        preg_match("/define\('PANEL_PASS_HASH',\s*'([^']*)'\)/", $configContent, $oldPass);
-        preg_match("/\$ALLOWED_IPS\s*=\s*'([^']*)';/", $configContent, $oldIP);
+        preg_match("/define\\('PANEL_USER_HASH',\\s*'([^']*)'\\)/", $configContent, $oldUser);
+        preg_match("/define\\('PANEL_PASS_HASH',\\s*'([^']*)'\\)/", $configContent, $oldPass);
+        preg_match("/\\\$ALLOWED_IPS\\s*=\\s*'([^']*)';/", $configContent, $oldIP);
 
         $configContent = str_replace(
             "define('PANEL_USER_HASH', '" . ($oldUser[1] ?? '') . "')",
@@ -208,9 +194,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Читаем текущий IP список для отображения
 $configContent = file_get_contents(__DIR__ . '/config.php');
-preg_match("/\\\$ALLOWED_IPS\s*=\s*'([^']*)';/", $configContent, $mIP);
+preg_match("/\\\$ALLOWED_IPS\\s*=\\s*'([^']*)';/", $configContent, $mIP);
 $currentIPs = $mIP[1] ?? '';
-
 ?>
 <!DOCTYPE html>
 <html>
@@ -303,7 +288,17 @@ window.addEventListener('DOMContentLoaded', function () {
                                     <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
                                 </svg>
                             </span>
-                            <span class="nav-label">Экспорт CSV</span>
+                            <span class="nav-label">Экспорт логов</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="campaigns.php?export=goals_csv">
+                            <span class="nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
+                                </svg>
+                            </span>
+                            <span class="nav-label">Экспорт целей</span>
                         </a>
                     </li>
                     <li>
@@ -382,7 +377,6 @@ window.addEventListener('DOMContentLoaded', function () {
                         &#10003; <?= htmlspecialchars($success) ?>
                     </div>
                 <?php endif; ?>
-
 
                 <form method="post">
 
