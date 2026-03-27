@@ -179,14 +179,17 @@ if (!in_array($basename, $excluded)) {
     }
     $keyword = implode(',', $keywords);
 
+    // ── Генерируем click_id ──────────────────────────────────────────────────
+    $clickId = bin2hex(random_bytes(16));
+
     // ── Запись лога ──────────────────────────────────────────────────────────
     $mskTime = (new DateTime('now', new DateTimeZone('Europe/Moscow')))->format('Y-m-d H:i:s');
     $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
     $stmt2 = $db->prepare("
-        INSERT INTO logs (stream_id, device, ip, geo, keyword, provider, timestamp, useragent, ptr)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO logs (stream_id, click_id, device, ip, geo, keyword, provider, timestamp, useragent, ptr)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
-    $stmt2->execute([$row['id'], $device, $ip, $geo, $keyword, $provider, $mskTime, $userAgent, $ptr]);
+    $stmt2->execute([$row['id'], $clickId, $device, $ip, $geo, $keyword, $provider, $mskTime, $userAgent, $ptr]);
 
     // ── Редирект: бот ────────────────────────────────────────────────────────
     if ($isBot) {
@@ -195,7 +198,7 @@ if (!in_array($basename, $excluded)) {
             $botUrls = array_values($botUrls);
             if (!isset($_SESSION['bot_redirect_index'][$row['id']])) $_SESSION['bot_redirect_index'][$row['id']] = 0;
             $index = $_SESSION['bot_redirect_index'][$row['id']];
-            $redirectUrl = $botUrls[$index];
+            $redirectUrl = str_replace('{click_id}', $clickId, $botUrls[$index]);
             $_SESSION['bot_redirect_index'][$row['id']] = ($index + 1) % count($botUrls);
             header("Location: " . $redirectUrl);
             exit;
@@ -209,7 +212,7 @@ if (!in_array($basename, $excluded)) {
             $redirectUrls = array_values($redirectUrls);
             if (!isset($_SESSION['geo_redirect_index'][$row['id']])) $_SESSION['geo_redirect_index'][$row['id']] = 0;
             $index = $_SESSION['geo_redirect_index'][$row['id']];
-            $redirectUrl = $redirectUrls[$index];
+            $redirectUrl = str_replace('{click_id}', $clickId, $redirectUrls[$index]);
             $_SESSION['geo_redirect_index'][$row['id']] = ($index + 1) % count($redirectUrls);
             header("Location: " . $redirectUrl);
             exit;
@@ -224,7 +227,7 @@ if (!in_array($basename, $excluded)) {
     $urls = array_values(array_filter(array_map('trim', explode(',', $row['url']))));
     if (!isset($_SESSION['redirect_index'][$row['id']])) $_SESSION['redirect_index'][$row['id']] = 0;
     $index = $_SESSION['redirect_index'][$row['id']];
-    $redirectUrl = $urls[$index];
+    $redirectUrl = str_replace('{click_id}', $clickId, $urls[$index]);
     $_SESSION['redirect_index'][$row['id']] = ($index + 1) % count($urls);
     header("Location: " . $redirectUrl);
     exit;
