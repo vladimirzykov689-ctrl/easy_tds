@@ -68,7 +68,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             $row['geo'] ?? '',
             $row['provider'] ?? '',
             $row['ptr'] ?? '',
-            $row['keyword'] ?? ''
+            $row['keyword'] ?? '',
             $row['click_id'] ?? ''
         ], ';');
     }
