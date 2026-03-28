@@ -22,8 +22,8 @@ $currentApiHash  = $mApi[1]  ?? '';
 $currentIPs      = $mIP[1]   ?? '';
 $ipRestricted    = !empty($currentIPs);
 
-// ── Читаем открытый ключ из tg_url.json ───────────────────────────────────────
-define('TG_CONFIG_FILE', __DIR__ . '/tg_url.json');
+// ── Читаем открытый ключ из tg_config.json ───────────────────────────────────────
+define('TG_CONFIG_FILE', __DIR__ . '/tg_config.json');
 function loadTgConfig(): array {
     if (!file_exists(TG_CONFIG_FILE)) return [];
     return json_decode(file_get_contents(TG_CONFIG_FILE), true) ?? [];
