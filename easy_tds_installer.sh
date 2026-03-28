@@ -22,7 +22,7 @@ server {
 listen 80 default_server;
 listen [::]:80 default_server;
 root /var/www/html;
-index index.html index.htm index.nginx-debian.html;
+index index.html index.htm index.nginx-debian-debian.html;
 server_name _;
 location / {
 try_files $uri $uri/ =404;
@@ -44,11 +44,8 @@ while true; do
     echo "Пароли не совпадают, попробуйте снова."
 done
 
-read -rp "Ограничить доступ по IP? (да/нет): " IP_RESTRICT
-ALLOWED_IPS=""
-if [[ "$IP_RESTRICT" =~ ^(да)$ ]]; then
-    read -rp "Введите IP-адреса через запятую (без пробелов): " ALLOWED_IPS
-fi
+# УБРАНЫ ВОПРОСЫ ОБ ОГРАНИЧЕНИИ ПО IP
+# ALLOWED_IPS будет пустым по умолчанию
 
 echo "=============================="
 echo "Начало установки Easy Tds"
@@ -112,20 +109,20 @@ printf '%s\n' '$c .= "    return \$db;\n";' >> $MCP
 printf '%s\n' '$c .= "}\n\n";' >> $MCP
 printf '%s\n' '$c .= "function initDB() {\n";' >> $MCP
 printf '%s\n' '$c .= "    \$db = getDB();\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS streams (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, url TEXT NOT NULL, geo_filter_type TEXT NOT NULL DEFAULT '"'"'none'"'"', geo_filter_list TEXT, geo_redirect_urls TEXT, bot_filter TEXT NOT NULL DEFAULT '"'"'off'"'"', bot_redirect_urls TEXT)\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, stream_id INTEGER NOT NULL, device TEXT NOT NULL, ip TEXT NOT NULL, geo TEXT NOT NULL, provider TEXT, keyword TEXT, timestamp DATETIME NOT NULL DEFAULT (strftime('"'"'%Y-%m-%d %H:%M:%S'"'"','"'"'now'"'"','"'"'localtime'"'"')), useragent TEXT, ptr TEXT DEFAULT '"'"'UNKNOWN'"'"', click_id TEXT)\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS bot_settings (id INTEGER PRIMARY KEY DEFAULT 1, filter_ip TEXT NOT NULL DEFAULT '"'"'no'"'"', filter_isp TEXT NOT NULL DEFAULT '"'"'no'"'"', filter_ptr TEXT NOT NULL DEFAULT '"'"'no'"'"', filter_ua TEXT NOT NULL DEFAULT '"'"'no'"'"')\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS goals (id INTEGER PRIMARY KEY AUTOINCREMENT, stream_id INTEGER NOT NULL, name TEXT NOT NULL, param_name TEXT NOT NULL, value_type TEXT NOT NULL DEFAULT '"'"'flag'"'"', is_revenue INTEGER DEFAULT 0, currency TEXT DEFAULT NULL)\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS conversions (id INTEGER PRIMARY KEY AUTOINCREMENT, click_id TEXT NOT NULL, stream_id INTEGER NOT NULL, goal_id INTEGER NOT NULL, value REAL DEFAULT 0, created_at DATETIME DEFAULT (strftime('"'"'%Y-%m-%d %H:%M:%S'"'"','"'"'now'"'"','"'"'localtime'"'"')))\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\"INSERT OR IGNORE INTO bot_settings (id) VALUES (1)\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_stream_id ON logs(stream_id)\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON logs(timestamp)\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_geo ON logs(geo)\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_device ON logs(device)\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_keyword ON logs(keyword)\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_click_id ON logs(click_id)\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_goals_stream_id ON goals(stream_id)\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_conversions_click_id ON conversions(click_id)\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\\"CREATE TABLE IF NOT EXISTS streams (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, url TEXT NOT NULL, geo_filter_type TEXT NOT NULL DEFAULT '"'"'none'"'"', geo_filter_list TEXT, geo_redirect_urls TEXT, bot_filter TEXT NOT NULL DEFAULT '"'"'off'"'"', bot_redirect_urls TEXT)\\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\\"CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, stream_id INTEGER NOT NULL, device TEXT NOT NULL, ip TEXT NOT NULL, geo TEXT NOT NULL, provider TEXT, keyword TEXT, timestamp DATETIME NOT NULL DEFAULT (strftime('"'"'%Y-%m-%d %H:%M:%S'"'"','"'"'now'"'"','"'"'localtime'"'"')), useragent TEXT, ptr TEXT DEFAULT '"'"'UNKNOWN'"'"', click_id TEXT)\\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\\"CREATE TABLE IF NOT EXISTS bot_settings (id INTEGER PRIMARY KEY DEFAULT 1, filter_ip TEXT NOT NULL DEFAULT '"'"'no'"'"', filter_isp TEXT NOT NULL DEFAULT '"'"'no'"'"', filter_ptr TEXT NOT NULL DEFAULT '"'"'no'"'"', filter_ua TEXT NOT NULL DEFAULT '"'"'no'"'"')\\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\\"CREATE TABLE IF NOT EXISTS goals (id INTEGER PRIMARY KEY AUTOINCREMENT, stream_id INTEGER NOT NULL, name TEXT NOT NULL, param_name TEXT NOT NULL, value_type TEXT NOT NULL DEFAULT '"'"'flag'"'"', is_revenue INTEGER DEFAULT 0, currency TEXT DEFAULT NULL)\\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\\"CREATE TABLE IF NOT EXISTS conversions (id INTEGER PRIMARY KEY AUTOINCREMENT, click_id TEXT NOT NULL, stream_id INTEGER NOT NULL, goal_id INTEGER NOT NULL, value REAL DEFAULT 0, created_at DATETIME DEFAULT (strftime('"'"'%Y-%m-%d %H:%M:%S'"'"','"'"'now'"'"','"'"'localtime'"'"')))\\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\\"INSERT OR IGNORE INTO bot_settings (id) VALUES (1)\\" );\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\\"CREATE INDEX IF NOT EXISTS idx_logs_stream_id ON logs(stream_id)\\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\\"CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON logs(timestamp)\\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\\"CREATE INDEX IF NOT EXISTS idx_logs_geo ON logs(geo)\\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\\"CREATE INDEX IF NOT EXISTS idx_logs_device ON logs(device)\\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\\"CREATE INDEX IF NOT EXISTS idx_logs_keyword ON logs(keyword)\\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\\"CREATE INDEX IF NOT EXISTS idx_logs_click_id ON logs(click_id)\\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\\"CREATE INDEX IF NOT EXISTS idx_goals_stream_id ON goals(stream_id)\\");\n";' >> $MCP
+printf '%s\n' '$c .= "    \$db->exec(\\"CREATE INDEX IF NOT EXISTS idx_conversions_click_id ON conversions(click_id)\\");\n";' >> $MCP
 printf '%s\n' '$c .= "    return \$db;\n";' >> $MCP
 printf '%s\n' '$c .= "}\n\n";' >> $MCP
 printf '%s\n' '$c .= "function checkIP() {\n";' >> $MCP
@@ -155,7 +152,8 @@ printf '%s\n' '$c .= "}\n";' >> $MCP
 printf '%s\n' 'file_put_contents($installDir . "/config.php", $c);' >> $MCP
 printf '%s\n' 'echo "config.php создан успешно" . PHP_EOL;' >> $MCP
 
-php $MCP "$PANEL_USER" "$PANEL_PASS" "$ALLOWED_IPS" "$INSTALL_DIR"
+# Передаём СТРОПУ ПУСТУЮ для ALLOWED_IPS
+php $MCP "$PANEL_USER" "$PANEL_PASS" "" "$INSTALL_DIR"
 rm $MCP
 
 sudo tee "$NGINX_CONF" > /dev/null << 'EOF'
@@ -171,11 +169,11 @@ server {
         deny all;
     }
 
-    location ~* ^/config\.php$ {
+    location ~* ^/config\\.php$ {
         deny all;
     }
 
-    location ~* ^/tg_config\.json$ {
+    location ~* ^/tg_config\\.json$ {
         deny all;
     }
 
@@ -183,7 +181,7 @@ server {
         try_files $uri $uri/ /stream.php$is_args$args;
     }
 
-    location ~ \.php$ {
+    location ~ \\.php$ {
         include snippets/fastcgi-php.conf;
         fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
     }
