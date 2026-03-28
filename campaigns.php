@@ -57,20 +57,20 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $output = fopen('php://output', 'w');
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
-    fputcsv($output, ['Кампания','Дата','Девайс','UA','IP','Гео','Провайдер','PTR','Ключевики','Click ID'], ';');
+    fputcsv($output, ['Кампания','Дата', 'ClickID', 'Девайс','UA','IP','Гео','Провайдер','PTR','Ключевики'], ';');
 
     foreach ($logs as $row) {
         fputcsv($output, [
             $row['name'] ?? '',
             $row['timestamp'] ?? '',
+            $row['click_id'] ?? '',
             $row['device'] ?? '',
             $row['useragent'] ?? '',
             $row['ip'] ?? '',
             $row['geo'] ?? '',
             $row['provider'] ?? '',
             $row['ptr'] ?? '',
-            $row['keyword'] ?? '',
-            $row['click_id'] ?? ''
+            $row['keyword'] ?? ''
         ], ';');
     }
 
@@ -87,12 +87,12 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
     $output = fopen('php://output', 'w');
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
-    fputcsv($output, ['Кампания','Название цели','Параметр','Тип','Доходная','Значение','Click ID','Время конверсии'], ';');
+    fputcsv($output, ['Кампания','Дата', 'ClickID', 'Название','Параметр','Тип','Доходная', 'Валюта', 'Значение'], ';');
 
     try {
         $stmtExp = $db->prepare("
             SELECT s.name AS campaign_name,
-                   g.name, g.param_name, g.value_type, g.is_revenue,
+                   g.name, g.param_name, g.value_type, g.is_revenue, g.currency,
                    c.value, c.click_id, c.created_at
             FROM conversions c
             JOIN goals g ON g.id = c.goal_id
@@ -105,13 +105,14 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
         foreach ($rows as $row) {
             fputcsv($output, [
                 $row['campaign_name'],
+                $row['created_at'],
+                $row['click_id'],
                 $row['name'],
                 $row['param_name'],
                 $row['value_type'],
                 $row['is_revenue'] ? 'Да' : 'Нет',
-                $row['value'],
-                $row['click_id'],
-                $row['created_at']
+                $row['currency'] ?? '',
+                $row['value']
             ], ';');
         }
     } catch (Exception $e) {}
