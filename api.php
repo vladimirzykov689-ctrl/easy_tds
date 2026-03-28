@@ -77,33 +77,53 @@ switch ($action) {
         arsort($geoCounts);
         $topGeo = array_slice($geoCounts, 0, 5, true);
 
-        // Профит
-        $stmtP = $db->query("
+        // Доминирующая валюта
+        $stmtCur = $db->query("
+            SELECT currency, COUNT(*) AS cnt
+            FROM goals
+            WHERE is_revenue = 1 AND currency IS NOT NULL
+            GROUP BY currency
+            ORDER BY cnt DESC
+            LIMIT 1
+        ");
+        $curRow = $stmtCur->fetch(PDO::FETCH_ASSOC);
+        $dominantCurrency = $curRow ? $curRow['currency'] : 'USD';
+
+        // Профит по доминирующей валюте
+        $stmtP = $db->prepare("
             SELECT COALESCE(SUM(c.value), 0)
             FROM conversions c
             JOIN goals g ON g.id = c.goal_id
-            WHERE g.is_revenue = 1
+            WHERE g.is_revenue = 1 AND g.currency = ?
         ");
+        $stmtP->execute([$dominantCurrency]);
         $totalProfit = round((float)$stmtP->fetchColumn(), 2);
 
-        // Топ-3 кампании по профиту
-        $stmtTop = $db->query("
+        // Топ-3 кампании по профиту (по доминирующей валюте)
+        $stmtTop = $db->prepare("
             SELECT s.name, COALESCE(SUM(c.value), 0) AS profit
             FROM conversions c
             JOIN goals g ON g.id = c.goal_id
             JOIN streams s ON s.id = c.stream_id
-            WHERE g.is_revenue = 1
+            WHERE g.is_revenue = 1 AND g.currency = ?
             GROUP BY c.stream_id
             ORDER BY profit DESC
             LIMIT 3
         ");
+        $stmtTop->execute([$dominantCurrency]);
         $topCampaigns = $stmtTop->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($topCampaigns as &$tc) {
+            $tc['profit'] = round((float)$tc['profit'], 2);
+        }
+        unset($tc);
 
         // Топ-3 цели по конверсиям
         $stmtGoals = $db->query("
             SELECT g.name, COUNT(c.id) AS cnt
             FROM conversions c
             JOIN goals g ON g.id = c.goal_id
+            WHERE g.is_revenue = 0
             GROUP BY c.goal_id
             ORDER BY cnt DESC
             LIMIT 3
@@ -119,6 +139,7 @@ switch ($action) {
             'bots'             => $botCount,
             'total_campaigns'  => $totalCampaigns,
             'total_profit'     => $totalProfit,
+            'profit_currency'  => $dominantCurrency,
             'devices'          => $devices,
             'top_geo'          => $topGeo,
             'top_campaigns'    => $topCampaigns,
@@ -135,7 +156,8 @@ switch ($action) {
                 s.url,
                 COUNT(DISTINCT l.id)   AS total_clicks,
                 COUNT(DISTINCT l.ip)   AS unique_ips,
-                COALESCE(SUM(CASE WHEN g.is_revenue = 1 THEN c.value ELSE 0 END), 0) AS profit
+                COALESCE(SUM(CASE WHEN g.is_revenue = 1 THEN c.value ELSE 0 END), 0) AS profit,
+                MAX(CASE WHEN g.is_revenue = 1 THEN g.currency ELSE NULL END) AS profit_currency
             FROM streams s
             LEFT JOIN logs l        ON l.stream_id = s.id
             LEFT JOIN conversions c ON c.stream_id = s.id
@@ -146,9 +168,10 @@ switch ($action) {
         $campaigns = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($campaigns as &$c) {
-            $c['profit']       = round((float)$c['profit'], 2);
-            $c['total_clicks'] = (int)$c['total_clicks'];
-            $c['unique_ips']   = (int)$c['unique_ips'];
+            $c['profit']          = round((float)$c['profit'], 2);
+            $c['total_clicks']    = (int)$c['total_clicks'];
+            $c['unique_ips']      = (int)$c['unique_ips'];
+            $c['profit_currency'] = $c['profit_currency'] ?? 'USD';
         }
         unset($c);
 
@@ -222,7 +245,8 @@ switch ($action) {
                 g.param_name,
                 g.value_type,
                 g.is_revenue,
-                COUNT(c.id)              AS conversions,
+                g.currency,
+                COUNT(c.id)               AS conversions,
                 COALESCE(SUM(c.value), 0) AS total_value
             FROM goals g
             LEFT JOIN conversions c ON c.goal_id = g.id
@@ -233,28 +257,35 @@ switch ($action) {
         $stmtG->execute([$id]);
         $goals = $stmtG->fetchAll(PDO::FETCH_ASSOC);
 
+        $profitCurrency = 'USD';
         foreach ($goals as &$g) {
-            $g['conversions']  = (int)$g['conversions'];
-            $g['total_value']  = round((float)$g['total_value'], 2);
-            $g['is_revenue']   = (bool)$g['is_revenue'];
+            $g['conversions'] = (int)$g['conversions'];
+            $g['total_value'] = round((float)$g['total_value'], 2);
+            $g['is_revenue']  = (bool)$g['is_revenue'];
+            $g['currency']    = $g['currency'] ?? null;
+
+            if ($g['is_revenue'] && !empty($g['currency']) && $profitCurrency === 'USD') {
+                $profitCurrency = $g['currency'];
+            }
         }
         unset($g);
 
         jsonResponse([
-            'ok'           => true,
-            'campaign'     => [
+            'ok'              => true,
+            'campaign'        => [
                 'id'   => (int)$stream['id'],
                 'name' => $stream['name'],
                 'slug' => $stream['slug'],
                 'url'  => $stream['url'],
             ],
-            'total_clicks' => $totalClicks,
-            'unique_ips'   => $uniqueIps,
-            'bots'         => $botCount,
-            'profit'       => $profit,
-            'devices'      => $devices,
-            'top_geo'      => $topGeo,
-            'goals'        => $goals,
+            'total_clicks'    => $totalClicks,
+            'unique_ips'      => $uniqueIps,
+            'bots'            => $botCount,
+            'profit'          => $profit,
+            'profit_currency' => $profitCurrency,
+            'devices'         => $devices,
+            'top_geo'         => $topGeo,
+            'goals'           => $goals,
         ]);
 
     // ── Неизвестный action ────────────────────────────────────────────────────
