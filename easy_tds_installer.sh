@@ -83,7 +83,7 @@ composer init --name="easytds/geolite2" --require="geoip2/geoip2:^3.2" --no-inte
 composer install --no-interaction --no-progress >/dev/null 2>&1
 cd -
 
-# Создаём make_config.php через heredoc вместо printf (проще читать и меньше ошибок экранирования)
+# Создаём make_config.php через heredoc
 cat > /tmp/make_config.php << 'PHPCODE'
 <?php
 $user       = $argv[1];
@@ -216,9 +216,12 @@ sudo apt install -y certbot python3-certbot-nginx \
 echo "www-data ALL=(ALL) NOPASSWD: /usr/bin/certbot, /usr/sbin/nginx" | sudo tee /etc/sudoers.d/easytds-certbot > /dev/null
 sudo chmod 440 /etc/sudoers.d/easytds-certbot
 
+# Получаем реальный IP сервера
+SERVER_IP=$(hostname -I | awk '{print $1}')
+
 echo "=============================="
 echo "Установка Easy Tds завершена!"
-echo "Доступ: http://your_ip/login.php"
+echo "Доступ: http://${SERVER_IP}/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
 echo "=============================="
