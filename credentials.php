@@ -29,10 +29,10 @@ function loadTgConfig(): array {
     return json_decode(file_get_contents(TG_CONFIG_FILE), true) ?? [];
 }
 function saveTgConfig(array $data): void {
-    file_put_contents(TG_CONFIG_FILE, json_encode($data, JSON_PRETTY_PRINT));
+    file_put_contents(TG_CONFIG_FILE, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 }
-$tgConfig       = loadTgConfig();
-$currentApiKey  = $tgConfig['api_key'] ?? ''; // открытый ключ для отображения
+$tgConfig      = loadTgConfig();
+$currentApiKey = $tgConfig['api_key'] ?? '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -44,36 +44,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $newUserHash = $currentUserHash;
     $newPassHash = $currentPassHash;
-    $newApiHash  = $currentApiHash;
-    $newApiKey   = $currentApiKey;
 
     // ── Генерация нового API ключа ────────────────────────────────────────────
     if ($generateApi) {
-        $newApiKey  = bin2hex(random_bytes(32)); // 64 символа
+        $newApiKey  = bin2hex(random_bytes(32));
         $newApiHash = password_hash($newApiKey, PASSWORD_BCRYPT);
 
-        // Сохраняем открытый ключ в tg_url.json
-        $tgConfig['api_key'] = $newApiKey;
-        saveTgConfig($tgConfig);
+        // Читаем свежий конфиг
+        $configContent = file_get_contents($configPath);
 
-        // Сохраняем хэш в config.php
-        if (strpos($configContent, "define('API_KEY_HASH'") !== false) {
-            $configContent = preg_replace(
-                "/define\('API_KEY_HASH',\s*'[^']*'\)/",
+        // Находим старый хэш через regex
+        preg_match("/define\('API_KEY_HASH',\s*'([^']*)'\)/", $configContent, $mOldApi);
+        $oldApiHash = $mOldApi[1] ?? '';
+
+        // Используем str_replace — без проблем с backreference
+        if ($oldApiHash !== '' || strpos($configContent, "define('API_KEY_HASH'") !== false) {
+            $configContent = str_replace(
+                "define('API_KEY_HASH', '" . $oldApiHash . "')",
                 "define('API_KEY_HASH', '" . $newApiHash . "')",
                 $configContent
             );
         } else {
-            // Если строки нет — добавляем после PANEL_PASS_HASH
+            // Строки нет вообще — добавляем после PANEL_PASS_HASH
             $configContent = str_replace(
                 "define('PANEL_PASS_HASH', '" . $currentPassHash . "')",
-                "define('PANEL_PASS_HASH', '" . $currentPassHash . "')\n" .
-                "define('API_KEY_HASH', '" . $newApiHash . "')",
+                "define('PANEL_PASS_HASH', '" . $currentPassHash . "')" . PHP_EOL . "define('API_KEY_HASH', '" . $newApiHash . "')",
                 $configContent
             );
         }
 
         if (file_put_contents($configPath, $configContent) !== false) {
+            $tgConfig['api_key'] = $newApiKey;
+            saveTgConfig($tgConfig);
             $currentApiKey = $newApiKey;
             $success = 'Новый API ключ успешно сгенерирован.';
         } else {
@@ -168,8 +170,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 }
                                 $result[] = $line;
                             }
-                            $nginx        = implode("\n", $result);
-                            $hasOtherSSL  = (bool)preg_match('/^\s*ssl_certificate\s+/m', $nginx);
+                            $nginx       = implode("\n", $result);
+                            $hasOtherSSL = (bool)preg_match('/^\s*ssl_certificate\s+/m', $nginx);
                             if (!$hasOtherSSL) {
                                 $nginx = preg_replace('/^\s*listen\s+443\s+ssl[^\n]*\n?/m', '', $nginx);
                                 $nginx = preg_replace('/^\s*listen\s+\[::\]:443\s+ssl[^\n]*\n?/m', '', $nginx);
@@ -246,7 +248,7 @@ function toggleSSL() {
 }
 function copyApiKey() {
     var el = document.getElementById('api_key_display');
-    navigator.clipboard.writeText(el.innerText).then(function() {
+    navigator.clipboard.writeText(el.innerText.trim()).then(function() {
         var btn = document.getElementById('copyBtn');
         btn.innerText = 'Скопировано!';
         setTimeout(function(){ btn.innerText = 'Копировать'; }, 2000);
@@ -347,15 +349,12 @@ window.addEventListener('DOMContentLoaded', function () {
                     </label>
                     <?php if (!empty($currentApiKey)): ?>
                         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                            <code id="api_key_display" style="flex:1;background:rgba(0,0,0,0.3);padding:8px 12px;border-radius:6px;font-size:13px;color:#fff;word-break:break-all;border:1px solid rgba(155,0,255,0.2);">
-                                <?= htmlspecialchars($currentApiKey) ?>
-                            </code>
+                            <code id="api_key_display" style="flex:1;background:rgba(0,0,0,0.3);padding:8px 12px;border-radius:6px;font-size:13px;color:#fff;word-break:break-all;border:1px solid rgba(155,0,255,0.2);"><?= htmlspecialchars($currentApiKey) ?></code>
                             <button type="button" id="copyBtn" onclick="copyApiKey()" class="export-btn" style="white-space:nowrap;">Копировать</button>
                         </div>
                     <?php else: ?>
                         <div style="color:rgba(255,255,255,0.3);font-style:italic;margin-bottom:8px;">Ключ не сгенерирован</div>
                     <?php endif; ?>
-
                     <form method="post" style="margin-top:10px;">
                         <input type="hidden" name="generate_api" value="1">
                         <button type="submit" class="add-new-btn" onclick="return confirm('Сгенерировать новый API ключ? Старый перестанет работать.');">
@@ -366,7 +365,6 @@ window.addEventListener('DOMContentLoaded', function () {
 
                 <!-- ======= ОСНОВНАЯ ФОРМА ======= -->
                 <form method="post">
-
                     <label for="change_login">Изменить логин:</label>
                     <select id="change_login" name="change_login" onchange="toggleSection('change_login','section_login')">
                         <option value="no">Нет</option>
