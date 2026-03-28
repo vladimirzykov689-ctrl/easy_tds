@@ -89,7 +89,7 @@ composer init --name="easytds/geolite2" --require="geoip2/geoip2:^3.2" --no-inte
 composer install --no-interaction --no-progress >/dev/null 2>&1
 cd -
 
-# Создаём make_config.php через printf — без heredoc, без экранирования
+# Создаём make_config.php через printf
 MCP=/tmp/make_config.php
 printf '%s\n' '<?php' > $MCP
 printf '%s\n' '$user       = $argv[1];' >> $MCP
@@ -103,6 +103,7 @@ printf '%s\n' '$c .= "session_start();\n";' >> $MCP
 printf '%s\n' '$c .= "\$ALLOWED_IPS = '\''" . $allowedIps . "'\'';\n";' >> $MCP
 printf '%s\n' '$c .= "define('"'"'PANEL_USER_HASH'"'"', '"'"'" . $userHash . "'"'"');\n";' >> $MCP
 printf '%s\n' '$c .= "define('"'"'PANEL_PASS_HASH'"'"', '"'"'" . $passHash . "'"'"');\n";' >> $MCP
+printf '%s\n' '$c .= "define('"'"'API_KEY_HASH'"'"', '"'"''"'"');\n";' >> $MCP
 printf '%s\n' '$c .= "define('"'"'DB_PATH'"'"', '"'"'" . $installDir . "/db/campaigns.db'"'"');\n\n";' >> $MCP
 printf '%s\n' '$c .= "function getDB() {\n";' >> $MCP
 printf '%s\n' '$c .= "    \$db = new PDO('"'"'sqlite:'"'"' . DB_PATH);\n";' >> $MCP
@@ -171,6 +172,10 @@ server {
     }
 
     location ~* ^/config\.php$ {
+        deny all;
+    }
+
+    location ~* ^/tg_url\.json$ {
         deny all;
     }
 
