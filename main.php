@@ -51,20 +51,39 @@ foreach ($logs as $row) {
 
 $total_campaigns = (int)$db->query("SELECT COUNT(*) FROM streams")->fetchColumn();
 
-// ── Общий профит ──────────────────────────────────────────────────────────────
+// ── Определяем доминирующую валюту ────────────────────────────────────────────
+$dominantCurrency = 'USD';
+$currencySymbols  = ['USD' => '$', 'EUR' => '€', 'RUB' => '₽'];
+try {
+    $stmtCur = $db->prepare("
+        SELECT currency, COUNT(*) AS cnt
+        FROM goals
+        WHERE is_revenue = 1 AND currency IS NOT NULL
+        GROUP BY currency
+        ORDER BY cnt DESC
+        LIMIT 1
+    ");
+    $stmtCur->execute();
+    $row = $stmtCur->fetch(PDO::FETCH_ASSOC);
+    if ($row) $dominantCurrency = $row['currency'];
+} catch (Exception $e) { $dominantCurrency = 'USD'; }
+
+$dominantSymbol = $currencySymbols[$dominantCurrency] ?? $dominantCurrency;
+
+// ── Общий профит (только по доминирующей валюте) ──────────────────────────────
 $totalProfit = 0;
 try {
     $stmtP = $db->prepare("
         SELECT COALESCE(SUM(c.value), 0)
         FROM conversions c
         JOIN goals g ON g.id = c.goal_id
-        WHERE g.is_revenue = 1
+        WHERE g.is_revenue = 1 AND g.currency = ?
     ");
-    $stmtP->execute();
+    $stmtP->execute([$dominantCurrency]);
     $totalProfit = (float)$stmtP->fetchColumn();
 } catch (Exception $e) { $totalProfit = 0; }
 
-// ── Самая профитная кампания ───────────────────────────────────────────────────
+// ── Самая профитная кампания (по доминирующей валюте) ─────────────────────────
 $topCampaign = null;
 try {
     $stmtTop = $db->prepare("
@@ -72,16 +91,16 @@ try {
         FROM conversions c
         JOIN goals g ON g.id = c.goal_id
         JOIN streams s ON s.id = c.stream_id
-        WHERE g.is_revenue = 1
+        WHERE g.is_revenue = 1 AND g.currency = ?
         GROUP BY c.stream_id
         ORDER BY profit DESC
         LIMIT 1
     ");
-    $stmtTop->execute();
+    $stmtTop->execute([$dominantCurrency]);
     $topCampaign = $stmtTop->fetch(PDO::FETCH_ASSOC);
 } catch (Exception $e) { $topCampaign = null; }
 
-// ── Топ-3 профитных кампании ──────────────────────────────────────────────────
+// ── Топ-3 профитных кампании (по доминирующей валюте) ────────────────────────
 $topCampaigns = [];
 try {
     $stmtTopN = $db->prepare("
@@ -89,12 +108,12 @@ try {
         FROM conversions c
         JOIN goals g ON g.id = c.goal_id
         JOIN streams s ON s.id = c.stream_id
-        WHERE g.is_revenue = 1
+        WHERE g.is_revenue = 1 AND g.currency = ?
         GROUP BY c.stream_id
         ORDER BY profit DESC
         LIMIT 3
     ");
-    $stmtTopN->execute();
+    $stmtTopN->execute([$dominantCurrency]);
     $topCampaigns = $stmtTopN->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) { $topCampaigns = []; }
 
@@ -334,7 +353,7 @@ try {
                                 <?php foreach ($topCampaigns as $i => $tc): ?>
                                 <div class="stat-item">
                                     <span class="stat-label"><?= ($i + 1) . '. ' . htmlspecialchars($tc['name']) ?></span>
-                                    <span class="stat-value"><?= number_format((float)$tc['profit'], 2) ?>$</span>
+                                    <span class="stat-value"><?= number_format((float)$tc['profit'], 2) . $dominantSymbol ?></span>
                                 </div>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -392,7 +411,7 @@ try {
                 <div class="info-card">
                     <h3>Общий профит</h3>
                     <div class="info-card-value">
-                        <?= number_format($totalProfit, 2) ?>$
+                        <?= number_format($totalProfit, 2) . $dominantSymbol ?>
                     </div>
                 </div>
 
