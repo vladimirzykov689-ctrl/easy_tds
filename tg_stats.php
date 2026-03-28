@@ -618,7 +618,7 @@ $panelUrl  = getPanelUrl();
 $urlStatus = $panelUrl ? "🔗 <code>{$panelUrl}</code>" : "⚠️ не задан";
 
 sendReplyKeyboard($chatId,
-    "👋 <b>Easy TDS Stats Bot</b>\n\n" .
+    "👋 <b>Добро пожаловать в бота Easy TDS</b>\n\n" .
     "URL панели: {$urlStatus}"
 );
 exit('OK');
