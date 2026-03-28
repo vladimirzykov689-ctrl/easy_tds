@@ -64,10 +64,10 @@ function sendReplyKeyboard(int $chatId, string $text): void {
         ],
         [
             ['text' => '📋 Список кампаний'],
-            ['text' => '🔗 Текущий URL'],
+            ['text' => '🔗 Текущий URL TDS'],
         ],
         [
-            ['text' => '✏️ Изменить URL'],
+            ['text' => '✏️ Изменить URL TDS'],
         ],
     ];
 
