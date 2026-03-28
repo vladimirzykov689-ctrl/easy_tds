@@ -66,6 +66,7 @@ foreach ($logs as $row) {
 }
 
 // ── Цели и профит ────────────────────────────────────────────────────────────
+$currencySymbols = ['USD' => '$', 'EUR' => '€', 'RUB' => '₽'];
 $goals = [];
 try {
     $stmtGoals = $db->prepare("SELECT * FROM goals WHERE stream_id = ?");
@@ -73,10 +74,19 @@ try {
     $goals = $stmtGoals->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) { $goals = []; }
 
-$totalProfit = null;
-$goalStats = [];
+$totalProfit  = null;
+$profitSymbol = '$';
+$goalStats    = [];
 
 if (!empty($goals)) {
+    // Определяем валюту этой кампании по первой revenue-цели
+    foreach ($goals as $goal) {
+        if ($goal['is_revenue'] && !empty($goal['currency'])) {
+            $profitSymbol = $currencySymbols[$goal['currency']] ?? $goal['currency'];
+            break;
+        }
+    }
+
     try {
         $stmtProfit = $db->prepare("
             SELECT COALESCE(SUM(c.value), 0)
@@ -136,11 +146,11 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
 
     $output = fopen('php://output', 'w');
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-    fputcsv($output, ['Название цели', 'Параметр', 'Тип', 'Доходная', 'Значение', 'Click ID', 'Время конверсии'], ';');
+    fputcsv($output, ['Название цели', 'Параметр', 'Тип', 'Доходная', 'Валюта', 'Значение', 'Click ID', 'Время конверсии'], ';');
 
     try {
         $stmtExp = $db->prepare("
-            SELECT g.name, g.param_name, g.value_type, g.is_revenue,
+            SELECT g.name, g.param_name, g.value_type, g.is_revenue, g.currency,
                    c.value, c.click_id, c.created_at
             FROM conversions c
             JOIN goals g ON g.id = c.goal_id
@@ -156,6 +166,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
                 $row['param_name'],
                 $row['value_type'],
                 $row['is_revenue'] ? 'Да' : 'Нет',
+                $row['currency'] ?? '',
                 $row['value'],
                 $row['click_id'],
                 $row['created_at']
@@ -344,7 +355,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
                             <?php else: ?>
                                 <div class="stat-item">
                                     <span class="stat-label">Профит</span>
-                                    <span class="stat-value"><?= number_format($totalProfit, 2) ?></span>
+                                    <span class="stat-value"><?= number_format($totalProfit, 2) . $profitSymbol ?></span>
                                 </div>
                             <?php endif; ?>
                         </div>
