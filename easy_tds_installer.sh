@@ -175,7 +175,7 @@ server {
         deny all;
     }
 
-    location ~* ^/tg_url\.json$ {
+    location ~* ^/tg_config\.json$ {
         deny all;
     }
 
