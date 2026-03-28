@@ -51,13 +51,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['slug'
 
             $goalsMode = $_POST['goals_mode'] ?? 'none';
             if ($goalsMode === 'add') {
-                $goalNames  = $_POST['goal_name']  ?? [];
-                $goalParams = $_POST['goal_param'] ?? [];
-                $goalTypes  = $_POST['goal_type']  ?? [];
+                $goalNames      = $_POST['goal_name']     ?? [];
+                $goalParams     = $_POST['goal_param']    ?? [];
+                $goalTypes      = $_POST['goal_type']     ?? [];
+                $goalCurrencies = $_POST['goal_currency'] ?? [];
 
                 $stmtGoal = $db->prepare("
-                    INSERT INTO goals (stream_id, name, param_name, value_type, is_revenue)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO goals (stream_id, name, param_name, value_type, is_revenue, currency)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 ");
 
                 foreach ($goalNames as $i => $goalName) {
@@ -69,8 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['slug'
 
                     $valueType = $goalType === 'profit' ? 'amount' : 'flag';
                     $isRevenue = $goalType === 'profit' ? 1 : 0;
+                    $currency  = $goalType === 'profit' ? ($goalCurrencies[$i] ?? 'USD') : null;
 
-                    $stmtGoal->execute([$streamId, $goalName, $goalParam, $valueType, $isRevenue]);
+                    $stmtGoal->execute([$streamId, $goalName, $goalParam, $valueType, $isRevenue, $currency]);
                 }
             }
 
@@ -122,6 +124,12 @@ function toggleGoalsInputs() {
     });
 }
 
+function toggleCurrencyBlock(selectEl) {
+    const goalItem = selectEl.closest('.goal-item');
+    const currencyBlock = goalItem.querySelector('.goal-currency-block');
+    currencyBlock.style.display = selectEl.value === 'profit' ? 'block' : 'none';
+}
+
 function addGoal() {
     const container = document.getElementById('goals_list');
     const div = document.createElement('div');
@@ -132,7 +140,18 @@ function addGoal() {
         + '<label>Параметр:</label>'
         + '<input type="text" name="goal_param[]" placeholder="Например: reg" style="margin-bottom:8px;">'
         + '<label>Тип цели:</label>'
-        + '<select name="goal_type[]"><option value="flag">Целевое действие</option><option value="profit">Профит</option></select>';
+        + '<select name="goal_type[]" onchange="toggleCurrencyBlock(this)">'
+        +   '<option value="flag">Целевое действие</option>'
+        +   '<option value="profit">Профит</option>'
+        + '</select>'
+        + '<div class="goal-currency-block" style="display:none; margin-top:8px;">'
+        +   '<label>Валюта профита:</label>'
+        +   '<select name="goal_currency[]">'
+        +     '<option value="USD">$</option>'
+        +     '<option value="EUR">€</option>'
+        +     '<option value="RUB">₽</option>'
+        +   '</select>'
+        + '</div>';
     container.appendChild(div);
 }
 
@@ -280,7 +299,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 <a href="logout.php" style="color:#ff6666;">
                     <span class="nav-icon">
                         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M16 13v-2H7V8l-5 4 5 4v-3h9zm2-11H6a2 2 0 0 0-2 2v4h2V4h12v16H6v-4H4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/>
+                            <path d="M16 13v-2H7V8l-5 4 5 4v-3h9zm2-11H6a2 2 0 0 0-2 2v4h2V4h12v16H6v-4H4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0-2-2z"/>
                         </svg>
                     </span>
                     <span class="nav-label">Выйти</span>
