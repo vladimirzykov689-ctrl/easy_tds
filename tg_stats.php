@@ -190,13 +190,14 @@ function campStatsMenu(int $campId): array {
 // ── Формирование сообщения общей статистики ───────────────────────────────────
 
 function buildStatsMessage(array $stats): string {
+    $currency = $stats['profit_currency'] ?? 'USD';
+
     $topCamp = '';
     foreach ($stats['top_campaigns'] as $i => $c) {
-        $topCamp .= ($i + 1) . '. ' . $c['name'] . ' — ' . number_format((float)$c['profit'], 2) . "$\n";
+        $topCamp .= ($i + 1) . '. ' . $c['name'] . ' — ' . number_format((float)$c['profit'], 2) . ' ' . $currency . "\n";
     }
     if (!$topCamp) $topCamp = "Нет данных\n";
 
-    // Фильтруем — только цели без is_revenue (обычные конверсии)
     $topGoals = '';
     $goalNum  = 1;
     foreach ($stats['top_goals'] as $g) {
@@ -229,7 +230,7 @@ function buildStatsMessage(array $stats): string {
         "🖥 Desktop: <b>{$desktop}</b> ({$deskPct}%)\n" .
         "📱 Mobile: <b>{$mobile}</b> ({$mobPct}%)\n\n" .
         "🌍 <b>Топ гео:</b>\n" . $topGeo . "\n" .
-        "💰 Профит: <b>" . number_format($stats['total_profit'], 2) . "$</b>\n\n" .
+        "💰 Профит: <b>" . number_format($stats['total_profit'], 2) . " {$currency}</b>\n\n" .
         "🏆 <b>Топ кампании:</b>\n" . $topCamp . "\n" .
         "🎯 <b>Топ цели:</b>\n" . $topGoals;
 }
@@ -237,7 +238,8 @@ function buildStatsMessage(array $stats): string {
 // ── Формирование сообщения статистики кампании ────────────────────────────────
 
 function buildCampStatsMessage(array $data): string {
-    $camp = $data['campaign'];
+    $camp     = $data['campaign'];
+    $currency = $data['profit_currency'] ?? 'USD';
 
     $topGeo = '';
     $i = 1;
@@ -253,7 +255,6 @@ function buildCampStatsMessage(array $data): string {
     $deskPct = round($desktop / $total * 100);
     $mobPct  = round($mobile  / $total * 100);
 
-    // Только не-revenue цели
     $goalsText = '';
     foreach ($data['goals'] as $g) {
         if ($g['is_revenue']) continue;
@@ -261,10 +262,10 @@ function buildCampStatsMessage(array $data): string {
     }
     if (!$goalsText) $goalsText = "Нет данных\n";
 
-    $campUrl    = htmlspecialchars($camp['url'] ?? '—');
-    $panelUrl   = getPanelUrl();
-    $slug       = $camp['slug'] ?? '';
-    $campLink   = $panelUrl . '/' . $slug;
+    $campUrl  = htmlspecialchars($camp['url'] ?? '—');
+    $panelUrl = getPanelUrl();
+    $slug     = $camp['slug'] ?? '';
+    $campLink = $panelUrl . '/' . $slug;
 
     return
         "📊 <b>Статистика кампании</b>\n" .
@@ -279,27 +280,26 @@ function buildCampStatsMessage(array $data): string {
         "🖥 Desktop: <b>{$desktop}</b> ({$deskPct}%)\n" .
         "📱 Mobile: <b>{$mobile}</b> ({$mobPct}%)\n\n" .
         "🌍 <b>Топ гео:</b>\n" . $topGeo . "\n" .
-        "💰 Профит: <b>" . number_format((float)$data['profit'], 2) . "$</b>\n\n" .
+        "💰 Профит: <b>" . number_format((float)$data['profit'], 2) . " {$currency}</b>\n\n" .
         "🎯 <b>Цели:</b>\n" . $goalsText;
 }
 
-// ── Формирование списка кампаний с кнопками Выбрать ───────────────────────────
+// ── Формирование списка кампаний с кликабельными названиями ───────────────────
 
 function buildCampaignsList(array $campaigns): array {
-    $msg = "📋 <b>Список кампаний</b>\n\n";
+    $msg = "📋 <b>Список активных кампаний</b>\n\n" .
+           "Нажмите на название кампании для просмотра статистики:\n\n";
 
-    foreach ($campaigns as $c) {
-        $msg .=
-            "▪️ <b>" . htmlspecialchars($c['name']) . "</b>\n" .
-            "   🔗 <code>" . htmlspecialchars($c['slug']) . "</code>\n";
-    }
-
-    // Кнопки: каждая кампания — отдельная строка с кнопкой Выбрать
     $keyboard = [];
     foreach ($campaigns as $c) {
+        $campaignName = htmlspecialchars($c['name']);
         $keyboard[] = [
-            ['text' => '📈 ' . $c['name'], 'callback_data' => 'camp_stats:' . $c['id']],
+            ['text' => '📈 ' . $campaignName, 'callback_data' => 'camp_stats:' . $c['id']],
         ];
+    }
+
+    if (empty($keyboard)) {
+        return ["📋 Кампаний пока нет.", []];
     }
 
     return [$msg, $keyboard];
@@ -321,7 +321,6 @@ if ($callback) {
 
     answerCallback($callbackId);
 
-    // Статистика конкретной кампании: camp_stats:ID или camp_refresh:ID
     if (str_starts_with($data, 'camp_stats:') || str_starts_with($data, 'camp_refresh:')) {
         $campId = (int)explode(':', $data)[1];
         $result = apiRequest('campaign', ['id' => $campId]);
@@ -336,18 +335,16 @@ if ($callback) {
 
     switch ($data) {
 
-        // Общая статистика
         case 'stats':
         case 'stats_refresh':
             $stats = apiRequest('stats');
             if (!$stats) {
-                editMessage($chatId, $messageId, "❌ Не удалось получить статистику.\nПроверьте URL и API ключ.", statsMenu());
+                editMessage($chatId, $messageId, "❌ Не удалось получить статистику.\\nПроверьте URL и API ключ.", statsMenu());
                 break;
             }
             editMessage($chatId, $messageId, buildStatsMessage($stats), statsMenu());
             break;
 
-        // Список кампаний (через callback — кнопка ◀️ К списку)
         case 'campaigns':
             $result = apiRequest('campaigns');
             if (!$result || $result['count'] === 0) {
@@ -375,7 +372,7 @@ if (str_starts_with($text, '/set_token')) {
     $token = trim($parts[1] ?? '');
 
     if (empty($token)) {
-        sendMessage($chatId, "❌ Укажите токен\nПример: /set_token 123456:ABC-токен");
+        sendMessage($chatId, "❌ Укажите токен\\nПример: /set_token 123456:ABC-токен");
         exit('OK');
     }
 
@@ -391,7 +388,7 @@ if (str_starts_with($text, '/set_token')) {
             : "✅ Токен сохранён, но webhook не удалось обновить"
         );
     } else {
-        sendMessage($chatId, "✅ Токен сохранён!\nТеперь задайте URL: /edit_url https://your_domain");
+        sendMessage($chatId, "✅ Токен сохранён!\\nТеперь задайте URL: /edit_url https://your_domain");
     }
     exit('OK');
 }
@@ -403,7 +400,7 @@ if (str_starts_with($text, '/edit_url')) {
     $panelUrl = trim($parts[1] ?? '');
 
     if (empty($panelUrl) || !filter_var($panelUrl, FILTER_VALIDATE_URL)) {
-        sendMessage($chatId, "❌ Укажите корректный URL\nПример: /edit_url https://linkstat.xyz");
+        sendMessage($chatId, "❌ Укажите корректный URL\\nПример: /edit_url https://linkstat.xyz");
         exit('OK');
     }
 
@@ -427,7 +424,7 @@ switch ($text) {
     case '📊 Статистика кампаний':
         $stats = apiRequest('stats');
         if (!$stats) {
-            sendMessage($chatId, "❌ Не удалось получить статистику.\nПроверьте URL и API ключ.", statsMenu());
+            sendMessage($chatId, "❌ Не удалось получить статистику.\\nПроверьте URL и API ключ.", statsMenu());
             exit('OK');
         }
         sendMessage($chatId, buildStatsMessage($stats), statsMenu());
@@ -456,7 +453,7 @@ switch ($text) {
         exit('OK');
 
     case '✏️ Изменить URL':
-        sendMessage($chatId, "Введите новый URL панели:\nПример: /edit_url https://linkstat.xyz");
+        sendMessage($chatId, "Введите новый URL панели:\\nПример: /edit_url https://linkstat.xyz");
         exit('OK');
 }
 
