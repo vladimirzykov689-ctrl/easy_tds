@@ -22,7 +22,7 @@ server {
 listen 80 default_server;
 listen [::]:80 default_server;
 root /var/www/html;
-index index.html index.htm index.nginx-debian-debian.html;
+index index.html index.htm index.nginx-debian.html;
 server_name _;
 location / {
 try_files $uri $uri/ =404;
@@ -43,9 +43,6 @@ while true; do
     [[ "$PANEL_PASS" == "$PANEL_PASS_CONFIRM" ]] && break
     echo "Пароли не совпадают, попробуйте снова."
 done
-
-# УБРАНЫ ВОПРОСЫ ОБ ОГРАНИЧЕНИИ ПО IP
-# ALLOWED_IPS будет пустым по умолчанию
 
 echo "=============================="
 echo "Начало установки Easy Tds"
@@ -86,75 +83,83 @@ composer init --name="easytds/geolite2" --require="geoip2/geoip2:^3.2" --no-inte
 composer install --no-interaction --no-progress >/dev/null 2>&1
 cd -
 
-# Создаём make_config.php через printf
-MCP=/tmp/make_config.php
-printf '%s\n' '<?php' > $MCP
-printf '%s\n' '$user       = $argv[1];' >> $MCP
-printf '%s\n' '$pass       = $argv[2];' >> $MCP
-printf '%s\n' '$allowedIps = $argv[3];' >> $MCP
-printf '%s\n' '$installDir = $argv[4];' >> $MCP
-printf '%s\n' '$userHash = password_hash($user, PASSWORD_BCRYPT);' >> $MCP
-printf '%s\n' '$passHash = password_hash($pass, PASSWORD_BCRYPT);' >> $MCP
-printf '%s\n' '$c  = "<?php\n";' >> $MCP
-printf '%s\n' '$c .= "session_start();\n";' >> $MCP
-printf '%s\n' '$c .= "\$ALLOWED_IPS = '\''" . $allowedIps . "'\'';\n";' >> $MCP
-printf '%s\n' '$c .= "define('"'"'PANEL_USER_HASH'"'"', '"'"'" . $userHash . "'"'"');\n";' >> $MCP
-printf '%s\n' '$c .= "define('"'"'PANEL_PASS_HASH'"'"', '"'"'" . $passHash . "'"'"');\n";' >> $MCP
-printf '%s\n' '$c .= "define('"'"'API_KEY_HASH'"'"', '"'"''"'"');\n";' >> $MCP
-printf '%s\n' '$c .= "define('"'"'DB_PATH'"'"', '"'"'" . $installDir . "/db/campaigns.db'"'"');\n\n";' >> $MCP
-printf '%s\n' '$c .= "function getDB() {\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db = new PDO('"'"'sqlite:'"'"' . DB_PATH);\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);\n";' >> $MCP
-printf '%s\n' '$c .= "    return \$db;\n";' >> $MCP
-printf '%s\n' '$c .= "}\n\n";' >> $MCP
-printf '%s\n' '$c .= "function initDB() {\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db = getDB();\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\\"CREATE TABLE IF NOT EXISTS streams (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, url TEXT NOT NULL, geo_filter_type TEXT NOT NULL DEFAULT '"'"'none'"'"', geo_filter_list TEXT, geo_redirect_urls TEXT, bot_filter TEXT NOT NULL DEFAULT '"'"'off'"'"', bot_redirect_urls TEXT)\\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\\"CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, stream_id INTEGER NOT NULL, device TEXT NOT NULL, ip TEXT NOT NULL, geo TEXT NOT NULL, provider TEXT, keyword TEXT, timestamp DATETIME NOT NULL DEFAULT (strftime('"'"'%Y-%m-%d %H:%M:%S'"'"','"'"'now'"'"','"'"'localtime'"'"')), useragent TEXT, ptr TEXT DEFAULT '"'"'UNKNOWN'"'"', click_id TEXT)\\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\\"CREATE TABLE IF NOT EXISTS bot_settings (id INTEGER PRIMARY KEY DEFAULT 1, filter_ip TEXT NOT NULL DEFAULT '"'"'no'"'"', filter_isp TEXT NOT NULL DEFAULT '"'"'no'"'"', filter_ptr TEXT NOT NULL DEFAULT '"'"'no'"'"', filter_ua TEXT NOT NULL DEFAULT '"'"'no'"'"')\\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\\"CREATE TABLE IF NOT EXISTS goals (id INTEGER PRIMARY KEY AUTOINCREMENT, stream_id INTEGER NOT NULL, name TEXT NOT NULL, param_name TEXT NOT NULL, value_type TEXT NOT NULL DEFAULT '"'"'flag'"'"', is_revenue INTEGER DEFAULT 0, currency TEXT DEFAULT NULL)\\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\\"CREATE TABLE IF NOT EXISTS conversions (id INTEGER PRIMARY KEY AUTOINCREMENT, click_id TEXT NOT NULL, stream_id INTEGER NOT NULL, goal_id INTEGER NOT NULL, value REAL DEFAULT 0, created_at DATETIME DEFAULT (strftime('"'"'%Y-%m-%d %H:%M:%S'"'"','"'"'now'"'"','"'"'localtime'"'"')))\\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\\"INSERT OR IGNORE INTO bot_settings (id) VALUES (1)\\" );\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\\"CREATE INDEX IF NOT EXISTS idx_logs_stream_id ON logs(stream_id)\\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\\"CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON logs(timestamp)\\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\\"CREATE INDEX IF NOT EXISTS idx_logs_geo ON logs(geo)\\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\\"CREATE INDEX IF NOT EXISTS idx_logs_device ON logs(device)\\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\\"CREATE INDEX IF NOT EXISTS idx_logs_keyword ON logs(keyword)\\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\\"CREATE INDEX IF NOT EXISTS idx_logs_click_id ON logs(click_id)\\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\\"CREATE INDEX IF NOT EXISTS idx_goals_stream_id ON goals(stream_id)\\");\n";' >> $MCP
-printf '%s\n' '$c .= "    \$db->exec(\\"CREATE INDEX IF NOT EXISTS idx_conversions_click_id ON conversions(click_id)\\");\n";' >> $MCP
-printf '%s\n' '$c .= "    return \$db;\n";' >> $MCP
-printf '%s\n' '$c .= "}\n\n";' >> $MCP
-printf '%s\n' '$c .= "function checkIP() {\n";' >> $MCP
-printf '%s\n' '$c .= "    global \$ALLOWED_IPS;\n";' >> $MCP
-printf '%s\n' '$c .= "    if (!empty(\$ALLOWED_IPS)) {\n";' >> $MCP
-printf '%s\n' '$c .= "        if (!empty(\$_SERVER['"'"'HTTP_CF_CONNECTING_IP'"'"'])) {\n";' >> $MCP
-printf '%s\n' '$c .= "            \$clientIP = \$_SERVER['"'"'HTTP_CF_CONNECTING_IP'"'"'];\n";' >> $MCP
-printf '%s\n' '$c .= "        } elseif (!empty(\$_SERVER['"'"'HTTP_X_FORWARDED_FOR'"'"'])) {\n";' >> $MCP
-printf '%s\n' '$c .= "            \$clientIP = trim(explode('"'"','"'"', \$_SERVER['"'"'HTTP_X_FORWARDED_FOR'"'"'])[0]);\n";' >> $MCP
-printf '%s\n' '$c .= "        } else {\n";' >> $MCP
-printf '%s\n' '$c .= "            \$clientIP = \$_SERVER['"'"'REMOTE_ADDR'"'"'];\n";' >> $MCP
-printf '%s\n' '$c .= "        }\n";' >> $MCP
-printf '%s\n' '$c .= "        \$ips = array_map('"'"'trim'"'"', explode('"'"','"'"', \$ALLOWED_IPS));\n";' >> $MCP
-printf '%s\n' '$c .= "        if (!in_array(\$clientIP, \$ips)) {\n";' >> $MCP
-printf '%s\n' '$c .= "            header('"'"'HTTP/1.0 403 Forbidden'"'"');\n";' >> $MCP
-printf '%s\n' '$c .= "            exit('"'"'Access denied: your IP is not allowed. Your IP: '"'"' . \$clientIP);\n";' >> $MCP
-printf '%s\n' '$c .= "        }\n";' >> $MCP
-printf '%s\n' '$c .= "    }\n";' >> $MCP
-printf '%s\n' '$c .= "}\n\n";' >> $MCP
-printf '%s\n' '$c .= "function checkAuth() {\n";' >> $MCP
-printf '%s\n' '$c .= "    checkIP();\n";' >> $MCP
-printf '%s\n' '$c .= "    if (!isset(\$_SESSION['"'"'username'"'"'])) {\n";' >> $MCP
-printf '%s\n' '$c .= "        header('"'"'Location: login.php'"'"');\n";' >> $MCP
-printf '%s\n' '$c .= "        exit;\n";' >> $MCP
-printf '%s\n' '$c .= "    }\n";' >> $MCP
-printf '%s\n' '$c .= "}\n";' >> $MCP
-printf '%s\n' 'file_put_contents($installDir . "/config.php", $c);' >> $MCP
-printf '%s\n' 'echo "config.php создан успешно" . PHP_EOL;' >> $MCP
+# Создаём make_config.php через heredoc вместо printf (проще читать и меньше ошибок экранирования)
+cat > /tmp/make_config.php << 'PHPCODE'
+<?php
+$user       = $argv[1];
+$pass       = $argv[2];
+$allowedIps = $argv[3];
+$installDir = $argv[4];
 
-# Передаём СТРОПУ ПУСТУЮ для ALLOWED_IPS
-php $MCP "$PANEL_USER" "$PANEL_PASS" "" "$INSTALL_DIR"
-rm $MCP
+$userHash = password_hash($user, PASSWORD_BCRYPT);
+$passHash = password_hash($pass, PASSWORD_BCRYPT);
+
+$c  = "<?php\n";
+$c .= "session_start();\n";
+$c .= "\$ALLOWED_IPS = '" . $allowedIps . "';\n";
+$c .= "define('PANEL_USER_HASH', '" . $userHash . "');\n";
+$c .= "define('PANEL_PASS_HASH', '" . $passHash . "');\n";
+$c .= "define('API_KEY_HASH', '');\n";
+$c .= "define('DB_PATH', '" . $installDir . "/db/campaigns.db');\n\n";
+
+$c .= "function getDB() {\n";
+$c .= "    \$db = new PDO('sqlite:' . DB_PATH);\n";
+$c .= "    \$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);\n";
+$c .= "    return \$db;\n";
+$c .= "}\n\n";
+
+$c .= "function initDB() {\n";
+$c .= "    \$db = getDB();\n";
+$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS streams (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, url TEXT NOT NULL, geo_filter_type TEXT NOT NULL DEFAULT 'none', geo_filter_list TEXT, geo_redirect_urls TEXT, bot_filter TEXT NOT NULL DEFAULT 'off', bot_redirect_urls TEXT)\");\n";
+$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, stream_id INTEGER NOT NULL, device TEXT NOT NULL, ip TEXT NOT NULL, geo TEXT NOT NULL, provider TEXT, keyword TEXT, timestamp DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now','localtime')), useragent TEXT, ptr TEXT DEFAULT 'UNKNOWN', click_id TEXT)\");\n";
+$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS bot_settings (id INTEGER PRIMARY KEY DEFAULT 1, filter_ip TEXT NOT NULL DEFAULT 'no', filter_isp TEXT NOT NULL DEFAULT 'no', filter_ptr TEXT NOT NULL DEFAULT 'no', filter_ua TEXT NOT NULL DEFAULT 'no')\");\n";
+$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS goals (id INTEGER PRIMARY KEY AUTOINCREMENT, stream_id INTEGER NOT NULL, name TEXT NOT NULL, param_name TEXT NOT NULL, value_type TEXT NOT NULL DEFAULT 'flag', is_revenue INTEGER DEFAULT 0, currency TEXT DEFAULT NULL)\");\n";
+$c .= "    \$db->exec(\"CREATE TABLE IF NOT EXISTS conversions (id INTEGER PRIMARY KEY AUTOINCREMENT, click_id TEXT NOT NULL, stream_id INTEGER NOT NULL, goal_id INTEGER NOT NULL, value REAL DEFAULT 0, created_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now','localtime')))\");\n";
+$c .= "    \$db->exec(\"INSERT OR IGNORE INTO bot_settings (id) VALUES (1)\");\n";
+$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_stream_id ON logs(stream_id)\");\n";
+$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON logs(timestamp)\");\n";
+$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_geo ON logs(geo)\");\n";
+$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_device ON logs(device)\");\n";
+$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_keyword ON logs(keyword)\");\n";
+$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_logs_click_id ON logs(click_id)\");\n";
+$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_goals_stream_id ON goals(stream_id)\");\n";
+$c .= "    \$db->exec(\"CREATE INDEX IF NOT EXISTS idx_conversions_click_id ON conversions(click_id)\");\n";
+$c .= "    return \$db;\n";
+$c .= "}\n\n";
+
+$c .= "function checkIP() {\n";
+$c .= "    global \$ALLOWED_IPS;\n";
+$c .= "    if (!empty(\$ALLOWED_IPS)) {\n";
+$c .= "        if (!empty(\$_SERVER['HTTP_CF_CONNECTING_IP'])) {\n";
+$c .= "            \$clientIP = \$_SERVER['HTTP_CF_CONNECTING_IP'];\n";
+$c .= "        } elseif (!empty(\$_SERVER['HTTP_X_FORWARDED_FOR'])) {\n";
+$c .= "            \$clientIP = trim(explode(',', \$_SERVER['HTTP_X_FORWARDED_FOR'])[0]);\n";
+$c .= "        } else {\n";
+$c .= "            \$clientIP = \$_SERVER['REMOTE_ADDR'];\n";
+$c .= "        }\n";
+$c .= "        \$ips = array_map('trim', explode(',', \$ALLOWED_IPS));\n";
+$c .= "        if (!in_array(\$clientIP, \$ips)) {\n";
+$c .= "            header('HTTP/1.0 403 Forbidden');\n";
+$c .= "            exit('Access denied: your IP is not allowed. Your IP: ' . \$clientIP);\n";
+$c .= "        }\n";
+$c .= "    }\n";
+$c .= "}\n\n";
+
+$c .= "function checkAuth() {\n";
+$c .= "    checkIP();\n";
+$c .= "    if (!isset(\$_SESSION['username'])) {\n";
+$c .= "        header('Location: login.php');\n";
+$c .= "        exit;\n";
+$c .= "    }\n";
+$c .= "}\n";
+
+file_put_contents($installDir . "/config.php", $c);
+echo "config.php создан успешно" . PHP_EOL;
+PHPCODE
+
+# Передаём пустую строку для ALLOWED_IPS
+php /tmp/make_config.php "$PANEL_USER" "$PANEL_PASS" "" "$INSTALL_DIR"
+rm /tmp/make_config.php
 
 sudo tee "$NGINX_CONF" > /dev/null << 'EOF'
 server {
