@@ -120,19 +120,19 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
     $output = fopen('php://output', 'w');
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-    fputcsv($output, ['Дата','Девайс','UA','IP','Гео','Провайдер','PTR','Ключевики','Click ID'], ';');
+    fputcsv($output, ['Дата', 'ClickID', 'Девайс','UA','IP','Гео','Провайдер','PTR','Ключевики'], ';');
 
     foreach ($logs as $row) {
         fputcsv($output, [
             $row['timestamp'] ?? '',
+            $row['click_id'] ?? '',
             $row['device'] ?? '',
             $row['useragent'] ?? '',
             $row['ip'] ?? '',
             $row['geo'] ?? '',
             $row['provider'] ?? '',
             $row['ptr'] ?? '',
-            $row['keyword'] ?? '',
-            $row['click_id'] ?? ''
+            $row['keyword'] ?? ''
         ], ';');
     }
     fclose($output);
@@ -146,7 +146,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
 
     $output = fopen('php://output', 'w');
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-    fputcsv($output, ['Название цели', 'Параметр', 'Тип', 'Доходная', 'Валюта', 'Значение', 'Click ID', 'Время конверсии'], ';');
+    fputcsv($output, [ 'Дата', 'ClickID', 'Название', 'Параметр', 'Тип', 'Доходная', 'Валюта', 'Значение'], ';');
 
     try {
         $stmtExp = $db->prepare("
@@ -162,14 +162,14 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
 
         foreach ($rows as $row) {
             fputcsv($output, [
+                $row['created_at'],
+                $row['click_id'],
                 $row['name'],
                 $row['param_name'],
                 $row['value_type'],
                 $row['is_revenue'] ? 'Да' : 'Нет',
                 $row['currency'] ?? '',
-                $row['value'],
-                $row['click_id'],
-                $row['created_at']
+                $row['value']
             ], ';');
         }
     } catch (Exception $e) {}
