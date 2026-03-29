@@ -2,7 +2,6 @@
 require __DIR__ . '/config.php';
 
 define('TG_CONFIG_FILE', __DIR__ . '/tg_config.json');
-define('DATE_FILTER_FILE', __DIR__ . '/date_filters.json');
 
 // ── Config helpers ────────────────────────────────────────────────────────────
 
@@ -30,28 +29,26 @@ function getApiKey(): string {
 // ── Date filter helpers ───────────────────────────────────────────────────────
 
 function loadDateFilters(): array {
-    if (!file_exists(DATE_FILTER_FILE)) return [];
-    return json_decode(file_get_contents(DATE_FILTER_FILE), true) ?? [];
+    return loadConfig()['date_filters'] ?? [];
 }
 
 function saveDateFilter(int $chatId, int $campId, string $dateFrom, string $dateTo): void {
-    $filters = loadDateFilters();
+    $config = loadConfig();
     $key = "{$chatId}:{$campId}";
-    $filters[$key] = ['date_from' => $dateFrom, 'date_to' => $dateTo];
-    file_put_contents(DATE_FILTER_FILE, json_encode($filters, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    $config['date_filters'][$key] = ['date_from' => $dateFrom, 'date_to' => $dateTo];
+    saveConfig($config);
 }
 
 function getDateFilter(int $chatId, int $campId): ?array {
-    $filters = loadDateFilters();
     $key = "{$chatId}:{$campId}";
-    return $filters[$key] ?? null;
+    return loadConfig()['date_filters'][$key] ?? null;
 }
 
 function clearDateFilter(int $chatId, int $campId): void {
-    $filters = loadDateFilters();
+    $config = loadConfig();
     $key = "{$chatId}:{$campId}";
-    unset($filters[$key]);
-    file_put_contents(DATE_FILTER_FILE, json_encode($filters, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    unset($config['date_filters'][$key]);
+    saveConfig($config);
 }
 
 // ── Helper: конвертация кода валюты в символ (только USD, EUR, RUB) ───────────
@@ -97,7 +94,6 @@ function sendReplyKeyboard(int $chatId, string $text): void {
     $token = getToken();
     if (empty($token)) return;
 
-    // 🔗 Текущий URL TDS — ПО ВЕСЬ ТОП, остальные ДВЕ рядом ПОД НЕЙ
     $keyboard = [
         [
             ['text' => '🔗 Текущий URL TDS'],
@@ -312,9 +308,8 @@ function buildCampStatsMessage(array $data, ?array $filter = null): string {
     $slug     = $camp['slug'] ?? '';
     $campLink = $panelUrl . '/' . $slug;
 
-    // Профит: если 0 — пишем "Нет данных" (с жирным шрифтом), с символом валюты
     $profitValue = (float)$data['profit'];
-    $profitText = $profitValue > 0 
+    $profitText = $profitValue > 0
         ? number_format($profitValue, 2) . $symbol
         : "Нет данных";
 
@@ -374,7 +369,7 @@ if ($callback) {
     answerCallback($callbackId);
 
     if ($data === 'change_url_tds') {
-        sendMessage($chatId, 
+        sendMessage($chatId,
             "✏️ Введите новый URL панели TDS:\n\n" .
             "<b>Пример:</b> <code>/edit_url https://your_domain</code>"
         );
@@ -384,13 +379,13 @@ if ($callback) {
     if (str_starts_with($data, 'camp_stats:')) {
         $campId = (int)explode(':', $data)[1];
         $filter = getDateFilter($chatId, $campId);
-        
+
         $params = ['id' => $campId];
         if ($filter) {
             $params['date_from'] = $filter['date_from'];
-            $params['date_to'] = $filter['date_to'];
+            $params['date_to']   = $filter['date_to'];
         }
-        
+
         $result = apiRequest('campaign', $params);
 
         if (!$result) {
@@ -404,13 +399,13 @@ if ($callback) {
     if (str_starts_with($data, 'camp_refresh:')) {
         $campId = (int)explode(':', $data)[1];
         $filter = getDateFilter($chatId, $campId);
-        
+
         $params = ['id' => $campId];
         if ($filter) {
             $params['date_from'] = $filter['date_from'];
-            $params['date_to'] = $filter['date_to'];
+            $params['date_to']   = $filter['date_to'];
         }
-        
+
         $result = apiRequest('campaign', $params);
 
         if (!$result) {
@@ -423,7 +418,7 @@ if ($callback) {
 
     if (str_starts_with($data, 'camp_filter:')) {
         $campId = (int)explode(':', $data)[1];
-        sendMessage($chatId, 
+        sendMessage($chatId,
             "📅 Введите диапазон дат для фильтрации:\n\n" .
             "<b>Формат:</b> YYYY-MM-DD\n\n" .
             "<b>Пример:</b>\n" .
@@ -440,7 +435,7 @@ if ($callback) {
     if (str_starts_with($data, 'camp_clear_filter:')) {
         $campId = (int)explode(':', $data)[1];
         clearDateFilter($chatId, $campId);
-        
+
         $result = apiRequest('campaign', ['id' => $campId]);
 
         if (!$result) {
@@ -492,7 +487,7 @@ if (isset($config['temp_filter'][$chatId])) {
     saveConfig($config);
 
     $parts = preg_split('/\s+/', $text);
-    
+
     if (count($parts) !== 2) {
         sendMessage($chatId, "❌ Неверный формат!\n\nОтправьте в виде: <code>YYYY-MM-DD YYYY-MM-DD</code>\nПример: <code>2024-01-01 2024-01-31</code>");
         exit('OK');
@@ -603,11 +598,11 @@ switch ($text) {
         $msg = $panelUrl
             ? "🔗 <b>Текущий URL TDS:</b>\n<a href=\"{$panelUrl}/login.php\">{$panelUrl}</a>"
             : "⚠️ URL не задан";
-        
+
         $keyboard = [[
             ['text' => '✏️ Изменить URL TDS', 'callback_data' => 'change_url_tds'],
         ]];
-        
+
         sendMessage($chatId, $msg, $keyboard);
         exit('OK');
 }
@@ -618,7 +613,7 @@ $panelUrl  = getPanelUrl();
 $urlStatus = $panelUrl ? "🔗 <code>{$panelUrl}</code>" : "⚠️ не задан";
 
 sendReplyKeyboard($chatId,
-    "👋 <b>Добро пожаловать в бота Easy TDS</b>\n\n" .
+    "👋 <b>Добро пожаловать в Easy TDS Bot</b>\n\n" .
     "URL панели: {$urlStatus}"
 );
 exit('OK');
