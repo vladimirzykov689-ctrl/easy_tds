@@ -20,7 +20,7 @@ if ($slug === '' || $slug === 'index.php') {
 $excluded = [
     'main.php', 'campaigns.php', 'new_campaign.php', 'stats.php',
     'bots.php', 'credentials.php', 'logout.php', 'login.php',
-    'style.css', 'favicon.ico'
+    'style.css', 'favicon.ico', 'logo.png'
 ];
 
 if (!in_array($basename, $excluded)) {
