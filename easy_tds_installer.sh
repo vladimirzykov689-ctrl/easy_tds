@@ -6,16 +6,16 @@ INSTALL_DIR="/var/www/html/easy_tds"
 NGINX_CONF="/etc/nginx/sites-available/default"
 
 echo "=============================="
-echo "Добро пожаловать в установщик Easy Tds"
+echo "Добро пожаловать в установщик Easy TDS"
 echo "=============================="
 
 echo "Режимы установщика:"
-echo "1) Установка Easy Tds"
-echo "2) Удаление Easy Tds"
+echo "1) Установка Easy TDS"
+echo "2) Удаление Easy TDS"
 read -rp "Выберите режим (1/2): " MODE
 
 if [[ "$MODE" == "2" ]]; then
-    echo "Удаляем Easy Tds..."
+    echo "Удаляем Easy TDS..."
     sudo rm -rf "$INSTALL_DIR"
     sudo tee "$NGINX_CONF" > /dev/null << 'EOF'
 server {
@@ -45,7 +45,7 @@ while true; do
 done
 
 echo "=============================="
-echo "Начало установки Easy Tds"
+echo "Начало установки Easy TDS"
 echo "=============================="
 
 export DEBIAN_FRONTEND=noninteractive
@@ -220,7 +220,7 @@ sudo chmod 440 /etc/sudoers.d/easytds-certbot
 SERVER_IP=$(hostname -I | awk '{print $1}')
 
 echo "=============================="
-echo "Установка Easy Tds завершена!"
+echo "Установка Easy TDS завершена!"
 echo "Доступ: http://${SERVER_IP}/login.php"
 echo "Логин: $PANEL_USER"
 echo "Пароль: $PANEL_PASS"
