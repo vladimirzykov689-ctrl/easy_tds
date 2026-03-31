@@ -268,7 +268,9 @@ window.addEventListener('DOMContentLoaded', function () {
     <button class="hamburger-btn" id="hamburgerBtn" title="Свернуть меню" aria-label="Toggle sidebar">
         <span></span><span></span><span></span>
     </button>
-    <a href="main.php" class="top-header-title" style="text-decoration:none;color:inherit;">Easy TDS</a>
+    <a href="main.php" style="text-decoration:none; display:flex; align-items:center;">
+    <img src="/img/logo.png" alt="Easy TDS" style="height:40px; width:auto;">
+</a>
 </header>
 
 <div class="main-wrapper">
@@ -416,7 +418,9 @@ window.addEventListener('DOMContentLoaded', function () {
 
             </div>
         </div>
-        <div class="footer">Easy TDS</div>
+        <div class="footer">
+    <img src="/img/logo.png" alt="Easy TDS" style="height:32px; width:auto; vertical-align:middle;">
+</div>
     </div>
 
 </div>
