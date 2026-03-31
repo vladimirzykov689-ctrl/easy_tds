@@ -299,7 +299,7 @@ function buildCampStatsMessage(array $data, ?array $filter = null): string {
     $goalsText = '';
     foreach ($data['goals'] as $g) {
         if ($g['is_revenue']) continue;
-        $goalsText .= "• " . htmlspecialchars($g['name']) . " — <b>{$g['conversions']}</b> конв.\n";
+        $goalsText .= "• " . htmlspecialchars($g['name']) . " — <b>{$g['conversions']}</b>\n";
     }
     if (!$goalsText) $goalsText = "Нет данных\n";
 
