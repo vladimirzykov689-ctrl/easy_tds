@@ -180,7 +180,9 @@ window.addEventListener('DOMContentLoaded', () => {
         <span></span>
         <span></span>
     </button>
-    <a href="main.php" class="top-header-title" style="text-decoration:none; color:inherit;">Easy TDS</a>
+    <a href="main.php" style="text-decoration:none; display:flex; align-items:center;">
+    <img src="/img/logo.png" alt="Easy TDS" style="height:40px; width:auto;">
+</a>
 </header>
 
 <!-- ========== MAIN WRAPPER ========== -->
@@ -378,7 +380,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
         </div><!-- /content -->
 
-        <div class="footer">Easy TDS</div>
+        <div class="footer">
+    <img src="/img/logo.png" alt="Easy TDS" style="height:32px; width:auto; vertical-align:middle;">
+</div>
     </div><!-- /page-content -->
 
 </div><!-- /main-wrapper -->
