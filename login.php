@@ -42,28 +42,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="UTF-8">
 <title>Вход в Easy TDS</title>
-
 <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
 <link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico">
 <link rel="stylesheet" href="/css/style.css">
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="login-page">
 
-<div>
-    <div class="header">Easy TDS</div>
-    <div class="login-container">
-        <h2>Вход</h2>
-        <form method="post">
-            <input type="text" name="username" placeholder="Логин" required>
-            <input type="password" name="password" placeholder="Пароль" required>
-            <button type="submit">Войти</button>
-        </form>
-        <?php if($error): ?>
-            <div class="error-message"><?= htmlspecialchars($error) ?></div>
-        <?php endif; ?>
-    </div>
+<div class="login-container">
+    <img src="/img/logo.png" alt="Easy TDS" class="login-logo">
+    <h2>Вход</h2>
+    <form method="post">
+        <input type="text" name="username" placeholder="Логин" required>
+        <input type="password" name="password" placeholder="Пароль" required>
+        <button type="submit">Войти</button>
+    </form>
+    <?php if($error): ?>
+        <div class="error-message"><?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
 </div>
 
 </body>
