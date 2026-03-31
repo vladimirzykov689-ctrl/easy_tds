@@ -40,19 +40,6 @@ body.login-page {
     flex-direction: column;
 }
 
-body.login-page .header {
-    text-align: center;
-    font-size: 36px;
-    font-weight: bold;
-    color: var(--text);
-    text-shadow: 0 0 5px #ff77ff, 0 0 10px #ff77ff, 0 0 20px #ff00ff, 0 0 30px #ff00ff;
-    margin-bottom: 20px;
-    background: var(--bg-header);
-    padding: 20px 30px;
-    border-radius: 15px;
-    width: auto;
-}
-
 body.login-page .login-container {
     background: var(--bg-card);
     padding: 40px 30px;
@@ -62,6 +49,14 @@ body.login-page .login-container {
     display: flex;
     flex-direction: column;
     align-items: stretch;
+}
+
+body.login-page .login-logo {
+    display: block;
+    margin: 0 auto 24px auto;
+    max-width: 260px;
+    width: 100%;
+    height: auto;
 }
 
 body.login-page .login-container h2 {
@@ -120,8 +115,7 @@ body.login-page .error-message {
 }
 
 /* ===================================================
-   LAYOUT WITH SIDEBAR — applies to dashboard-page
-   and any page that uses .layout-with-sidebar
+   LAYOUT WITH SIDEBAR
 =================================================== */
 body.dashboard-page,
 body.page-with-sidebar {
@@ -188,7 +182,7 @@ body.page-with-sidebar {
     white-space: nowrap;
 }
 
-/* ---------- MAIN WRAPPER (sidebar + content) ---------- */
+/* ---------- MAIN WRAPPER ---------- */
 .main-wrapper {
     display: flex;
     margin-top: var(--header-height);
@@ -219,7 +213,6 @@ body.page-with-sidebar {
 .sidebar::-webkit-scrollbar-track { background: transparent; }
 .sidebar::-webkit-scrollbar-thumb { background: rgba(155,0,255,0.4); border-radius: 4px; }
 
-/* Collapsed state */
 body.sidebar-collapsed .sidebar {
     width: var(--sidebar-collapsed-width);
 }
@@ -268,7 +261,6 @@ body.sidebar-collapsed .sidebar {
     filter: drop-shadow(0 0 4px #ff77ff);
 }
 
-/* Icons */
 .nav-icon {
     flex-shrink: 0;
     width: 22px;
@@ -284,7 +276,6 @@ body.sidebar-collapsed .sidebar {
     fill: currentColor;
 }
 
-/* Label fade when collapsed */
 .nav-label {
     opacity: 1;
     transition: opacity var(--transition), width var(--transition);
@@ -297,7 +288,6 @@ body.sidebar-collapsed .sidebar .nav-label {
     pointer-events: none;
 }
 
-/* Tooltip for collapsed sidebar */
 body.sidebar-collapsed .sidebar-nav a {
     justify-content: center;
     padding: 12px;
@@ -322,7 +312,6 @@ body.sidebar-collapsed .sidebar-nav li:hover::after {
     pointer-events: none;
 }
 
-/* Divider */
 .sidebar-divider {
     height: 1px;
     background: rgba(155,0,255,0.25);
@@ -330,8 +319,6 @@ body.sidebar-collapsed .sidebar-nav li:hover::after {
 }
 
 /* ---------- SIDEBAR GROUP (accordion) ---------- */
-
-/* Wrapper row: link + arrow sit side by side */
 .sidebar-group-row {
     display: flex;
     align-items: center;
@@ -351,7 +338,6 @@ body.sidebar-collapsed .sidebar-nav li:hover::after {
     box-shadow: 0 0 12px rgba(255,0,255,0.3) inset;
 }
 
-/* Clickable link part (icon + label) */
 .sidebar-group-link {
     display: flex;
     align-items: center;
@@ -376,7 +362,6 @@ body.sidebar-collapsed .sidebar-nav li:hover::after {
     filter: drop-shadow(0 0 4px #ff77ff);
 }
 
-/* Arrow button */
 .nav-arrow-btn {
     flex-shrink: 0;
     display: flex;
@@ -406,12 +391,10 @@ body.sidebar-collapsed .sidebar-nav li:hover::after {
     filter: drop-shadow(0 0 3px rgba(255,119,255,0.5));
 }
 
-/* Open state — arrow rotates up */
 .nav-arrow-btn.open svg {
     transform: rotate(180deg);
 }
 
-/* Hide arrow when sidebar is collapsed */
 body.sidebar-collapsed .sidebar .nav-arrow-btn {
     opacity: 0;
     width: 0;
@@ -420,7 +403,6 @@ body.sidebar-collapsed .sidebar .nav-arrow-btn {
     padding: 0;
 }
 
-/* Sub-items container */
 .sidebar-subnav {
     list-style: none;
     margin: 0;
@@ -432,11 +414,10 @@ body.sidebar-collapsed .sidebar .nav-arrow-btn {
 }
 
 .sidebar-subnav.open {
-    max-height: 300px;   /* enough for all sub-items */
+    max-height: 300px;
     opacity: 1;
 }
 
-/* Sub-item links — indented */
 .sidebar-subnav a {
     padding-left: 52px !important;
     font-size: 14px !important;
@@ -448,7 +429,6 @@ body.sidebar-collapsed .sidebar .nav-arrow-btn {
     color: var(--text);
 }
 
-/* Hide sub-items when sidebar is collapsed */
 body.sidebar-collapsed .sidebar .sidebar-subnav {
     max-height: 0 !important;
     opacity: 0 !important;
@@ -482,11 +462,11 @@ body.sidebar-collapsed .page-content {
 }
 
 /* ===================================================
-   LEGACY HEADER (kept for non-sidebar pages)
+   LEGACY HEADER
 =================================================== */
 body.dashboard-page .header,
 body.page-with-sidebar .header {
-    display: none; /* replaced by top-header */
+    display: none;
 }
 
 /* ===================================================
@@ -573,6 +553,7 @@ body.page-with-sidebar .header {
     overflow: hidden;
     box-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff inset;
 }
+
 .campaigns-header {
     background: var(--bg-header);
     color: var(--text);
@@ -670,7 +651,6 @@ body {
 }
 
 .add-form h2 { margin-bottom: 20px; color: var(--text); text-shadow: 0 0 3px #ff77ff; }
-
 .add-form label { display: block; margin-top: 10px; font-weight: bold; text-align: left; }
 
 .add-form input, .add-form textarea, .add-form select {
@@ -728,6 +708,7 @@ body {
     box-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff inset;
     max-width: 800px;
 }
+
 .stats-header {
     background: var(--bg-header);
     color: var(--text);
@@ -760,10 +741,7 @@ input[type="date"] {
 .redirect-actions { display: inline-flex; gap: 12px; align-items: center; margin-top: 10px; }
 .campaign-title { text-align: center; color: var(--text); text-shadow: 0 0 5px #ff77ff; }
 
-.date-filter-block {
-    text-align: center;
-    margin-top: 16px;
-}
+.date-filter-block { text-align: center; margin-top: 16px; }
 
 .date-filter-form {
     display: flex;
@@ -798,7 +776,6 @@ input[type="date"] {
     margin: 10px 0 20px 0;
 }
 
-/* Map block — left, takes most space */
 .map-block {
     flex: 1 1 65%;
     background: #1a1a35;
@@ -818,11 +795,7 @@ input[type="date"] {
 }
 
 #geoMapWrapper { flex: 1; }
-
-#geoMapD3 {
-    width: 100%;
-    line-height: 0;
-}
+#geoMapD3 { width: 100%; line-height: 0; }
 
 #geoMapD3 svg {
     width: 100%;
@@ -831,7 +804,6 @@ input[type="date"] {
     border-radius: 8px;
 }
 
-/* Device chart block — right, fixed width */
 .chart-block {
     flex: 0 0 220px;
     background: #1a1a35;
@@ -856,7 +828,6 @@ input[type="date"] {
     max-height: 140px !important;
 }
 
-/* Stat list inside right block */
 .stat-list {
     display: flex;
     flex-direction: column;
@@ -875,11 +846,7 @@ input[type="date"] {
     padding: 10px 14px;
 }
 
-.stat-label {
-    color: #bb88ff;
-    font-size: 13px;
-    font-weight: 500;
-}
+.stat-label { color: #bb88ff; font-size: 13px; font-weight: 500; }
 
 .stat-value {
     color: #fff;
@@ -887,6 +854,7 @@ input[type="date"] {
     font-weight: bold;
     text-shadow: 0 0 8px #ff77ff;
 }
+
 /* ===================================================
    MAIN PAGE — INFO CARDS ROW
 =================================================== */
@@ -927,12 +895,8 @@ input[type="date"] {
     line-height: 1;
 }
 
-
-
 @media (max-width: 700px) {
-    .info-cards-row {
-        flex-direction: column;
-    }
+    .info-cards-row { flex-direction: column; }
 }
 
 /* ===================================================
