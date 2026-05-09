@@ -246,14 +246,6 @@ function toggleSSL() {
     document.getElementById('section_ssl').style.display =
         (val === 'add' || val === 'remove') ? 'block' : 'none';
 }
-function copyApiKey() {
-    var el = document.getElementById('api_key_display');
-    navigator.clipboard.writeText(el.innerText.trim()).then(function() {
-        var btn = document.getElementById('copyBtn');
-        btn.innerText = 'Скопировано!';
-        setTimeout(function(){ btn.innerText = 'Копировать'; }, 2000);
-    });
-}
 window.addEventListener('DOMContentLoaded', function () {
     toggleSection('change_login', 'section_login');
     toggleSection('change_pass',  'section_pass');
@@ -352,7 +344,6 @@ window.addEventListener('DOMContentLoaded', function () {
                     <?php if (!empty($currentApiKey)): ?>
                         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                             <code id="api_key_display" style="flex:1;background:rgba(0,0,0,0.3);padding:8px 12px;border-radius:6px;font-size:13px;color:#fff;word-break:break-all;border:1px solid rgba(155,0,255,0.2);"><?= htmlspecialchars($currentApiKey) ?></code>
-                            <button type="button" id="copyBtn" onclick="copyApiKey()" class="export-btn" style="white-space:nowrap;">Копировать</button>
                         </div>
                     <?php else: ?>
                         <div style="color:rgba(255,255,255,0.3);font-style:italic;margin-bottom:8px;">Ключ не сгенерирован</div>
@@ -418,9 +409,6 @@ window.addEventListener('DOMContentLoaded', function () {
 
             </div>
         </div>
-        <div class="footer">
-    <img src="/img/logo.png" alt="Easy TDS" style="height:32px; width:auto; vertical-align:middle;">
-</div>
     </div>
 
 </div>
