@@ -263,16 +263,16 @@ body.sidebar-collapsed .sidebar {
 
 .nav-icon {
     flex-shrink: 0;
-    width: 22px;
-    height: 22px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .nav-icon svg {
-    width: 20px;
-    height: 20px;
+    width: 32px;
+    height: 32px;
     fill: currentColor;
 }
 
@@ -573,19 +573,6 @@ body.dashboard-page tr:nth-child(even) { background: var(--bg-card); }
 body.dashboard-page tr:hover { background: #3a2a6d; }
 
 /* ===================================================
-   FOOTER
-=================================================== */
-.footer {
-    background: var(--bg-header);
-    color: #ff77ff;
-    text-align: center;
-    padding: 15px;
-    border-radius: 15px 15px 0 0;
-    text-shadow: 0 0 5px #ff77ff, 0 0 10px #ff77ff, 0 0 20px #ff00ff;
-    box-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff inset;
-}
-
-/* ===================================================
    PAGINATION
 =================================================== */
 .pagination { text-align: center; margin: 20px 0; }
@@ -861,7 +848,7 @@ input[type="date"] {
 .info-cards-row {
     display: flex;
     gap: 16px;
-    margin: 20px 0 10px 0;
+    margin: 30px 0 20px 0;
 }
 
 .info-card {
