@@ -384,6 +384,19 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
                 </div>
             <?php endif; ?>
 
+<div class="date-filter-block">
+                <form method="get" class="date-filter-form">
+                    <label>С: <input type="date" name="date_from" value="<?= htmlspecialchars($date_from) ?>"></label>
+                    <label>По: <input type="date" name="date_to" value="<?= htmlspecialchars($date_to) ?>"></label>
+                    <a href="main.php" title="Сбросить" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;background:#ffc107;box-shadow:0 0 8px #ffc107;text-decoration:none;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#1b1b2f"><path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                    </a>
+                    <button type="submit" title="Применить" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                    </button>
+                </form>
+            </div>
+
             <div class="redirect-block">
                 <p>Кампания ведет на URL: <strong><?= htmlspecialchars($campaign_url) ?></strong></p>
                 <div class="redirect-actions">
@@ -401,22 +414,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
                 </div>
             </div>
 
-            <div class="date-filter-block">
-                <p>Фильтр по дате</p>
-                <form method="get" class="date-filter-form">
-                    <input type="hidden" name="stream_id" value="<?= $stream_id ?>">
-                    <a href="stats.php?stream_id=<?= $stream_id ?>" class="export-btn">Сбросить</a>
-                    <label>С: <input type="date" name="date_from" value="<?= htmlspecialchars($date_from) ?>"></label>
-                    <label>По: <input type="date" name="date_to" value="<?= htmlspecialchars($date_to) ?>"></label>
-                    <button type="submit" class="add-new-btn">Применить</button>
-                </form>
-            </div>
-
         </div><!-- /content -->
-
-        <div class="footer">
-    <img src="/img/logo.png" alt="Easy TDS" style="height:32px; width:auto; vertical-align:middle;">
-</div>
     </div><!-- /page-content -->
 
 </div><!-- /main-wrapper -->
@@ -535,19 +533,19 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
                 .text('ДЕВАЙСЫ');
 
             var devColors = ['#9b00ff', '#28a745'];
+var devIcons = ['🖥️', '📱'];
             devEntries.forEach(function(d, i) {
                 var ty = by + padY + lineH * (i + 2);
-                g2.append('rect')
-                    .attr('x', bx + padX).attr('y', ty - fontSize + 1)
-                    .attr('width', 8).attr('height', 8)
-                    .attr('rx', 2)
-                    .attr('fill', devColors[i]);
-                g2.append('text')
-                    .attr('x', bx + padX + 12).attr('y', ty)
-                    .attr('fill', '#fff')
-                    .attr('font-size', fontSize)
-                    .attr('font-family', 'sans-serif')
-                    .text(d.label + ' — ' + d.pct + '%');
+                g2.append('foreignObject')
+                    .attr('x', bx + padX).attr('y', ty - fontSize)
+                    .attr('width', 130).attr('height', lineH)
+                    .append('xhtml:div')
+                    .style('color', '#fff')
+                    .style('font-size', fontSize + 'px')
+                    .style('font-family', 'sans-serif')
+                    .style('line-height', lineH + 'px')
+                    .style('white-space', 'nowrap')
+                    .html(devIcons[i] + ' ' + d.label + ' — ' + d.pct + '%');
             });
         })();
 
@@ -582,14 +580,19 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
                 .attr('font-family', 'sans-serif')
                 .text('ТРАФИК');
 
+var trafficIcons = ['🖱️', '👤', '🤖'];
             trafficEntries.forEach(function(d, i) {
                 var ty = by + padY + lineH * (i + 2);
-                g3.append('text')
-                    .attr('x', bx + padX).attr('y', ty)
-                    .attr('fill', '#fff')
-                    .attr('font-size', fontSize)
-                    .attr('font-family', 'sans-serif')
-                    .text(d.label + ' — ' + d.val);
+                g3.append('foreignObject')
+                    .attr('x', bx + padX).attr('y', ty - fontSize)
+                    .attr('width', 130).attr('height', lineH)
+                    .append('xhtml:div')
+                    .style('color', '#fff')
+                    .style('font-size', fontSize + 'px')
+                    .style('font-family', 'sans-serif')
+                    .style('line-height', lineH + 'px')
+                    .style('white-space', 'nowrap')
+                    .html(trafficIcons[i] + ' ' + d.label + ' — ' + d.val);
             });
         })();
 
@@ -625,18 +628,16 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
                 var iso = entry[0], cnt = entry[1];
                 var ty = by + padY + lineH * (i + 2);
 
-                g.append('rect')
-                    .attr('x', bx + padX).attr('y', ty - fontSize + 1)
-                    .attr('width', 8).attr('height', 8)
-                    .attr('rx', 2)
-                    .attr('fill', getColor(iso));
-
-                g.append('text')
-                    .attr('x', bx + padX + 12).attr('y', ty)
-                    .attr('fill', '#fff')
-                    .attr('font-size', fontSize)
-                    .attr('font-family', 'sans-serif')
-                    .text(iso + ' — ' + cnt);
+g.append('foreignObject')
+                    .attr('x', bx + padX).attr('y', ty - fontSize)
+                    .attr('width', 160).attr('height', lineH)
+                    .append('xhtml:div')
+                    .style('color', '#fff')
+                    .style('font-size', fontSize + 'px')
+                    .style('font-family', 'sans-serif')
+                    .style('line-height', lineH + 'px')
+                    .style('white-space', 'nowrap')
+                    .html((iso.length === 2 ? '<img src="https://flagcdn.com/16x12/' + iso.toLowerCase() + '.png" style="vertical-align:middle;margin-right:5px;">' : '') + iso + ' — ' + cnt);
             });
         }
     })
@@ -652,7 +653,11 @@ function buildGeoTable() {
     var entries = Object.entries(geoData).sort(function(a,b){ return b[1]-a[1]; });
     if (!entries.length) return '<p style="color:#ccc;text-align:center;padding:20px">Нет гео-данных</p>';
     var html = '<table class="stats-table"><tr><th>Страна</th><th>Клики</th></tr>';
-    entries.forEach(function(e){ html += '<tr><td>'+e[0]+'</td><td>'+e[1]+'</td></tr>'; });
+    entries.forEach(function(e){
+    var iso = e[0];
+    var flag = iso.length === 2 ? '<img src="https://flagcdn.com/16x12/' + iso.toLowerCase() + '.png" style="vertical-align:middle;margin-right:6px;">' : '';
+    html += '<tr><td>' + flag + iso + '</td><td>' + e[1] + '</td></tr>';
+});
     return html + '</table>';
 }
 
