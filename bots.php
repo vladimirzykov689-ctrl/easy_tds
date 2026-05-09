@@ -476,10 +476,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
 
         </div><!-- /content -->
-
-        <div class="footer">
-    <img src="/img/logo.png" alt="Easy TDS" style="height:32px; width:auto; vertical-align:middle;">
-</div>
+        	
     </div><!-- /page-content -->
 
 </div><!-- /main-wrapper -->
