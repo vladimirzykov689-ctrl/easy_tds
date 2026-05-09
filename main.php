@@ -148,6 +148,7 @@ try {
     display: flex;
     gap: 18px;
     margin-top: 18px;
+    margin-bottom: 40px;
 }
 .info-card {
     flex: 1;
@@ -163,9 +164,10 @@ try {
     margin: 0;
     font-size: 14px;
     font-weight: 600;
-    color: #cc88ff;
+    color: #ffffff;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    text-shadow: 0 0 5px #ff77ff, 0 0 10px #ff00ff;
 }
 .info-card-value {
     font-size: 32px;
@@ -204,7 +206,7 @@ try {
         <ul class="sidebar-nav">
 
             <li data-tooltip="Главная">
-                <a href="main.php">
+                <a href="main.php" class="active">
                     <span class="nav-icon">
                         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
@@ -332,7 +334,36 @@ try {
             <?php if ($total_logs === 0): ?>
                 <div class="no-data">Нету статистики</div>
             <?php else: ?>
-                <div class="stats-row">
+                
+                <!-- ========== INFO CARDS ========== -->
+            <div class="info-cards-row">
+
+                <div class="info-card">
+                    <h3>Активных кампаний</h3>
+                    <div class="info-card-value"><?= $total_campaigns ?></div>
+                </div>
+
+                <div class="info-card">
+                    <h3>Самая профитная кампания</h3>
+                    <div class="info-card-value">
+                        <?php if ($topCampaign): ?>
+                            <?= htmlspecialchars($topCampaign['name']) ?>
+                        <?php else: ?>
+                            <span class="info-card-placeholder" style="font-size:16px;">Нет данных</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>Общий профит</h3>
+                    <div class="info-card-value">
+                        <?= number_format($totalProfit, 2) . $dominantSymbol ?>
+                    </div>
+                </div>
+
+            </div>
+                
+	                <div class="stats-row">
 
                     <!-- Карта слева -->
                     <div class="map-block">
@@ -381,49 +412,20 @@ try {
                 </div>
             <?php endif; ?>
 
-            <div class="date-filter-block">
-                <p>Фильтр по дате</p>
+<div class="date-filter-block">
                 <form method="get" class="date-filter-form">
-                    <a href="main.php" class="export-btn">Сбросить</a>
                     <label>С: <input type="date" name="date_from" value="<?= htmlspecialchars($date_from) ?>"></label>
                     <label>По: <input type="date" name="date_to" value="<?= htmlspecialchars($date_to) ?>"></label>
-                    <button type="submit" class="add-new-btn">Применить</button>
+                    <a href="main.php" title="Сбросить" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;background:#ffc107;box-shadow:0 0 8px #ffc107;text-decoration:none;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#1b1b2f"><path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                    </a>
+                    <button type="submit" title="Применить" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                    </button>
                 </form>
             </div>
 
-            <!-- ========== INFO CARDS ========== -->
-            <div class="info-cards-row">
-
-                <div class="info-card">
-                    <h3>Активных кампаний</h3>
-                    <div class="info-card-value"><?= $total_campaigns ?></div>
-                </div>
-
-                <div class="info-card">
-                    <h3>Самая профитная кампания</h3>
-                    <div class="info-card-value">
-                        <?php if ($topCampaign): ?>
-                            <?= htmlspecialchars($topCampaign['name']) ?>
-                        <?php else: ?>
-                            <span class="info-card-placeholder" style="font-size:16px;">Нет данных</span>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-                <div class="info-card">
-                    <h3>Общий профит</h3>
-                    <div class="info-card-value">
-                        <?= number_format($totalProfit, 2) . $dominantSymbol ?>
-                    </div>
-                </div>
-
-            </div>
-
         </div><!-- /content -->
-
-        <div class="footer">
-    <img src="/img/logo.png" alt="Easy TDS" style="height:32px; width:auto; vertical-align:middle;">
-</div>
     </div><!-- /page-content -->
 
 </div><!-- /main-wrapper -->
@@ -542,19 +544,19 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
                 .text('ДЕВАЙСЫ');
 
             var devColors = ['#9b00ff', '#28a745'];
+var devIcons = ['🖥️', '📱'];
             devEntries.forEach(function(d, i) {
                 var ty = by + padY + lineH * (i + 2);
-                g2.append('rect')
-                    .attr('x', bx + padX).attr('y', ty - fontSize + 1)
-                    .attr('width', 8).attr('height', 8)
-                    .attr('rx', 2)
-                    .attr('fill', devColors[i]);
-                g2.append('text')
-                    .attr('x', bx + padX + 12).attr('y', ty)
-                    .attr('fill', '#fff')
-                    .attr('font-size', fontSize)
-                    .attr('font-family', 'sans-serif')
-                    .text(d.label + ' — ' + d.pct + '%');
+                g2.append('foreignObject')
+                    .attr('x', bx + padX).attr('y', ty - fontSize)
+                    .attr('width', 130).attr('height', lineH)
+                    .append('xhtml:div')
+                    .style('color', '#fff')
+                    .style('font-size', fontSize + 'px')
+                    .style('font-family', 'sans-serif')
+                    .style('line-height', lineH + 'px')
+                    .style('white-space', 'nowrap')
+                    .html(devIcons[i] + ' ' + d.label + ' — ' + d.pct + '%');
             });
         })();
 
@@ -589,14 +591,19 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
                 .attr('font-family', 'sans-serif')
                 .text('ТРАФИК');
 
+var trafficIcons = ['🖱️', '👤', '🤖'];
             trafficEntries.forEach(function(d, i) {
                 var ty = by + padY + lineH * (i + 2);
-                g3.append('text')
-                    .attr('x', bx + padX).attr('y', ty)
-                    .attr('fill', '#fff')
-                    .attr('font-size', fontSize)
-                    .attr('font-family', 'sans-serif')
-                    .text(d.label + ' — ' + d.val);
+                g3.append('foreignObject')
+                    .attr('x', bx + padX).attr('y', ty - fontSize)
+                    .attr('width', 130).attr('height', lineH)
+                    .append('xhtml:div')
+                    .style('color', '#fff')
+                    .style('font-size', fontSize + 'px')
+                    .style('font-family', 'sans-serif')
+                    .style('line-height', lineH + 'px')
+                    .style('white-space', 'nowrap')
+                    .html(trafficIcons[i] + ' ' + d.label + ' — ' + d.val);
             });
         })();
 
@@ -632,18 +639,24 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
                 var iso = entry[0], cnt = entry[1];
                 var ty = by + padY + lineH * (i + 2);
 
-                g.append('rect')
-                    .attr('x', bx + padX).attr('y', ty - fontSize + 1)
-                    .attr('width', 8).attr('height', 8)
-                    .attr('rx', 2)
-                    .attr('fill', getColor(iso));
+function isoToFlag(iso) {
+                    if (!iso || iso.length !== 2) return '';
+                    return String.fromCodePoint(
+                        iso.toUpperCase().charCodeAt(0) + 127397,
+                        iso.toUpperCase().charCodeAt(1) + 127397
+                    );
+                }
 
-                g.append('text')
-                    .attr('x', bx + padX + 12).attr('y', ty)
-                    .attr('fill', '#fff')
-                    .attr('font-size', fontSize)
-                    .attr('font-family', 'sans-serif')
-                    .text(iso + ' — ' + cnt);
+g.append('foreignObject')
+                    .attr('x', bx + padX).attr('y', ty - fontSize)
+                    .attr('width', 160).attr('height', lineH)
+                    .append('xhtml:div')
+                    .style('color', '#fff')
+                    .style('font-size', fontSize + 'px')
+                    .style('font-family', 'sans-serif')
+                    .style('line-height', lineH + 'px')
+                    .style('white-space', 'nowrap')
+                    .html((iso.length === 2 ? '<img src="https://flagcdn.com/16x12/' + iso.toLowerCase() + '.png" style="vertical-align:middle;margin-right:5px;">' : '') + iso + ' — ' + cnt);
             });
         }
     })
@@ -659,7 +672,17 @@ function buildGeoTable() {
     var entries = Object.entries(geoData).sort(function(a,b){ return b[1]-a[1]; });
     if (!entries.length) return '<p style="color:#ccc;text-align:center;padding:20px">Нет гео-данных</p>';
     var html = '<table class="stats-table"><tr><th>Страна</th><th>Клики</th></tr>';
-    entries.forEach(function(e){ html += '<tr><td>'+e[0]+'</td><td>'+e[1]+'</td></tr>'; });
+    function isoToFlag(iso) {
+    if (!iso || iso.length !== 2) return '';
+    return String.fromCodePoint(iso.toUpperCase().charCodeAt(0)+127397, iso.toUpperCase().charCodeAt(1)+127397);
+}
+entries.forEach(function(e){
+    var iso = e[0].toLowerCase();
+    var flag = iso.length === 2
+        ? '<img src="https://flagcdn.com/20x15/' + iso + '.png" style="vertical-align:middle;margin-right:6px;">'
+        : '';
+    html += '<tr><td>' + flag + e[0] + '</td><td>' + e[1] + '</td></tr>';
+});
     return html + '</table>';
 }
 
