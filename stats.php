@@ -251,21 +251,21 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
                             <span class="nav-label">Новая кампания</span>
                         </a>
                     </li>
-                    <li>
-                        <a href="campaigns.php?export=csv">
+<li>
+                        <a href="?export=csv">
                             <span class="nav-icon">
                                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 13h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h3v1.5H8V10z"/>
                                 </svg>
                             </span>
                             <span class="nav-label">Экспорт логов</span>
                         </a>
                     </li>
-                    <li>
-                        <a href="campaigns.php?export=goals_csv">
+<li>
+                        <a href="?export=goals_csv">
                             <span class="nav-icon">
                                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.88-11.71L10 14.17l-1.88-1.88a.996.996 0 1 0-1.41 1.41l2.59 2.59c.39.39 1.02.39 1.41 0L17.3 9.7a.996.996 0 0 0 0-1.41c-.39-.39-1.03-.39-1.42 0z"/>
                                 </svg>
                             </span>
                             <span class="nav-label">Экспорт целей</span>
@@ -399,19 +399,25 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
 
             <div class="redirect-block">
                 <p>Кампания ведет на URL: <strong><?= htmlspecialchars($campaign_url) ?></strong></p>
-                <div class="redirect-actions">
-                    <form method="get" style="display:inline;">
-                        <input type="hidden" name="stream_id" value="<?= $stream_id ?>">
-                        <input type="hidden" name="export" value="csv">
-                        <button type="submit" class="export-btn">Экспорт Лога</button>
-                    </form>
-                    <form method="get" style="display:inline;">
-                        <input type="hidden" name="stream_id" value="<?= $stream_id ?>">
-                        <input type="hidden" name="export" value="goals_csv">
-                        <button type="submit" class="export-btn">Экспорт Целей</button>
-                    </form>
-                    <a href="<?= $redirect_link ?>" target="_blank" class="redirect-btn">Перейти к кампании</a>
-                </div>
+<div class="redirect-actions">
+    <form method="get" style="display:inline;">
+        <input type="hidden" name="stream_id" value="<?= $stream_id ?>">
+        <input type="hidden" name="export" value="csv">
+        <button type="submit" class="export-btn" title="Экспорт лога" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;padding:0;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 13h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h3v1.5H8V10z"/></svg>
+        </button>
+    </form>
+    <form method="get" style="display:inline;">
+        <input type="hidden" name="stream_id" value="<?= $stream_id ?>">
+        <input type="hidden" name="export" value="goals_csv">
+        <button type="submit" class="export-btn" title="Экспорт целей" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;padding:0;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.88-11.71L10 14.17l-1.88-1.88a.996.996 0 1 0-1.41 1.41l2.59 2.59c.39.39 1.02.39 1.41 0L17.3 9.7a.996.996 0 0 0 0-1.41c-.39-.39-1.03-.39-1.42 0z"/></svg>
+        </button>
+    </form>
+    <a href="<?= $redirect_link ?>" target="_blank" class="redirect-btn" title="Перейти к кампании" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;text-decoration:none;">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+    </a>
+</div>
             </div>
 
         </div><!-- /content -->
