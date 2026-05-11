@@ -248,7 +248,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
                                     <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/>
                                 </svg>
                             </span>
-                            <span class="nav-label">Новая кампания</span>
+                            <span class="nav-label">Создать новую</span>
                         </a>
                     </li>
 <li>
@@ -403,18 +403,18 @@ if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
     <form method="get" style="display:inline;">
         <input type="hidden" name="stream_id" value="<?= $stream_id ?>">
         <input type="hidden" name="export" value="csv">
-        <button type="submit" class="export-btn" title="Экспорт лога" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;padding:0;">
+        <button type="submit" class="export-btn" title="Экспорт лога" style="display:inline-flex;align-items:center;justify-content:center;width:36px;min-width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;padding:0;">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 13h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h3v1.5H8V10z"/></svg>
         </button>
     </form>
     <form method="get" style="display:inline;">
         <input type="hidden" name="stream_id" value="<?= $stream_id ?>">
         <input type="hidden" name="export" value="goals_csv">
-        <button type="submit" class="export-btn" title="Экспорт целей" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;padding:0;">
+        <button type="submit" class="export-btn" title="Экспорт целей" style="display:inline-flex;align-items:center;justify-content:center;width:36px;min-width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;padding:0;">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.88-11.71L10 14.17l-1.88-1.88a.996.996 0 1 0-1.41 1.41l2.59 2.59c.39.39 1.02.39 1.41 0L17.3 9.7a.996.996 0 0 0 0-1.41c-.39-.39-1.03-.39-1.42 0z"/></svg>
         </button>
     </form>
-    <a href="<?= $redirect_link ?>" target="_blank" class="redirect-btn" title="Перейти к кампании" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;text-decoration:none;">
+    <a href="<?= $redirect_link ?>" target="_blank" class="redirect-btn" title="Перейти к кампании" style="display:inline-flex;align-items:center;justify-content:center;width:36px;min-width:36px;height:36px;border-radius:8px;text-decoration:none;background:#9b00ff;box-shadow:0 0 8px #9b00ff;">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
     </a>
 </div>
@@ -516,9 +516,9 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
         ];
 
         (function() {
-            var padX = 10, padY = 8, lineH = 18, fontSize = 11;
-            var boxW = 110, boxH = padY * 2 + lineH * 3;
-            var bx = 10, by = 10;
+var padX = 14, padY = 10, lineH = 24, fontSize = 14;
+var boxW = 150, boxH = padY * 2 + lineH * 3;
+var bx = 10, by = 10;
 
             var g2 = svg.append('g').attr('class', 'dev-legend');
 
@@ -544,7 +544,7 @@ var devIcons = ['🖥️', '📱'];
                 var ty = by + padY + lineH * (i + 2);
                 g2.append('foreignObject')
                     .attr('x', bx + padX).attr('y', ty - fontSize)
-                    .attr('width', 130).attr('height', lineH)
+                    .attr('width', 180).attr('height', lineH)
                     .append('xhtml:div')
                     .style('color', '#fff')
                     .style('font-size', fontSize + 'px')
@@ -557,16 +557,16 @@ var devIcons = ['🖥️', '📱'];
 
         /* Traffic stats overlay */
         (function() {
-            var padX = 10, padY = 8, lineH = 18, fontSize = 11;
-            var trafficEntries = [
+var padX = 14, padY = 10, lineH = 24, fontSize = 14;
+var trafficEntries = [
                 { label: 'Клики',  val: <?= $total_logs ?> },
                 { label: 'Уники',  val: <?= $unique ?> },
                 { label: 'Боты',   val: <?= $botCount ?> }
             ];
-            var devBoxH = padY * 2 + lineH * 3;
-            var boxH = padY * 2 + lineH * (trafficEntries.length + 1);
-            var bx = 10, by = 10 + devBoxH + 8;
-            var boxW = 110;
+var devBoxH = 10 * 2 + 24 * 3;
+var boxH = padY * 2 + lineH * (trafficEntries.length + 1);
+var bx = 10, by = 10 + devBoxH + 8;
+var boxW = 150;
 
             var g3 = svg.append('g').attr('class', 'traffic-legend');
 
@@ -586,12 +586,12 @@ var devIcons = ['🖥️', '📱'];
                 .attr('font-family', 'sans-serif')
                 .text('ТРАФИК');
 
-var trafficIcons = ['🖱️', '👤', '🤖'];
+var trafficIcons = ['👆', '👤', '🤖'];
             trafficEntries.forEach(function(d, i) {
                 var ty = by + padY + lineH * (i + 2);
                 g3.append('foreignObject')
                     .attr('x', bx + padX).attr('y', ty - fontSize)
-                    .attr('width', 130).attr('height', lineH)
+                    .attr('width', 180).attr('height', lineH)
                     .append('xhtml:div')
                     .style('color', '#fff')
                     .style('font-size', fontSize + 'px')
@@ -608,9 +608,9 @@ var trafficIcons = ['🖱️', '👤', '🤖'];
             .slice(0, 5);
 
         if (topEntries.length > 0) {
-            var padX = 10, padY = 8, lineH = 18, fontSize = 11;
-            var boxW = 110, boxH = padY * 2 + lineH * (topEntries.length + 1);
-            var bx = W - boxW - 10, by = 10;
+var padX = 14, padY = 10, lineH = 24, fontSize = 14;
+var boxW = 150, boxH = padY * 2 + lineH * (topEntries.length + 1);
+var bx = W - boxW - 10, by = 10;
 
             var g = svg.append('g').attr('class', 'geo-legend');
 
@@ -636,7 +636,7 @@ var trafficIcons = ['🖱️', '👤', '🤖'];
 
 g.append('foreignObject')
                     .attr('x', bx + padX).attr('y', ty - fontSize)
-                    .attr('width', 160).attr('height', lineH)
+                    .attr('width', 180).attr('height', lineH)
                     .append('xhtml:div')
                     .style('color', '#fff')
                     .style('font-size', fontSize + 'px')
