@@ -640,7 +640,7 @@ body {
 .add-form h2 { margin-bottom: 20px; color: var(--text); text-shadow: 0 0 3px #ff77ff; }
 .add-form label { display: block; margin-top: 10px; font-weight: bold; text-align: left; }
 
-.add-form input, .add-form textarea, .add-form select {
+.add-form input:not(.toggle-switch input), .add-form textarea, .add-form select {
     padding: 8px;
     margin: 5px 0 15px 0;
     width: 100%;
@@ -916,4 +916,108 @@ input[type="date"] {
 .goal-item .remove-goal-btn:hover {
     box-shadow: none !important;
     transform: none !important;
+}
+
+/* ===================================================
+   CREDENTIALS PAGE — CUSTOM SELECT
+=================================================== */
+.credentials-select {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    padding: 8px 36px 8px 12px;
+    border-radius: 8px;
+    background:
+        rgba(0,0,0,0.3)
+        url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23cc88ff%22><path d=%22M7 10l5 5 5-5H7z%22/></svg>')
+        no-repeat right 8px center;
+    background-size: 20px;
+    border: 1px solid rgba(155,0,255,0.4);
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+    margin: 5px 0 15px 0;
+    box-sizing: border-box;
+}
+
+.credentials-select option {
+    background: #1b1b2f;
+    color: #fff;
+}
+
+/* ===================================================
+   CUSTOM SELECT DROPDOWN
+=================================================== */
+.custom-select-wrapper {
+    position: relative;
+    width: 100%;
+    margin: 5px 0 15px 0;
+}
+
+.custom-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(155,0,255,0.4);
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.custom-select-trigger:hover,
+.custom-select-wrapper.open .custom-select-trigger {
+    border-color: rgba(155,0,255,0.8);
+    box-shadow: 0 0 8px rgba(155,0,255,0.4);
+}
+
+.custom-select-trigger svg {
+    flex-shrink: 0;
+    transition: transform 0.2s;
+}
+
+.custom-select-wrapper.open .custom-select-trigger svg {
+    transform: rotate(180deg);
+}
+
+.custom-select-options {
+    display: none !important;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #1b1b2f;
+    border: 1px solid rgba(155,0,255,0.5);
+    border-radius: 8px;
+    overflow: hidden;
+    z-index: 999;
+    box-shadow: 0 4px 20px rgba(155,0,255,0.3);
+}
+
+.custom-select-wrapper.open .custom-select-options {
+    display: block !important;
+}
+
+.custom-select-option {
+    padding: 9px 14px;
+    color: #ccc;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.custom-select-option:hover {
+    background: rgba(155,0,255,0.25);
+    color: #fff;
+}
+
+.custom-select-option.selected {
+    background: rgba(155,0,255,0.15);
+    color: #cc88ff;
+    font-weight: 600;
 }
