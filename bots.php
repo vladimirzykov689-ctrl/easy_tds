@@ -12,8 +12,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
     $fu  = ($_POST['filter_ua']  ?? 'no') === 'yes' ? 'yes' : 'no';
     $db->prepare("UPDATE bot_settings SET filter_ip=?, filter_isp=?, filter_ptr=?, filter_ua=? WHERE id=1")
        ->execute([$fi, $fis, $fp, $fu]);
-    header('Location: bots.php?saved=1');
-    exit;
+header('Location: bots.php?saved=1');
+exit;
 }
 
 // --- Загружаем текущие настройки ---
@@ -54,32 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['read_file'])) {
 <link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico">
 <link rel="stylesheet" href="/css/style.css">
 <style>
-    .btn-edit {
-        display: none;
-        margin-top: 6px;
-        margin-bottom: 2px;
-        padding: 4px 10px !important;
-        background: #f0c040 !important;
-        color: #1a1a1a !important;
-        border: none !important;
-        border-radius: 4px !important;
-        font-size: 11px !important;
-        font-weight: 600 !important;
-        cursor: pointer;
-        box-shadow: none !important;
-        transition: background 0.2s;
-        width: 100%;
-        text-align: center;
-    }
-    .btn-edit:hover {
-        background: #d4a800 !important;
-        box-shadow: none !important;
-    }
-
-    .add-form form button[type="submit"] {
-        margin-top: 20px !important;
-    }
-
     /* === Модальное окно === */
     .modal-overlay {
         display: none;
@@ -179,20 +153,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['read_file'])) {
         transition: background 0.2s;
     }
     .modal-footer .btn-modal-save:hover { background: #357abd; }
+    .add-form { max-width: 100% !important; }
+    .toast {
+    display: none;
+    position: fixed;
+    top: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    white-space: nowrap;
+}
+.toast.success { background: rgba(30,60,30,0.97); border: 1px solid #28a745; color: #6fcf6f; }
+.toast.error   { background: rgba(60,20,20,0.97); border: 1px solid #dc3545; color: #ff6666; }
+.toast.visible { opacity: 1; }
 </style>
 <script>
-function toggleEditBtn(selectId, btnId) {
-    const val = document.getElementById(selectId).value;
-    const btn = document.getElementById(btnId);
-    btn.style.display = val === 'yes' ? 'inline-block' : 'none';
-}
 window.addEventListener('DOMContentLoaded', function () {
-    toggleEditBtn('filter_ip',  'edit_ip');
-    toggleEditBtn('filter_isp', 'edit_isp');
-    toggleEditBtn('filter_ptr', 'edit_ptr');
-    toggleEditBtn('filter_ua',  'edit_ua');
+    ['ip','isp','ptr','ua'].forEach(function(k) {
+        var val = document.getElementById('filter_' + k).value;
+        showBotBtns(k, val);
+    });
 });
-
 var currentFile = '';
 var titles = {
     'bots_ip.dat':  'IP-адреса',
@@ -257,6 +245,13 @@ function saveFile() {
         });
 }
 
+function showBotBtns(key, value) {
+    var editBtn = document.getElementById('edit_' + key);
+    var saveBtn = document.getElementById('save_' + key);
+    editBtn.style.display = 'inline-flex';
+    saveBtn.style.display = 'inline-flex';
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('modalOverlay').addEventListener('click', function(e) {
         if (e.target === this) closeModal();
@@ -269,9 +264,50 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+function toggleCustomSelect(wrapperId) {
+    var wrapper = document.getElementById(wrapperId);
+    var isOpen = wrapper.classList.contains('open');
+    document.querySelectorAll('.custom-select-wrapper.open').forEach(function(w) {
+        w.classList.remove('open');
+    });
+    if (!isOpen) wrapper.classList.add('open');
+}
+
+function selectBotOption(wrapperId, inputId, value, label, el) {
+    document.getElementById(inputId).value = value;
+    document.getElementById('label_' + inputId).textContent = label;
+    el.closest('.custom-select-options').querySelectorAll('.custom-select-option').forEach(function(o) {
+        o.classList.remove('selected');
+    });
+    el.classList.add('selected');
+    document.getElementById(wrapperId).classList.remove('open');
+    var key = inputId.replace('filter_', '');
+    showBotBtns(key, value);
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.custom-select-wrapper')) {
+        document.querySelectorAll('.custom-select-wrapper.open').forEach(function(w) {
+            w.classList.remove('open');
+        });
+    }
+});
+
+function showToast(message, type) {
+    var t = document.getElementById('toast');
+    t.textContent = message;
+    t.className = 'toast ' + (type || 'success');
+    t.style.display = 'block';
+    setTimeout(function() { t.classList.add('visible'); }, 10);
+    setTimeout(function() {
+        t.classList.remove('visible');
+        setTimeout(function() { t.style.display = 'none'; }, 300);
+    }, 3500);
+}
 </script>
 </head>
 <body class="dashboard-page">
+	<div id="toast" class="toast"></div>
 
 <!-- ========== MODAL ========== -->
 <div class="modal-overlay" id="modalOverlay">
@@ -350,26 +386,27 @@ document.addEventListener('DOMContentLoaded', function() {
                             <span class="nav-label">Новая кампания</span>
                         </a>
                     </li>
-                    <li>
-                        <a href="campaigns.php?export=csv">
+<li>
+                        <a href="?export=csv">
                             <span class="nav-icon">
                                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 13h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h3v1.5H8V10z"/>
                                 </svg>
                             </span>
                             <span class="nav-label">Экспорт логов</span>
                         </a>
                     </li>
-                    <li>
-                        <a href="campaigns.php?export=goals_csv">
+<li>
+                        <a href="?export=goals_csv">
                             <span class="nav-icon">
                                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.88-11.71L10 14.17l-1.88-1.88a.996.996 0 1 0-1.41 1.41l2.59 2.59c.39.39 1.02.39 1.41 0L17.3 9.7a.996.996 0 0 0 0-1.41c-.39-.39-1.03-.39-1.42 0z"/>
                                 </svg>
                             </span>
                             <span class="nav-label">Экспорт целей</span>
                         </a>
                     </li>
+                    <li>
                     <li>
                         <a href="#" onclick="confirmDeleteAll(event)" style="color:#ff6666;">
                             <span class="nav-icon">
@@ -431,49 +468,147 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <!-- ========== PAGE CONTENT ========== -->
     <div class="page-content">
-        <div class="content content-centered">
+        <div class="content">
 
-            <div class="add-form">
-                <h2>Фильтр ботов</h2>
+<h2 class="campaign-title">Фильтр ботов</h2>
 
-                <?php if (isset($_GET['saved'])): ?>
-                <div style="color:#6fcf6f;font-weight:bold;margin-bottom:12px;">&#10003; Настройки сохранены</div>
-                <?php endif; ?>
+<div class="add-form">
 
-                <form method="post">
-                    <input type="hidden" name="save_settings" value="1">
+<?php if (isset($_GET['saved'])): ?>
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    showToast('✓ Настройки сохранены', 'success');
+});
+</script>
+<?php endif; ?>
 
-                    <label for="filter_ip">Фильтровать по IP:</label>
-                    <select id="filter_ip" name="filter_ip" onchange="toggleEditBtn('filter_ip', 'edit_ip')">
-                        <option value="no" <?= $settings['filter_ip']==='no'?'selected':'' ?>>Нет</option>
-                        <option value="yes" <?= $settings['filter_ip']==='yes'?'selected':'' ?>>Да</option>
-                    </select>
-                    <button type="button" id="edit_ip" class="btn-edit" onclick="openEditor('bots_ip.dat')">Редактировать список IP</button>
+<form method="post">
+    <input type="hidden" name="save_settings" value="1">
 
-                    <label for="filter_isp">Фильтровать по ISP:</label>
-                    <select id="filter_isp" name="filter_isp" onchange="toggleEditBtn('filter_isp', 'edit_isp')">
-                        <option value="no" <?= $settings['filter_isp']==='no'?'selected':'' ?>>Нет</option>
-                        <option value="yes" <?= $settings['filter_isp']==='yes'?'selected':'' ?>>Да</option>
-                    </select>
-                    <button type="button" id="edit_isp" class="btn-edit" onclick="openEditor('bots_isp.dat')">Редактировать список ISP</button>
+    <!-- СТРОКА 1: IP (слева) + ISP (справа) -->
+    <div style="display:flex; gap:24px; align-items:flex-start; margin-bottom:16px;">
 
-                    <label for="filter_ptr">Фильтровать по PTR:</label>
-                    <select id="filter_ptr" name="filter_ptr" onchange="toggleEditBtn('filter_ptr', 'edit_ptr')">
-                        <option value="no" <?= $settings['filter_ptr']==='no'?'selected':'' ?>>Нет</option>
-                        <option value="yes" <?= $settings['filter_ptr']==='yes'?'selected':'' ?>>Да</option>
-                    </select>
-                    <button type="button" id="edit_ptr" class="btn-edit" onclick="openEditor('bots_ptr.dat')">Редактировать список PTR</button>
-
-                    <label for="filter_ua">Фильтровать по UA:</label>
-                    <select id="filter_ua" name="filter_ua" onchange="toggleEditBtn('filter_ua', 'edit_ua')">
-                        <option value="no" <?= $settings['filter_ua']==='no'?'selected':'' ?>>Нет</option>
-                        <option value="yes" <?= $settings['filter_ua']==='yes'?'selected':'' ?>>Да</option>
-                    </select>
-                    <button type="button" id="edit_ua" class="btn-edit" onclick="openEditor('bots_ua.dat')">Редактировать список UA</button>
-
-                    <button type="submit">Сохранить настройки</button>
-                </form>
+        <!-- IP -->
+        <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;margin:0;">Фильтровать по IP:</label>
+                <button type="button" id="edit_ip" onclick="openEditor('bots_ip.dat')"
+                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
+                <button type="submit" id="save_ip"
+                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </button>
             </div>
+            <div class="custom-select-wrapper" id="wrap_filter_ip">
+                <div class="custom-select-trigger" onclick="toggleCustomSelect('wrap_filter_ip')">
+                    <span id="label_filter_ip"><?= $settings['filter_ip']==='yes' ? 'Да' : 'Нет' ?></span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>
+                </div>
+                <div class="custom-select-options">
+                    <div class="custom-select-option <?= $settings['filter_ip']==='no' ? 'selected' : '' ?>"
+                         onclick="selectBotOption('wrap_filter_ip','filter_ip','no','Нет',this)">Нет</div>
+                    <div class="custom-select-option <?= $settings['filter_ip']==='yes' ? 'selected' : '' ?>"
+                         onclick="selectBotOption('wrap_filter_ip','filter_ip','yes','Да',this)">Да</div>
+                </div>
+                <input type="hidden" name="filter_ip" id="filter_ip" value="<?= $settings['filter_ip'] ?>">
+            </div>
+        </div>
+
+        <!-- ISP -->
+        <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;margin:0;">Фильтровать по ISP:</label>
+                <button type="button" id="edit_isp" onclick="openEditor('bots_isp.dat')"
+                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
+                <button type="submit" id="save_isp"
+                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </button>
+            </div>
+            <div class="custom-select-wrapper" id="wrap_filter_isp">
+                <div class="custom-select-trigger" onclick="toggleCustomSelect('wrap_filter_isp')">
+                    <span id="label_filter_isp"><?= $settings['filter_isp']==='yes' ? 'Да' : 'Нет' ?></span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>
+                </div>
+                <div class="custom-select-options">
+                    <div class="custom-select-option <?= $settings['filter_isp']==='no' ? 'selected' : '' ?>"
+                         onclick="selectBotOption('wrap_filter_isp','filter_isp','no','Нет',this)">Нет</div>
+                    <div class="custom-select-option <?= $settings['filter_isp']==='yes' ? 'selected' : '' ?>"
+                         onclick="selectBotOption('wrap_filter_isp','filter_isp','yes','Да',this)">Да</div>
+                </div>
+                <input type="hidden" name="filter_isp" id="filter_isp" value="<?= $settings['filter_isp'] ?>">
+            </div>
+        </div>
+
+    </div><!-- /строка 1 -->
+
+    <!-- СТРОКА 2: PTR (слева) + UA (справа) -->
+    <div style="display:flex; gap:24px; align-items:flex-start; margin-bottom:24px;">
+
+        <!-- PTR -->
+        <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;margin:0;">Фильтровать по PTR:</label>
+                <button type="button" id="edit_ptr" onclick="openEditor('bots_ptr.dat')"
+                        style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
+                <button type="submit" id="save_ptr"
+                        style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </button>
+            </div>
+            <div class="custom-select-wrapper" id="wrap_filter_ptr">
+                <div class="custom-select-trigger" onclick="toggleCustomSelect('wrap_filter_ptr')">
+                    <span id="label_filter_ptr"><?= $settings['filter_ptr']==='yes' ? 'Да' : 'Нет' ?></span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>
+                </div>
+                <div class="custom-select-options">
+                    <div class="custom-select-option <?= $settings['filter_ptr']==='no' ? 'selected' : '' ?>"
+                         onclick="selectBotOption('wrap_filter_ptr','filter_ptr','no','Нет',this)">Нет</div>
+                    <div class="custom-select-option <?= $settings['filter_ptr']==='yes' ? 'selected' : '' ?>"
+                         onclick="selectBotOption('wrap_filter_ptr','filter_ptr','yes','Да',this)">Да</div>
+                </div>
+                <input type="hidden" name="filter_ptr" id="filter_ptr" value="<?= $settings['filter_ptr'] ?>">
+            </div>
+        </div>
+
+        <!-- UA -->
+        <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;margin:0;">Фильтровать по UA:</label>
+                <button type="button" id="edit_ua" onclick="openEditor('bots_ua.dat')"
+                        style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
+                <button type="submit" id="save_ua"
+                        style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </button>
+            </div>
+            <div class="custom-select-wrapper" id="wrap_filter_ua">
+                <div class="custom-select-trigger" onclick="toggleCustomSelect('wrap_filter_ua')">
+                    <span id="label_filter_ua"><?= $settings['filter_ua']==='yes' ? 'Да' : 'Нет' ?></span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>
+                </div>
+                <div class="custom-select-options">
+                    <div class="custom-select-option <?= $settings['filter_ua']==='no' ? 'selected' : '' ?>"
+                         onclick="selectBotOption('wrap_filter_ua','filter_ua','no','Нет',this)">Нет</div>
+                    <div class="custom-select-option <?= $settings['filter_ua']==='yes' ? 'selected' : '' ?>"
+                         onclick="selectBotOption('wrap_filter_ua','filter_ua','yes','Да',this)">Да</div>
+                </div>
+                <input type="hidden" name="filter_ua" id="filter_ua" value="<?= $settings['filter_ua'] ?>">
+            </div>
+        </div>
+
+    </div><!-- /строка 2 -->
+
+</form>			
+			</div>
 
         </div><!-- /content -->
         	
