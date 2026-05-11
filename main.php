@@ -243,7 +243,7 @@ try {
                                     <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/>
                                 </svg>
                             </span>
-                            <span class="nav-label">Новая кампания</span>
+                            <span class="nav-label">Создать новую</span>
                         </a>
                     </li>
 <li>
@@ -521,9 +521,9 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
         ];
 
         (function() {
-            var padX = 10, padY = 8, lineH = 18, fontSize = 11;
-            var boxW = 110, boxH = padY * 2 + lineH * 3;
-            var bx = 10, by = 10;
+var padX = 14, padY = 10, lineH = 24, fontSize = 14;
+var boxW = 150, boxH = padY * 2 + lineH * 3;
+var bx = 10, by = 10;
 
             var g2 = svg.append('g').attr('class', 'dev-legend');
 
@@ -549,7 +549,7 @@ var devIcons = ['🖥️', '📱'];
                 var ty = by + padY + lineH * (i + 2);
                 g2.append('foreignObject')
                     .attr('x', bx + padX).attr('y', ty - fontSize)
-                    .attr('width', 130).attr('height', lineH)
+                    .attr('width', 180).attr('height', lineH)
                     .append('xhtml:div')
                     .style('color', '#fff')
                     .style('font-size', fontSize + 'px')
@@ -562,16 +562,16 @@ var devIcons = ['🖥️', '📱'];
 
         /* ── Трафик (лево-низ, под девайсами) ── */
         (function() {
-            var padX = 10, padY = 8, lineH = 18, fontSize = 11;
-            var trafficEntries = [
+var padX = 14, padY = 10, lineH = 24, fontSize = 14;
+var trafficEntries = [
                 { label: 'Клики', val: <?= $total_logs ?> },
                 { label: 'Уники', val: <?= $unique ?> },
                 { label: 'Боты',  val: <?= $botCount ?> }
             ];
-            var devBoxH = padY * 2 + lineH * 3;
-            var boxH = padY * 2 + lineH * (trafficEntries.length + 1);
-            var bx = 10, by = 10 + devBoxH + 8;
-            var boxW = 110;
+var devBoxH = 10 * 2 + 24 * 3;
+var boxH = padY * 2 + lineH * (trafficEntries.length + 1);
+var bx = 10, by = 10 + devBoxH + 8;
+var boxW = 150;
 
             var g3 = svg.append('g').attr('class', 'traffic-legend');
 
@@ -591,12 +591,12 @@ var devIcons = ['🖥️', '📱'];
                 .attr('font-family', 'sans-serif')
                 .text('ТРАФИК');
 
-var trafficIcons = ['🖱️', '👤', '🤖'];
+var trafficIcons = ['👆', '👤', '🤖'];
             trafficEntries.forEach(function(d, i) {
                 var ty = by + padY + lineH * (i + 2);
                 g3.append('foreignObject')
                     .attr('x', bx + padX).attr('y', ty - fontSize)
-                    .attr('width', 130).attr('height', lineH)
+                    .attr('width', 180).attr('height', lineH)
                     .append('xhtml:div')
                     .style('color', '#fff')
                     .style('font-size', fontSize + 'px')
@@ -613,9 +613,9 @@ var trafficIcons = ['🖱️', '👤', '🤖'];
             .slice(0, 5);
 
         if (topEntries.length > 0) {
-            var padX = 10, padY = 8, lineH = 18, fontSize = 11;
-            var boxW = 110, boxH = padY * 2 + lineH * (topEntries.length + 1);
-            var bx = W - boxW - 10, by = 10;
+var padX = 14, padY = 10, lineH = 24, fontSize = 14;
+var boxW = 150, boxH = padY * 2 + lineH * (topEntries.length + 1);
+var bx = W - boxW - 10, by = 10;
 
             var g = svg.append('g').attr('class', 'geo-legend');
 
@@ -649,7 +649,7 @@ function isoToFlag(iso) {
 
 g.append('foreignObject')
                     .attr('x', bx + padX).attr('y', ty - fontSize)
-                    .attr('width', 160).attr('height', lineH)
+                    .attr('width', 180).attr('height', lineH)
                     .append('xhtml:div')
                     .style('color', '#fff')
                     .style('font-size', fontSize + 'px')
