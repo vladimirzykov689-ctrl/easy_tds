@@ -366,7 +366,7 @@ function togglePassEdit() {
                     </button>
                 </div>
                 <ul class="sidebar-subnav" id="campaignsSubnav">
-                    <li><a href="new_campaign.php"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/></svg></span><span class="nav-label">Новая кампания</span></a></li>
+                    <li><a href="new_campaign.php"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/></svg></span><span class="nav-label">Создать новую</span></a></li>
 <li>
                         <a href="?export=csv">
                             <span class="nav-icon">
@@ -439,123 +439,119 @@ window.addEventListener('DOMContentLoaded', function() {
 <!-- ДВУХКОЛОНОЧНАЯ ОБЁРТКА -->
 <div style="display:flex;gap:24px;align-items:flex-start;">
 
-    <!-- ЛЕВАЯ КОЛОНКА: Логин + Пароль -->
-    <div style="flex:1;">
-        <!-- ======= ЛОГИН + ПАРОЛЬ ======= -->
-        <form method="post" style="margin-bottom:24px;">
-        <div style="margin-bottom:24px;padding:16px;background:rgba(30,15,60,0.85);border:1px solid rgba(155,0,255,0.35);border-radius:10px;">
+<!-- ЛЕВАЯ КОЛОНКА: Логин + Пароль -->
+<div style="flex:1;">
+    <form method="post" style="height:100%;">
+    <div style="padding:16px;background:rgba(30,15,60,0.85);border:1px solid rgba(155,0,255,0.35);border-radius:10px;height:100%;box-sizing:border-box;">
 
-            <!-- Логин -->
-            <div style="margin-bottom:16px;">
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;white-space:nowrap;flex-shrink:0;">
-                        Логин
-                    </label>
-                    <button type="button" id="loginEditBtn" title="Изменить логин"
-                            onclick="toggleLoginEdit()"
-                            style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                    </button>
-                    <button type="submit" id="loginSaveBtn" title="Сохранить"
-                            style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-                    </button>
-                </div>
-                <input type="text" id="login_input" name="new_login" readonly
-                       value="<?= htmlspecialchars($currentUserHash ? '(логин задан)' : '') ?>"
-                       placeholder="Введите новый логин"
-                       style="margin-top:10px;width:100%;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(155,0,255,0.3);color:rgba(255,255,255,0.4);font-size:13px;box-sizing:border-box;cursor:default;"
-                       onfocus="this.style.cursor='text';">
+        <!-- Логин -->
+        <div style="margin-bottom:0px;">
+            <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
+                <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;white-space:nowrap;flex-shrink:0;">
+                    Логин
+                </label>
+                <button type="button" id="loginEditBtn" title="Изменить логин"
+                        onclick="toggleLoginEdit()"
+                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
+                <button type="submit" id="loginSaveBtn" title="Сохранить"
+                        style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </button>
             </div>
-
-            <!-- Пароль -->
-            <div style="padding-top:8px;border-top:1px solid rgba(155,0,255,0.2);">
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;white-space:nowrap;flex-shrink:0;">
-                        Пароль
-                    </label>
-                    <button type="button" id="passEditBtn" title="Изменить пароль"
-                            onclick="togglePassEdit()"
-                            style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                    </button>
-                    <button type="submit" id="passSaveBtn" title="Сохранить"
-                            style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-                    </button>
-                </div>
-                <div style="margin-top:10px;">
-                    <input type="password" disabled id="pass_dots" value="password"
-                           style="width:100%;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(155,0,255,0.2);color:#fff;font-size:13px;box-sizing:border-box;cursor:default;">
-                </div>
-                <div id="passFields" style="display:none;margin-top:8px;">
-                    <input type="password" name="current_pass"
-                           placeholder="Текущий пароль" autocomplete="off"
-                           style="width:100%;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(155,0,255,0.3);color:#fff;font-size:13px;box-sizing:border-box;margin-bottom:8px;">
-                    <input type="password" name="new_pass"
-                           placeholder="Новый пароль" autocomplete="off"
-                           style="width:100%;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(155,0,255,0.3);color:#fff;font-size:13px;box-sizing:border-box;">
-                </div>
-            </div>
-
+<input type="password" id="login_input" name="new_login" readonly
+       value="<?= $currentUserHash ? 'placeholder' : '' ?>"
+                   placeholder="Введите новый логин"
+                   style="margin-top:10px;width:100%;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(155,0,255,0.3);color:rgba(255,255,255,0.4);font-size:13px;box-sizing:border-box;cursor:default;"
+                   onfocus="this.style.cursor='text';">
         </div>
-        </form>
+
+        <!-- Пароль -->
+        <div style="padding-top:8px;border-top:1px solid rgba(155,0,255,0.2);">
+            <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
+                <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;white-space:nowrap;flex-shrink:0;">
+                    Пароль
+                </label>
+                <button type="button" id="passEditBtn" title="Изменить пароль"
+                        onclick="togglePassEdit()"
+                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
+                <button type="submit" id="passSaveBtn" title="Сохранить"
+                        style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </button>
+            </div>
+            <div style="margin-top:10px;">
+                <input type="password" disabled id="pass_dots" value="password"
+                       style="width:100%;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(155,0,255,0.2);color:#fff;font-size:13px;box-sizing:border-box;cursor:default;">
+            </div>
+            <div id="passFields" style="display:none;margin-top:8px;">
+                <input type="password" name="current_pass"
+                       placeholder="Текущий пароль" autocomplete="off"
+                       style="width:100%;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(155,0,255,0.3);color:#fff;font-size:13px;box-sizing:border-box;margin-bottom:8px;">
+                <input type="password" name="new_pass"
+                       placeholder="Новый пароль" autocomplete="off"
+                       style="width:100%;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(155,0,255,0.3);color:#fff;font-size:13px;box-sizing:border-box;">
+            </div>
+        </div>
+
     </div>
-    <!-- КОНЕЦ ЛЕВОЙ КОЛОНКИ -->
+    </form>
+</div>
+<!-- КОНЕЦ ЛЕВОЙ КОЛОНКИ -->
+<!-- ПРАВАЯ КОЛОНКА: API Ключ + Токен бота -->
+<div style="flex:1;">
+    <form method="post" style="margin-bottom:24px;">
+    <div style="padding:16px;background:rgba(30,15,60,0.85);border:1px solid rgba(155,0,255,0.35);border-radius:10px;">
 
-    <!-- ПРАВАЯ КОЛОНКА: API Ключ + Токен бота -->
-    <div style="flex:1;">
-
-        <!-- ======= API КЛЮЧ ======= -->
-        <div style="margin-bottom:24px;padding:16px;background:rgba(30,15,60,0.85);border:1px solid rgba(155,0,255,0.35);border-radius:10px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <!-- API КЛЮЧ -->
+        <div style="margin-bottom:18px;">
+            <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
                 <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;margin:0;">
                     API Ключ
                 </label>
-                <form method="post" style="margin:0;">
-                    <input type="hidden" name="generate_api" value="1">
-                    <button type="submit"
-                            onclick="return confirm('Сгенерировать новый API ключ? Старый перестанет работать.');"
-                            title="Перегенерировать ключ"
-                            style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#1b1b2f"><path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
-                    </button>
-                </form>
+                <input type="hidden" name="generate_api" value="">
+                <button type="submit" name="generate_api" value="1"
+                        onclick="return confirm('Сгенерировать новый API ключ? Старый перестанет работать.');"
+                        title="Перегенерировать ключ"
+                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#1b1b2f"><path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                </button>
             </div>
             <?php if (!empty($currentApiKey)): ?>
-                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                    <code id="api_key_display" style="flex:1;background:rgba(0,0,0,0.3);padding:8px 12px;border-radius:6px;font-size:13px;color:#fff;word-break:break-all;border:1px solid rgba(155,0,255,0.2);"><?= htmlspecialchars($currentApiKey) ?></code>
-                </div>
+                <code id="api_key_display" style="display:block;background:rgba(0,0,0,0.3);margin-top:10px;padding:8px 12px;border-radius:6px;font-size:13px;color:#fff;word-break:break-all;border:1px solid rgba(155,0,255,0.2);"><?= htmlspecialchars($currentApiKey) ?></code>
             <?php else: ?>
                 <div style="color:rgba(255,255,255,0.3);font-style:italic;">Ключ не сгенерирован</div>
             <?php endif; ?>
         </div>
 
-        <!-- ======= ТОКЕН БОТА ======= -->
-        <div style="margin-bottom:24px;padding:16px;background:rgba(30,15,60,0.85);border:1px solid rgba(155,0,255,0.35);border-radius:10px;">
-            <form method="post" style="margin:0;">
-                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                    <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;white-space:nowrap;flex-shrink:0;">
-                        Токен Telegram бота
-                    </label>
-                    <button type="button" id="botTokenEditBtn" title="Редактировать токен"
-                            onclick="document.getElementById('bot_token_input').removeAttribute('readonly');document.getElementById('bot_token_input').focus();document.getElementById('bot_token_input').style.cursor='text';this.style.display='none';document.getElementById('botTokenSaveBtn').style.display='inline-flex';"
-                            style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                    </button>
-                    <button type="submit" id="botTokenSaveBtn" title="Сохранить токен"
-                            style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-                    </button>
-                </div>
-                <input type="text" id="bot_token_input" name="bot_token" readonly
-                       value="<?= htmlspecialchars($currentBotToken) ?>"
-                       placeholder="<?= empty($currentBotToken) ? 'Токен не задан' : '' ?>"
-                       style="margin-top:10px;width:100%;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(155,0,255,0.3);color:<?= empty($currentBotToken) ? 'rgba(255,255,255,0.3)' : '#fff' ?>;font-size:13px;box-sizing:border-box;cursor:default;"
-                       onfocus="this.style.cursor='text';">
-            </form>
+        <!-- ТОКЕН БОТА -->
+        <div style="padding-top:8px;border-top:1px solid rgba(155,0,255,0.2);">
+            <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
+                <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;white-space:nowrap;flex-shrink:0;">
+                    Токен Telegram бота
+                </label>
+                <button type="button" id="botTokenEditBtn" title="Редактировать токен"
+                        onclick="document.getElementById('bot_token_input').removeAttribute('readonly');document.getElementById('bot_token_input').focus();document.getElementById('bot_token_input').style.cursor='text';this.style.display='none';document.getElementById('botTokenSaveBtn').style.display='inline-flex';"
+                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
+                <button type="submit" id="botTokenSaveBtn" title="Сохранить токен"
+                        style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </button>
+            </div>
+            <input type="text" id="bot_token_input" name="bot_token" readonly
+                   value="<?= htmlspecialchars($currentBotToken) ?>"
+                   placeholder="<?= empty($currentBotToken) ? 'Токен не задан' : '' ?>"
+                   style="margin-top:10px;width:100%;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(155,0,255,0.3);color:<?= empty($currentBotToken) ? 'rgba(255,255,255,0.3)' : '#fff' ?>;font-size:13px;box-sizing:border-box;cursor:default;"
+                   onfocus="this.style.cursor='text';">
         </div>
 
+    </div>
+    </form>
     </div>
     <!-- КОНЕЦ ПРАВОЙ КОЛОНКИ -->
 
@@ -564,7 +560,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
 <!-- ======= IP + SSL ======= -->
 <form method="post" id="ip_ssl_form">
-<div style="display:flex;gap:24px;align-items:flex-start;">
+<div style="display:flex;gap:24px;align-items:stretch;">
 
     <!-- ЛЕВАЯ: IP -->
     <div style="flex:1;">
