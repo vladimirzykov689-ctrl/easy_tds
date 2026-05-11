@@ -32,13 +32,14 @@ function saveTgConfig(array $data): void {
     file_put_contents(TG_CONFIG_FILE, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 }
 $tgConfig      = loadTgConfig();
-$currentApiKey = $tgConfig['api_key'] ?? '';
+$currentApiKey   = $tgConfig['api_key']   ?? '';
+$currentBotToken = $tgConfig['bot_token'] ?? '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $changeLogin = ($_POST['change_login'] ?? 'no') === 'yes';
-    $changePass  = ($_POST['change_pass']  ?? 'no') === 'yes';
-    $changeIP    = ($_POST['change_ip']    ?? 'no') === 'yes';
+$changeLogin = !empty(trim($_POST['new_login'] ?? ''));
+$changePass  = !empty(trim($_POST['new_pass']  ?? ''));
+$changeIP    = ($_POST['change_ip'] ?? 'no') === 'yes';
     $generateApi = isset($_POST['generate_api']);
     $sslAction   = $_POST['ssl_action']   ?? 'none';
 
@@ -73,24 +74,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
         }
 
-        if (file_put_contents($configPath, $configContent) !== false) {
-            $tgConfig['api_key'] = $newApiKey;
-            saveTgConfig($tgConfig);
+if (file_put_contents($configPath, $configContent) !== false) {
+            $fresh = loadTgConfig();
+            $fresh['api_key'] = $newApiKey;
+            saveTgConfig($fresh);
+            $tgConfig = $fresh;
             $currentApiKey = $newApiKey;
             $success = 'Новый API ключ успешно сгенерирован.';
         } else {
             $errors[] = 'Ошибка записи в config.php.';
         }
     }
+    
 
-    // ── Смена логина ──────────────────────────────────────────────────────────
+// ── Сохранение токена бота ────────────────────────────────────────────────
+if (!empty($_POST['bot_token'])) {
+    $newToken = trim($_POST['bot_token']);
+    $fresh = loadTgConfig();
+    $fresh['bot_token'] = $newToken;
+    saveTgConfig($fresh);
+    $currentBotToken = $newToken;
+    $success = 'Токен бота сохранён.';
+}
+
+// ── Смена логина ──────────────────────────────────────────────────────────
     if ($changeLogin) {
-        $currentLogin = trim($_POST['current_login'] ?? '');
-        $newLogin     = trim($_POST['new_login'] ?? '');
-        if (empty($currentLogin) || empty($newLogin)) {
-            $errors[] = 'Заполните оба поля для смены логина.';
-        } elseif (!password_verify($currentLogin, $currentUserHash)) {
-            $errors[] = 'Неверный логин.';
+        $newLogin = trim($_POST['new_login'] ?? '');
+        if (empty($newLogin)) {
+            $errors[] = 'Введите новый логин.';
         } else {
             $newUserHash = password_hash($newLogin, PASSWORD_DEFAULT);
         }
@@ -236,7 +247,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
 <link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico">
 <link rel="stylesheet" href="/css/style.css">
+<style>
+.toast {
+    display: none;
+    position: fixed;
+    top: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    white-space: nowrap;
+}
+.toast.success { background: rgba(30,60,30,0.97); border: 1px solid #28a745; color: #6fcf6f; }
+.toast.error   { background: rgba(60,20,20,0.97); border: 1px solid #dc3545; color: #ff6666; }
+.toast.visible { opacity: 1; }
+</style>
 <script>
+function toggleSaveBtn(btnId, value, noneValue) {
+    var btn = document.getElementById(btnId);
+    btn.style.display = (value !== noneValue) ? 'inline-flex' : 'none';
+}
+function toggleCustomSelect(wrapperId) {
+    var wrapper = document.getElementById(wrapperId);
+    var isOpen = wrapper.classList.contains('open');
+    document.querySelectorAll('.custom-select-wrapper.open').forEach(function(w) {
+        w.classList.remove('open');
+    });
+    if (!isOpen) wrapper.classList.add('open');
+}
+
+function selectCustomOption(wrapperId, inputId, value, label, el) {
+    document.getElementById(inputId).value = value;
+    document.getElementById('label_' + inputId).textContent = label;
+    el.closest('.custom-select-options').querySelectorAll('.custom-select-option').forEach(function(o) {
+        o.classList.remove('selected');
+    });
+    el.classList.add('selected');
+    document.getElementById(wrapperId).classList.remove('open');
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.custom-select-wrapper')) {
+        document.querySelectorAll('.custom-select-wrapper.open').forEach(function(w) {
+            w.classList.remove('open');
+        });
+    }
+});
 function toggleSection(selectId, sectionId) {
     document.getElementById(sectionId).style.display =
         document.getElementById(selectId).value === 'yes' ? 'block' : 'none';
@@ -247,14 +309,31 @@ function toggleSSL() {
         (val === 'add' || val === 'remove') ? 'block' : 'none';
 }
 window.addEventListener('DOMContentLoaded', function () {
-    toggleSection('change_login', 'section_login');
-    toggleSection('change_pass',  'section_pass');
-    toggleSection('change_ip',    'section_ip');
+    toggleSection('change_ip', 'section_ip');
     toggleSSL();
 });
+function toggleLoginEdit() {
+    var input = document.getElementById('login_input');
+    input.removeAttribute('readonly');
+    input.value = '';
+    input.placeholder = 'Введите новый логин';
+    input.style.color = '#fff';
+    input.style.cursor = 'text';
+    input.focus();
+    document.getElementById('loginEditBtn').style.display = 'none';
+    document.getElementById('loginSaveBtn').style.display = 'inline-flex';
+}
+function togglePassEdit() {
+    document.getElementById('pass_dots').style.display = 'none';
+    document.getElementById('passFields').style.display = 'block';
+    document.getElementById('passEditBtn').style.display = 'none';
+    document.getElementById('passSaveBtn').style.display = 'inline-flex';
+    document.getElementById('passFields').querySelector('input').focus();
+}
 </script>
 </head>
 <body class="dashboard-page">
+<div id="toast" class="toast"></div>
 
 <header class="top-header">
     <button class="hamburger-btn" id="hamburgerBtn" title="Свернуть меню" aria-label="Toggle sidebar">
@@ -288,9 +367,26 @@ window.addEventListener('DOMContentLoaded', function () {
                 </div>
                 <ul class="sidebar-subnav" id="campaignsSubnav">
                     <li><a href="new_campaign.php"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/></svg></span><span class="nav-label">Новая кампания</span></a></li>
-                    <li><a href="campaigns.php?export=csv"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/></svg></span><span class="nav-label">Экспорт логов</span></a></li>
-                    <li><a href="campaigns.php?export=goals_csv"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/></svg></span><span class="nav-label">Экспорт целей</span></a></li>
-                    <li><a href="#" onclick="confirmDeleteAll(event)" style="color:#ff6666;"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M9 3v1H4v2h1v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3H9zm0 5h2v9H9V8zm4 0h2v9h-2V8z"/></svg></span><span class="nav-label">Удалить все</span></a>
+<li>
+                        <a href="?export=csv">
+                            <span class="nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 13h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h3v1.5H8V10z"/>
+                                </svg>
+                            </span>
+                            <span class="nav-label">Экспорт логов</span>
+                        </a>
+                    </li>
+<li>
+                        <a href="?export=goals_csv">
+                            <span class="nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.88-11.71L10 14.17l-1.88-1.88a.996.996 0 1 0-1.41 1.41l2.59 2.59c.39.39 1.02.39 1.41 0L17.3 9.7a.996.996 0 0 0 0-1.41c-.39-.39-1.03-.39-1.42 0z"/>
+                                </svg>
+                            </span>
+                            <span class="nav-label">Экспорт целей</span>
+                        </a>
+                    </li>                    <li><a href="#" onclick="confirmDeleteAll(event)" style="color:#ff6666;"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M9 3v1H4v2h1v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3H9zm0 5h2v9H9V8zm4 0h2v9h-2V8z"/></svg></span><span class="nav-label">Удалить все</span></a>
                         <form id="deleteAllForm" method="post" action="campaigns.php" style="display:none;"><input type="hidden" name="delete_all" value="1"></form>
                     </li>
                 </ul>
@@ -319,93 +415,219 @@ window.addEventListener('DOMContentLoaded', function () {
         </ul>
     </nav>
 
-    <div class="page-content">
-        <div class="content content-centered">
-            <div class="add-form">
-                <h2>Редактирование учетной записи</h2>
+<div class="page-content">
+    <div class="content">
+        <h2 class="campaign-title">Редактирование учетной записи</h2>
 
-                <?php if (!empty($errors)): ?>
-                    <?php foreach ($errors as $e): ?>
-                        <div class="error"><?= htmlspecialchars($e) ?></div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+<?php if (!empty($errors)): ?>
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    showToast('<?= addslashes(implode(' | ', $errors)) ?>', 'error');
+});
+</script>
+<?php endif; ?>
 
-                <?php if (!empty($success)): ?>
-                    <div style="color:#6fcf6f;font-weight:bold;margin-bottom:15px;">
-                        &#10003; <?= htmlspecialchars($success) ?>
-                    </div>
-                <?php endif; ?>
+<?php if (!empty($success)): ?>
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    showToast('✓ <?= addslashes($success) ?>', 'success');
+});
+</script>
+<?php endif; ?>
+                	<div class="add-form" style="max-width:100%;">
 
-                <!-- ======= API КЛЮЧ ======= -->
-                <div style="margin-bottom:24px;padding:16px;background:rgba(30,15,60,0.85);border:1px solid rgba(155,0,255,0.35);border-radius:10px;">
-                    <label style="display:block;margin-bottom:8px;color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;">
-                        API Ключ
+<!-- ДВУХКОЛОНОЧНАЯ ОБЁРТКА -->
+<div style="display:flex;gap:24px;align-items:flex-start;">
+
+    <!-- ЛЕВАЯ КОЛОНКА: Логин + Пароль -->
+    <div style="flex:1;">
+        <!-- ======= ЛОГИН + ПАРОЛЬ ======= -->
+        <form method="post" style="margin-bottom:24px;">
+        <div style="margin-bottom:24px;padding:16px;background:rgba(30,15,60,0.85);border:1px solid rgba(155,0,255,0.35);border-radius:10px;">
+
+            <!-- Логин -->
+            <div style="margin-bottom:16px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;white-space:nowrap;flex-shrink:0;">
+                        Логин
                     </label>
-                    <?php if (!empty($currentApiKey)): ?>
-                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                            <code id="api_key_display" style="flex:1;background:rgba(0,0,0,0.3);padding:8px 12px;border-radius:6px;font-size:13px;color:#fff;word-break:break-all;border:1px solid rgba(155,0,255,0.2);"><?= htmlspecialchars($currentApiKey) ?></code>
-                        </div>
-                    <?php else: ?>
-                        <div style="color:rgba(255,255,255,0.3);font-style:italic;margin-bottom:8px;">Ключ не сгенерирован</div>
-                    <?php endif; ?>
-                    <form method="post" style="margin-top:10px;">
-                        <input type="hidden" name="generate_api" value="1">
-                        <button type="submit" class="add-new-btn" onclick="return confirm('Сгенерировать новый API ключ? Старый перестанет работать.');">
-                            🔑 Сгенерировать новый ключ
-                        </button>
-                    </form>
+                    <button type="button" id="loginEditBtn" title="Изменить логин"
+                            onclick="toggleLoginEdit()"
+                            style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    </button>
+                    <button type="submit" id="loginSaveBtn" title="Сохранить"
+                            style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                    </button>
                 </div>
+                <input type="text" id="login_input" name="new_login" readonly
+                       value="<?= htmlspecialchars($currentUserHash ? '(логин задан)' : '') ?>"
+                       placeholder="Введите новый логин"
+                       style="margin-top:10px;width:100%;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(155,0,255,0.3);color:rgba(255,255,255,0.4);font-size:13px;box-sizing:border-box;cursor:default;"
+                       onfocus="this.style.cursor='text';">
+            </div>
 
-                <!-- ======= ОСНОВНАЯ ФОРМА ======= -->
-                <form method="post">
-                    <label for="change_login">Изменить логин:</label>
-                    <select id="change_login" name="change_login" onchange="toggleSection('change_login','section_login')">
-                        <option value="no">Нет</option>
-                        <option value="yes" <?= ($_POST['change_login'] ?? '') === 'yes' ? 'selected' : '' ?>>Да</option>
-                    </select>
-                    <div id="section_login" style="display:none;">
-                        <label>Текущий логин:</label>
-                        <input type="text" name="current_login" autocomplete="off">
-                        <label>Новый логин:</label>
-                        <input type="text" name="new_login" autocomplete="off">
-                    </div>
+            <!-- Пароль -->
+            <div style="padding-top:8px;border-top:1px solid rgba(155,0,255,0.2);">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;white-space:nowrap;flex-shrink:0;">
+                        Пароль
+                    </label>
+                    <button type="button" id="passEditBtn" title="Изменить пароль"
+                            onclick="togglePassEdit()"
+                            style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    </button>
+                    <button type="submit" id="passSaveBtn" title="Сохранить"
+                            style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                    </button>
+                </div>
+                <div style="margin-top:10px;">
+                    <input type="password" disabled id="pass_dots" value="password"
+                           style="width:100%;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(155,0,255,0.2);color:#fff;font-size:13px;box-sizing:border-box;cursor:default;">
+                </div>
+                <div id="passFields" style="display:none;margin-top:8px;">
+                    <input type="password" name="current_pass"
+                           placeholder="Текущий пароль" autocomplete="off"
+                           style="width:100%;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(155,0,255,0.3);color:#fff;font-size:13px;box-sizing:border-box;margin-bottom:8px;">
+                    <input type="password" name="new_pass"
+                           placeholder="Новый пароль" autocomplete="off"
+                           style="width:100%;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(155,0,255,0.3);color:#fff;font-size:13px;box-sizing:border-box;">
+                </div>
+            </div>
 
-                    <label for="change_pass">Изменить пароль:</label>
-                    <select id="change_pass" name="change_pass" onchange="toggleSection('change_pass','section_pass')">
-                        <option value="no">Нет</option>
-                        <option value="yes" <?= ($_POST['change_pass'] ?? '') === 'yes' ? 'selected' : '' ?>>Да</option>
-                    </select>
-                    <div id="section_pass" style="display:none;">
-                        <label>Текущий пароль:</label>
-                        <input type="password" name="current_pass" autocomplete="off">
-                        <label>Новый пароль:</label>
-                        <input type="password" name="new_pass" autocomplete="off">
-                    </div>
+        </div>
+        </form>
+    </div>
+    <!-- КОНЕЦ ЛЕВОЙ КОЛОНКИ -->
 
-                    <label for="change_ip">Ограничить доступ по IP:</label>
-                    <select id="change_ip" name="change_ip" onchange="toggleSection('change_ip','section_ip')">
-                        <option value="no" <?= !$ipRestricted ? 'selected' : '' ?>>Нет</option>
-                        <option value="yes" <?= $ipRestricted ? 'selected' : '' ?>>Да</option>
-                    </select>
-                    <div id="section_ip" style="display:<?= $ipRestricted ? 'block' : 'none' ?>;">
-                        <label>Список IP-адресов:</label>
-                        <textarea name="allowed_ips"><?= htmlspecialchars($currentIPs) ?></textarea>
-                        <div class="note">Укажите IP-адреса через запятую. Например: 192.168.1.1,10.0.0.1</div>
-                    </div>
+    <!-- ПРАВАЯ КОЛОНКА: API Ключ + Токен бота -->
+    <div style="flex:1;">
 
-                    <label for="ssl_action">SSL для доменов:</label>
-                    <select id="ssl_action" name="ssl_action" onchange="toggleSSL()">
-                        <option value="none">Нет</option>
-                        <option value="add"    <?= ($_POST['ssl_action'] ?? '') === 'add'    ? 'selected' : '' ?>>Добавить</option>
-                        <option value="remove" <?= ($_POST['ssl_action'] ?? '') === 'remove' ? 'selected' : '' ?>>Удалить</option>
-                    </select>
-                    <div id="section_ssl" style="display:none;">
-                        <label>Домены (через запятую):</label>
-                        <textarea name="ssl_domain" placeholder="example.com, domain2.com"><?= htmlspecialchars($_POST['ssl_domain'] ?? '') ?></textarea>
-                    </div>
-
-                    <button type="submit">Сохранить изменения</button>
+        <!-- ======= API КЛЮЧ ======= -->
+        <div style="margin-bottom:24px;padding:16px;background:rgba(30,15,60,0.85);border:1px solid rgba(155,0,255,0.35);border-radius:10px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;margin:0;">
+                    API Ключ
+                </label>
+                <form method="post" style="margin:0;">
+                    <input type="hidden" name="generate_api" value="1">
+                    <button type="submit"
+                            onclick="return confirm('Сгенерировать новый API ключ? Старый перестанет работать.');"
+                            title="Перегенерировать ключ"
+                            style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#1b1b2f"><path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                    </button>
                 </form>
+            </div>
+            <?php if (!empty($currentApiKey)): ?>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <code id="api_key_display" style="flex:1;background:rgba(0,0,0,0.3);padding:8px 12px;border-radius:6px;font-size:13px;color:#fff;word-break:break-all;border:1px solid rgba(155,0,255,0.2);"><?= htmlspecialchars($currentApiKey) ?></code>
+                </div>
+            <?php else: ?>
+                <div style="color:rgba(255,255,255,0.3);font-style:italic;">Ключ не сгенерирован</div>
+            <?php endif; ?>
+        </div>
+
+        <!-- ======= ТОКЕН БОТА ======= -->
+        <div style="margin-bottom:24px;padding:16px;background:rgba(30,15,60,0.85);border:1px solid rgba(155,0,255,0.35);border-radius:10px;">
+            <form method="post" style="margin:0;">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;white-space:nowrap;flex-shrink:0;">
+                        Токен Telegram бота
+                    </label>
+                    <button type="button" id="botTokenEditBtn" title="Редактировать токен"
+                            onclick="document.getElementById('bot_token_input').removeAttribute('readonly');document.getElementById('bot_token_input').focus();document.getElementById('bot_token_input').style.cursor='text';this.style.display='none';document.getElementById('botTokenSaveBtn').style.display='inline-flex';"
+                            style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    </button>
+                    <button type="submit" id="botTokenSaveBtn" title="Сохранить токен"
+                            style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                    </button>
+                </div>
+                <input type="text" id="bot_token_input" name="bot_token" readonly
+                       value="<?= htmlspecialchars($currentBotToken) ?>"
+                       placeholder="<?= empty($currentBotToken) ? 'Токен не задан' : '' ?>"
+                       style="margin-top:10px;width:100%;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(155,0,255,0.3);color:<?= empty($currentBotToken) ? 'rgba(255,255,255,0.3)' : '#fff' ?>;font-size:13px;box-sizing:border-box;cursor:default;"
+                       onfocus="this.style.cursor='text';">
+            </form>
+        </div>
+
+    </div>
+    <!-- КОНЕЦ ПРАВОЙ КОЛОНКИ -->
+
+</div>
+<!-- КОНЕЦ ДВУХКОЛОНОЧНОЙ ОБЁРТКИ -->
+
+<!-- ======= IP + SSL ======= -->
+<form method="post" id="ip_ssl_form">
+<div style="display:flex;gap:24px;align-items:flex-start;">
+
+    <!-- ЛЕВАЯ: IP -->
+    <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;">
+            <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;margin:0;">Ограничить доступ по IP</label>
+            <button type="submit" id="saveIpBtn"
+                    style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+            </button>
+        </div>
+        <div class="custom-select-wrapper" id="wrap_change_ip">
+            <div class="custom-select-trigger" onclick="toggleCustomSelect('wrap_change_ip')">
+                <span id="label_change_ip"><?= $ipRestricted ? 'Да' : 'Нет' ?></span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>
+            </div>
+            <div class="custom-select-options">
+                <div class="custom-select-option <?= !$ipRestricted ? 'selected' : '' ?>"
+                     onclick="selectCustomOption('wrap_change_ip','change_ip','no','Нет',this);toggleSection('change_ip','section_ip');toggleSaveBtn('saveIpBtn','no','no')">Нет</div>
+                <div class="custom-select-option <?= $ipRestricted ? 'selected' : '' ?>"
+                     onclick="selectCustomOption('wrap_change_ip','change_ip','yes','Да',this);toggleSection('change_ip','section_ip');toggleSaveBtn('saveIpBtn','yes','no')">Да</div>
+            </div>
+            <input type="hidden" name="change_ip" id="change_ip" value="<?= $ipRestricted ? 'yes' : 'no' ?>">
+        </div>
+        <div id="section_ip" style="display:<?= $ipRestricted ? 'block' : 'none' ?>;">
+            <label>Список IP-адресов:</label>
+            <textarea name="allowed_ips" oninput="document.getElementById('saveIpBtn').style.display='inline-flex'"><?= htmlspecialchars($currentIPs) ?></textarea>
+            <div class="note">Укажите IP-адреса через запятую. Например: 192.168.1.1,10.0.0.1</div>
+        </div>
+    </div>
+
+    <!-- ПРАВАЯ: SSL -->
+    <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;">
+            <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;margin:0;">SSL для доменов</label>
+            <button type="submit" id="saveSslBtn"
+                    style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+            </button>
+        </div>
+        <div class="custom-select-wrapper" id="wrap_ssl_action">
+            <div class="custom-select-trigger" onclick="toggleCustomSelect('wrap_ssl_action')">
+                <span id="label_ssl_action">Нет</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>
+            </div>
+            <div class="custom-select-options">
+                <div class="custom-select-option selected"
+                     onclick="selectCustomOption('wrap_ssl_action','ssl_action','none','Нет',this);toggleSSL();toggleSaveBtn('saveSslBtn','none','none')">Нет</div>
+                <div class="custom-select-option <?= ($_POST['ssl_action'] ?? '') === 'add' ? 'selected' : '' ?>"
+                     onclick="selectCustomOption('wrap_ssl_action','ssl_action','add','Добавить',this);toggleSSL();toggleSaveBtn('saveSslBtn','add','none')">Добавить</div>
+                <div class="custom-select-option <?= ($_POST['ssl_action'] ?? '') === 'remove' ? 'selected' : '' ?>"
+                     onclick="selectCustomOption('wrap_ssl_action','ssl_action','remove','Удалить',this);toggleSSL();toggleSaveBtn('saveSslBtn','remove','none')">Удалить</div>
+            </div>
+            <input type="hidden" name="ssl_action" id="ssl_action" value="<?= htmlspecialchars($_POST['ssl_action'] ?? 'none') ?>">
+        </div>
+        <div id="section_ssl" style="display:none;">
+            <label>Домены (через запятую):</label>
+            <textarea name="ssl_domain" placeholder="example.com, domain2.com"
+                      oninput="document.getElementById('saveSslBtn').style.display='inline-flex'"><?= htmlspecialchars($_POST['ssl_domain'] ?? '') ?></textarea>
+        </div>
+    </div>
+
+</div>
+</form>
 
             </div>
         </div>
@@ -449,6 +671,18 @@ window.addEventListener('DOMContentLoaded', function () {
         if (save) localStorage.setItem(ACCORDION_KEY, open ? '1' : '0');
     }
 }());
+
+function showToast(message, type) {
+    var t = document.getElementById('toast');
+    t.textContent = message;
+    t.className = 'toast ' + (type || 'success');
+    t.style.display = 'block';
+    setTimeout(function() { t.classList.add('visible'); }, 10);
+    setTimeout(function() {
+        t.classList.remove('visible');
+        setTimeout(function() { t.style.display = 'none'; }, 300);
+    }, 3500);
+}
 </script>
 
 </body>
