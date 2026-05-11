@@ -198,7 +198,7 @@ $streams = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/>
                                 </svg>
                             </span>
-                            <span class="nav-label">Новая кампания</span>
+                            <span class="nav-label">Создать новую</span>
                         </a>
                     </li>
 <li>
@@ -292,11 +292,11 @@ $streams = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <h2 class="campaign-title">Список кампаний</h2>
 
 <div class="add-form" style="max-width:100%;">
-<div style="padding:16px;display:flex;flex-direction:column;gap:16px;">
+<div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
     <?php foreach($streams as $s): ?>
     <div style="padding:16px;background:rgba(30,15,60,0.85);border:1px solid rgba(155,0,255,0.35);border-radius:10px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;white-space:nowrap;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;justify-content:space-between;">
+                <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;white-space:nowrap;flex:1;">
                 <?= htmlspecialchars($s['name']) ?>
             </label>
             <!-- Кнопка глаз (статистика) -->
