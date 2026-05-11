@@ -383,7 +383,7 @@ function showToast(message, type) {
                                     <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/>
                                 </svg>
                             </span>
-                            <span class="nav-label">Новая кампания</span>
+                            <span class="nav-label">Создать новую</span>
                         </a>
                     </li>
 <li>
@@ -490,10 +490,10 @@ window.addEventListener('DOMContentLoaded', function() {
 
         <!-- IP -->
         <div style="flex:1;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;justify-content:space-between;">
                 <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;margin:0;">Фильтровать по IP:</label>
                 <button type="button" id="edit_ip" onclick="openEditor('bots_ip.dat')"
-                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
+                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;margin-left:auto;">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                 </button>
                 <button type="submit" id="save_ip"
@@ -518,10 +518,10 @@ window.addEventListener('DOMContentLoaded', function() {
 
         <!-- ISP -->
         <div style="flex:1;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;justify-content:space-between;">
                 <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;margin:0;">Фильтровать по ISP:</label>
                 <button type="button" id="edit_isp" onclick="openEditor('bots_isp.dat')"
-                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
+                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;margin-left:auto;">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                 </button>
                 <button type="submit" id="save_isp"
@@ -551,10 +551,10 @@ window.addEventListener('DOMContentLoaded', function() {
 
         <!-- PTR -->
         <div style="flex:1;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;justify-content:space-between;">
                 <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;margin:0;">Фильтровать по PTR:</label>
                 <button type="button" id="edit_ptr" onclick="openEditor('bots_ptr.dat')"
-                        style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
+                        style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;margin-left:auto;">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                 </button>
                 <button type="submit" id="save_ptr"
@@ -579,10 +579,10 @@ window.addEventListener('DOMContentLoaded', function() {
 
         <!-- UA -->
         <div style="flex:1;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;justify-content:space-between;">
                 <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;margin:0;">Фильтровать по UA:</label>
                 <button type="button" id="edit_ua" onclick="openEditor('bots_ua.dat')"
-                        style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
+                        style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;margin-left:auto;">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                 </button>
                 <button type="submit" id="save_ua"
