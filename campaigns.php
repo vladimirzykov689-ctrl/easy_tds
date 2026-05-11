@@ -19,11 +19,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     $stmt = $db->prepare("DELETE FROM streams WHERE id=?");
     $stmt->execute([$delete_id]);
 
-    $stmt = $db->prepare("UPDATE streams SET id = id - 1 WHERE id > ?");
-    $stmt->execute([$delete_id]);
-
-    $db->exec("UPDATE sqlite_sequence SET seq = (SELECT MAX(id) FROM streams) WHERE name='streams'");
-
     header('Location: campaigns.php'); 
     exit;
 }
@@ -206,28 +201,27 @@ $streams = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <span class="nav-label">Новая кампания</span>
                         </a>
                     </li>
-                    <li>
+<li>
                         <a href="?export=csv">
                             <span class="nav-icon">
                                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 13h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h3v1.5H8V10z"/>
                                 </svg>
                             </span>
                             <span class="nav-label">Экспорт логов</span>
                         </a>
                     </li>
-                    <li>
+<li>
                         <a href="?export=goals_csv">
                             <span class="nav-icon">
                                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M5 20h14v2H5v-2zm7-2L5.5 11H9V4h6v7h3.5L12 18z"/>
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.88-11.71L10 14.17l-1.88-1.88a.996.996 0 1 0-1.41 1.41l2.59 2.59c.39.39 1.02.39 1.41 0L17.3 9.7a.996.996 0 0 0 0-1.41c-.39-.39-1.03-.39-1.42 0z"/>
                                 </svg>
                             </span>
                             <span class="nav-label">Экспорт целей</span>
                         </a>
-                    </li>
-                    <li>
-                        <a href="#" onclick="confirmDeleteAll(event)" style="color:#ff6666;">
+                    </li>                        
+                    <a href="#" onclick="confirmDeleteAll(event)" style="color:#ff6666;">
                             <span class="nav-icon">
                                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M9 3v1H4v2h1v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3H9zm0 5h2v9H9V8zm4 0h2v9h-2V8z"/>
@@ -291,53 +285,58 @@ $streams = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <div class="page-content">
         <div class="content">
 
-            <?php if(empty($streams)): ?>
-                <div style="text-align:center; margin:40px; font-size:20px; color:#ccc;">Не найдено кампаний</div>
-            <?php else: ?>
-            <div class="campaigns-card">
-                <div class="campaigns-header">Список кампаний</div>
-                <table>
-                    <tr>
-                        <th>№</th>
-                        <th>Название кампании</th>
-                        <th>Идентификатор кампании</th>
-                        <th>Статистика кампании</th>
-                        <th>Действие</th>
-                    </tr>
-                    <?php foreach($streams as $s): ?>
-                    <tr>
-                        <td><?= $s['id'] ?></td>
-                        <td><?= htmlspecialchars($s['name']) ?></td>
-                        <td><?= htmlspecialchars($s['slug']) ?></td>
-                        <td>
-                            <button onclick="window.location.href='stats.php?stream_id=<?= $s['id'] ?>'"
-                                    class="stats-btn">Посмотреть</button>
-                        </td>
-                        <td>
-                            <form method="post" onsubmit="return confirm('Вы уверены, что хотите удалить кампанию и всю статистику?');">
-                                <input type="hidden" name="delete_id" value="<?= $s['id'] ?>">
-                                <button type="submit" class="delete-btn">Удалить</button>
-                            </form>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </table>
-            </div>
+<?php if(empty($streams)): ?>
+    <div style="text-align:center; margin:40px; font-size:20px; color:#ccc;">Не найдено кампаний</div>
+<?php else: ?>
 
-            <?php if($totalPages > 1): ?>
-            <div class="pagination">
-                <?php for($i=1; $i<=$totalPages; $i++): ?>
-                    <?php if($i == $page): ?>
-                        <span><?= $i ?></span>
-                    <?php else: ?>
-                        <a href="?page=<?= $i ?>"><?= $i ?></a>
-                    <?php endif; ?>
-                <?php endfor; ?>
-            </div>
-            <?php endif; ?>
-            <?php endif; ?>
+<h2 class="campaign-title">Список кампаний</h2>
 
-        </div><!-- /content -->
+<div class="add-form" style="max-width:100%;">
+<div style="padding:16px;display:flex;flex-direction:column;gap:16px;">
+    <?php foreach($streams as $s): ?>
+    <div style="padding:16px;background:rgba(30,15,60,0.85);border:1px solid rgba(155,0,255,0.35);border-radius:10px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;white-space:nowrap;flex-shrink:0;">
+                <?= htmlspecialchars($s['name']) ?>
+            </label>
+            <!-- Кнопка глаз (статистика) -->
+            <button type="button"
+                    onclick="window.location.href='stats.php?stream_id=<?= $s['id'] ?>'"
+                    title="Статистика"
+                    style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+            </button>
+            <!-- Кнопка удаления (красная с крестиком) -->
+            <form method="post" style="margin:0;" onsubmit="return confirm('Вы уверены, что хотите удалить кампанию и всю статистику?');">
+                <input type="hidden" name="delete_id" value="<?= $s['id'] ?>">
+                <button type="submit"
+                        title="Удалить кампанию"
+                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#dc3545;box-shadow:0 0 8px #dc3545;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </form>
+        </div>
+        <code style="display:block;background:rgba(0,0,0,0.3);padding:8px 12px;border-radius:6px;font-size:13px;color:#fff;word-break:break-all;border:1px solid rgba(155,0,255,0.2);text-align:left;">
+            <?= htmlspecialchars($s['slug']) ?>
+        </code>
+    </div>
+<?php endforeach; ?>
+    </div>
+</div>
+
+<?php if($totalPages > 1): ?>
+<div class="pagination">
+    <?php for($i=1; $i<=$totalPages; $i++): ?>
+        <?php if($i == $page): ?>
+            <span><?= $i ?></span>
+        <?php else: ?>
+            <a href="?page=<?= $i ?>"><?= $i ?></a>
+        <?php endif; ?>
+    <?php endfor; ?>
+</div>
+<?php endif; ?>
+<?php endif; ?>
+</div>
 
     </div><!-- /page-content -->
 
