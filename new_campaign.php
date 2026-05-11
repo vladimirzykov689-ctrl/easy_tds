@@ -230,11 +230,22 @@ function toggleGoalsInputs() {
     document.getElementById('goals_container').style.display = mode === 'add' ? 'block' : 'none';
 }
 
-/* ---- Goals ---- */
-function toggleCurrencyBlock(selectEl) {
-    var goalItem = selectEl.closest('.goal-item');
-    var currencyBlock = goalItem.querySelector('.goal-currency-block');
-    currencyBlock.style.display = selectEl.value === 'profit' ? 'block' : 'none';
+function selectGoalType(el, value) {
+    var goalItem = el.closest('.goal-item');
+    goalItem.querySelector('input[name="goal_type[]"]').value = value;
+    goalItem.querySelector('.goal-type-label').textContent = el.textContent;
+    el.closest('.custom-select-options').querySelectorAll('.custom-select-option').forEach(function(o){ o.classList.remove('selected'); });
+    el.classList.add('selected');
+    el.closest('.custom-select-wrapper').classList.remove('open');
+    goalItem.querySelector('.goal-currency-block').style.display = value === 'profit' ? 'block' : 'none';
+}
+function selectGoalCurrency(el, value, label) {
+    var goalItem = el.closest('.goal-item');
+    goalItem.querySelector('input[name="goal_currency[]"]').value = value;
+    goalItem.querySelector('.goal-currency-label').textContent = label;
+    el.closest('.custom-select-options').querySelectorAll('.custom-select-option').forEach(function(o){ o.classList.remove('selected'); });
+    el.classList.add('selected');
+    el.closest('.custom-select-wrapper').classList.remove('open');
 }
 function addGoal() {
     var container = document.getElementById('goals_list');
@@ -247,18 +258,32 @@ function addGoal() {
         '<label>Параметр:</label>' +
         '<input type="text" name="goal_param[]" placeholder="Например: reg" style="margin-bottom:8px;">' +
         '<label>Тип цели:</label>' +
-        '<select name="goal_type[]" onchange="toggleCurrencyBlock(this)">' +
-          '<option value="flag">Целевое действие</option>' +
-          '<option value="profit">Профит</option>' +
-        '</select>' +
-        '<div class="goal-currency-block" style="display:none;margin-top:8px;">' +
-          '<label>Валюта профита:</label>' +
-          '<select name="goal_currency[]">' +
-            '<option value="USD">$</option>' +
-            '<option value="EUR">€</option>' +
-            '<option value="RUB">₽</option>' +
-          '</select>' +
-        '</div>';
+'<div class="custom-select-wrapper" id="wrap_goal_type_' + Date.now() + '">' +
+  '<div class="custom-select-trigger" onclick="toggleCustomSelect(this.parentElement.id)">' +
+    '<span class="goal-type-label">Целевое действие</span>' +
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>' +
+  '</div>' +
+  '<div class="custom-select-options">' +
+    '<div class="custom-select-option selected" onclick="selectGoalType(this,\'flag\')">Целевое действие</div>' +
+    '<div class="custom-select-option" onclick="selectGoalType(this,\'profit\')">Профит</div>' +
+  '</div>' +
+  '<input type="hidden" name="goal_type[]" value="flag">' +
+'</div>' +
+'<div class="goal-currency-block" style="display:none;margin-top:8px;">' +
+  '<label>Валюта профита:</label>' +
+  '<div class="custom-select-wrapper" id="wrap_goal_currency_' + Date.now() + 1 + '">' +
+    '<div class="custom-select-trigger" onclick="toggleCustomSelect(this.parentElement.id)">' +
+      '<span class="goal-currency-label">USD ($)</span>' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>' +
+    '</div>' +
+    '<div class="custom-select-options">' +
+      '<div class="custom-select-option selected" onclick="selectGoalCurrency(this,\'USD\',\'USD ($)\')">USD ($)</div>' +
+      '<div class="custom-select-option" onclick="selectGoalCurrency(this,\'EUR\',\'EUR (€)\')">EUR (€)</div>' +
+      '<div class="custom-select-option" onclick="selectGoalCurrency(this,\'RUB\',\'RUB (₽)\')">RUB (₽)</div>' +
+    '</div>' +
+    '<input type="hidden" name="goal_currency[]" value="USD">' +
+  '</div>' +
+'</div>';
     container.appendChild(div);
 }
 function removeGoal(btn) {
@@ -347,7 +372,7 @@ window.addEventListener('DOMContentLoaded', function() {
                                     <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/>
                                 </svg>
                             </span>
-                            <span class="nav-label">Новая кампания</span>
+                            <span class="nav-label">Создать новую</span>
                         </a>
                     </li>
 <li>
