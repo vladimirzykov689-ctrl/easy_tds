@@ -520,11 +520,9 @@ window.addEventListener('DOMContentLoaded', function() {
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="#1b1b2f"><path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
                 </button>
             </div>
-            <?php if (!empty($currentApiKey)): ?>
-                <code id="api_key_display" style="display:block;background:rgba(0,0,0,0.3);margin-top:10px;padding:8px 12px;border-radius:6px;font-size:13px;color:#fff;word-break:break-all;border:1px solid rgba(155,0,255,0.2);"><?= htmlspecialchars($currentApiKey) ?></code>
-            <?php else: ?>
-                <div style="color:rgba(255,255,255,0.3);font-style:italic;">Ключ не сгенерирован</div>
-            <?php endif; ?>
+            <code id="api_key_display" style="display:block;background:rgba(0,0,0,0.3);margin-top:10px;padding:8px 12px;border-radius:6px;font-size:13px;word-break:break-all;border:1px solid rgba(155,0,255,0.2);color:<?= !empty($currentApiKey) ? '#fff' : 'rgba(255,255,255,0.3)' ?>;font-style:<?= !empty($currentApiKey) ? 'normal' : 'italic' ?>;">
+    <?= !empty($currentApiKey) ? htmlspecialchars($currentApiKey) : 'Ключ не сгенерирован' ?>
+</code>
         </div>
 
         <!-- ТОКЕН БОТА -->
