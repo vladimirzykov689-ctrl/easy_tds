@@ -312,7 +312,7 @@ $streams = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <button type="submit"
                         title="Удалить кампанию"
                         style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#dc3545;box-shadow:0 0 8px #dc3545;flex-shrink:0;">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M9 3v1H4v2h1v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3H9zm0 5h2v9H9V8zm4 0h2v9h-2V8z"/></svg>
                 </button>
             </form>
         </div>
