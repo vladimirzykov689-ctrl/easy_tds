@@ -23,7 +23,7 @@ if (!$log) {
 $streamId = (int)$log['stream_id'];
 
 // ── Загружаем все цели стрима ─────────────────────────────────────────────────
-$stmtGoals = $db->prepare("SELECT id, param_name, value_type FROM goals WHERE stream_id = ?");
+$stmtGoals = $db->prepare("SELECT id, param_name, value_type, target_value FROM goals WHERE stream_id = ?");
 $stmtGoals->execute([$streamId]);
 $campaignGoals = $stmtGoals->fetchAll(PDO::FETCH_ASSOC);
 
@@ -37,11 +37,25 @@ foreach ($campaignGoals as $g) {
 $tracked = 0;
 $skipped = 0;
 
+// ── Сначала валидируем все параметры ─────────────────────────────────────────
+$toProcess = [];
 foreach ($_GET as $key => $val) {
-    if ($key === 'clickid') continue; // пропускаем сам click_id
-
+    if ($key === 'clickid') continue;
     if (!isset($goalsIndex[$key])) continue;
 
+    $goal = $goalsIndex[$key];
+
+    // Если есть целевое значение и оно не совпадает — весь постбек невалиден
+    if (!empty($goal['target_value']) && (string)$val !== (string)$goal['target_value']) {
+        http_response_code(200);
+        exit("OK: tracked=0 skipped=0 reason=target_value_mismatch({$key}={$val})");
+    }
+
+    $toProcess[$key] = $val;
+}
+
+// ── Теперь записываем все прошедшие проверку цели ────────────────────────────
+foreach ($toProcess as $key => $val) {
     $goal       = $goalsIndex[$key];
     $goalId     = (int)$goal['id'];
     $value      = (float)$val;
@@ -55,7 +69,6 @@ foreach ($_GET as $key => $val) {
         continue;
     }
 
-    // Записываем конверсию
     $stmtInsert = $db->prepare("INSERT INTO conversions (click_id, stream_id, goal_id, value) VALUES (?, ?, ?, ?)");
     $stmtInsert->execute([$clickId, $streamId, $goalId, $finalValue]);
     $tracked++;
