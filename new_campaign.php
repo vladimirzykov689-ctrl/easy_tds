@@ -51,15 +51,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['slug'
 
             $goalsMode = $_POST['goals_mode'] ?? 'none';
             if ($goalsMode === 'add') {
-                $goalNames      = $_POST['goal_name']     ?? [];
-                $goalParams     = $_POST['goal_param']    ?? [];
-                $goalTypes      = $_POST['goal_type']     ?? [];
-                $goalCurrencies = $_POST['goal_currency'] ?? [];
+$goalNames        = $_POST['goal_name']         ?? [];
+$goalParams       = $_POST['goal_param']        ?? [];
+$goalTypes        = $_POST['goal_type']         ?? [];
+$goalCurrencies   = $_POST['goal_currency']     ?? [];
+$goalTargetValues = $_POST['goal_target_value'] ?? [];
 
-                $stmtGoal = $db->prepare("
-                    INSERT INTO goals (stream_id, name, param_name, value_type, is_revenue, currency)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                ");
+$stmtGoal = $db->prepare("
+    INSERT INTO goals (stream_id, name, param_name, value_type, is_revenue, currency, target_value)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+");
 
                 foreach ($goalNames as $i => $goalName) {
                     $goalName  = trim($goalName);
@@ -72,7 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['slug'
                     $isRevenue = $goalType === 'profit' ? 1 : 0;
                     $currency  = $goalType === 'profit' ? ($goalCurrencies[$i] ?? 'USD') : null;
 
-                    $stmtGoal->execute([$streamId, $goalName, $goalParam, $valueType, $isRevenue, $currency]);
+                    $targetValue = trim($goalTargetValues[$i] ?? '') ?: null;
+$stmtGoal->execute([$streamId, $goalName, $goalParam, $valueType, $isRevenue, $currency, $targetValue]);
                 }
             }
 
@@ -238,6 +240,7 @@ function selectGoalType(el, value) {
     el.classList.add('selected');
     el.closest('.custom-select-wrapper').classList.remove('open');
     goalItem.querySelector('.goal-currency-block').style.display = value === 'profit' ? 'block' : 'none';
+    goalItem.querySelector('.goal-target-value-block').style.display = value === 'profit' ? 'none' : 'block';
 }
 function selectGoalCurrency(el, value, label) {
     var goalItem = el.closest('.goal-item');
@@ -255,8 +258,12 @@ function addGoal() {
         '<button type="button" class="remove-goal-btn" onclick="removeGoal(this)">&times;</button>' +
         '<label>Имя цели:</label>' +
         '<input type="text" name="goal_name[]" placeholder="Например: Регистрация" style="margin-bottom:8px;">' +
-        '<label>Параметр:</label>' +
-        '<input type="text" name="goal_param[]" placeholder="Например: reg" style="margin-bottom:8px;">' +
+'<label>Параметр:</label>' +
+'<input type="text" name="goal_param[]" placeholder="Например: reg" style="margin-bottom:8px;">' +
+'<div class="goal-target-value-block">' +
+'<label>Целевое значение: <span style="color:#666;font-weight:400;text-transform:none;font-size:11px;">(необязательно)</span></label>' +
+'<input type="text" name="goal_target_value[]" placeholder="Например: approved — или оставьте пустым" style="margin-bottom:8px;">' +
+'</div>' +
         '<label>Тип цели:</label>' +
 '<div class="custom-select-wrapper" id="wrap_goal_type_' + Date.now() + '">' +
   '<div class="custom-select-trigger" onclick="toggleCustomSelect(this.parentElement.id)">' +
