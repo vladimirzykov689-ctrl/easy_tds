@@ -207,8 +207,10 @@ function buildStatsMessage(array $stats): string {
 
 $topGeo = '';
     $i = 1;
+    $totalGeoClicks = $stats['total_clicks'] ?: 1;
     foreach ($stats['top_geo'] as $iso => $cnt) {
-        $topGeo .= $i . '. ' . countryFlag($iso) . $iso . ' — ' . $cnt . "\n";
+        $pct = round($cnt / $totalGeoClicks * 100);
+        $topGeo .= $i . '. ' . countryFlag($iso) . $iso . ' — ' . $cnt . ' (' . $pct . "%)  \n";
         $i++;
     }
     if (!$topGeo) $topGeo = "Нет данных\n";
@@ -228,7 +230,7 @@ $topGeo = '';
         "🖥 Desktop: <b>{$desktop}</b> ({$deskPct}%)\n" .
         "📱 Mobile: <b>{$mobile}</b> ({$mobPct}%)\n\n" .
         "🌍 <b>Топ гео:</b>\n" . $topGeo . "\n" .
-        "💰 Профит: <b>" . number_format($stats['total_profit'], 2) . $symbol . "</b>\n\n" .
+        "💰 Профит: <b>" . ($stats['total_profit'] > 0 ? number_format($stats['total_profit'], 2) . $symbol : 'Нет данных') . "</b>\n\n" .
         "🏆 <b>Топ кампании:</b>\n" . $topCamp . "\n" .
         "🎯 <b>Топ цели:</b>\n" . $topGoals;
 }
@@ -245,8 +247,10 @@ function buildCampStatsMessage(array $data, ?array $filter = null): string {
 
 $topGeo = '';
     $i = 1;
+    $totalGeoClicks = $data['total_clicks'] ?: 1;
     foreach ($data['top_geo'] as $iso => $cnt) {
-        $topGeo .= $i . '. ' . countryFlag($iso) . $iso . ' — ' . $cnt . "\n";
+        $pct = round($cnt / $totalGeoClicks * 100);
+        $topGeo .= $i . '. ' . countryFlag($iso) . $iso . ' — ' . $cnt . ' (' . $pct . "%)  \n";
         $i++;
     }
     if (!$topGeo) $topGeo = "Нет данных\n";
@@ -427,7 +431,7 @@ function processUpdate(array $input): void {
 
 // ── Главный цикл polling ──────────────────────────────────────────────────────
 
-echo "🤖 Бот запущен в режиме polling...\n";
+echo "Бот запущен...\n";
 
 $offset = 0;
 
