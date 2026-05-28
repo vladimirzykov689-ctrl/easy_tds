@@ -522,7 +522,7 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
 
         (function() {
 var padX = 14, padY = 10, lineH = 24, fontSize = 14;
-var boxW = 150, boxH = padY * 2 + lineH * 3;
+var boxW = 175, boxH = padY * 2 + lineH * 3;
 var bx = 10, by = 10;
 
             var g2 = svg.append('g').attr('class', 'dev-legend');
@@ -556,7 +556,7 @@ var devIcons = ['🖥️', '📱'];
                     .style('font-family', 'sans-serif')
                     .style('line-height', lineH + 'px')
                     .style('white-space', 'nowrap')
-                    .html(devIcons[i] + ' ' + d.label + ' — ' + d.pct + '%');
+                    .html(devIcons[i] + ' ' + d.label + ' — ' + d.val + ' (' + d.pct + '%)');
             });
         })();
 
@@ -571,7 +571,7 @@ var trafficEntries = [
 var devBoxH = 10 * 2 + 24 * 3;
 var boxH = padY * 2 + lineH * (trafficEntries.length + 1);
 var bx = 10, by = 10 + devBoxH + 8;
-var boxW = 150;
+var boxW = 175;
 
             var g3 = svg.append('g').attr('class', 'traffic-legend');
 
@@ -608,13 +608,14 @@ var trafficIcons = ['👆', '👤', '🤖'];
         })();
 
         /* ── Топ Гео (право-верх) ── */
-        var topEntries = Object.entries(geoData)
-            .sort(function(a,b){ return b[1]-a[1]; })
-            .slice(0, 5);
+var totalClicks = Object.values(geoData).reduce(function(s, v){ return s + v; }, 0) || 1;
+var topEntries = Object.entries(geoData)
+    .sort(function(a,b){ return b[1]-a[1]; })
+    .slice(0, 5);
 
         if (topEntries.length > 0) {
 var padX = 14, padY = 10, lineH = 24, fontSize = 14;
-var boxW = 150, boxH = padY * 2 + lineH * (topEntries.length + 1);
+var boxW = 175, boxH = padY * 2 + lineH * (topEntries.length + 1);
 var bx = W - boxW - 10, by = 10;
 
             var g = svg.append('g').attr('class', 'geo-legend');
@@ -656,7 +657,7 @@ g.append('foreignObject')
                     .style('font-family', 'sans-serif')
                     .style('line-height', lineH + 'px')
                     .style('white-space', 'nowrap')
-                    .html((iso.length === 2 ? '<img src="https://flagcdn.com/16x12/' + iso.toLowerCase() + '.png" style="vertical-align:middle;margin-right:5px;">' : '') + iso + ' — ' + cnt);
+                    .html((iso.length === 2 ? '<img src="https://flagcdn.com/16x12/' + iso.toLowerCase() + '.png" style="vertical-align:middle;margin-right:5px;">' : '') + iso + ' — ' + cnt + ' (' + Math.round(cnt / totalClicks * 100) + '%)');
             });
         }
     })
