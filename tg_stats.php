@@ -95,7 +95,8 @@ function sendMessage(int $chatId, string $text, array $keyboard = []): void {
 
 function sendReplyKeyboard(int $chatId, string $text): void {
     $keyboard = [
-        [['text' => '📊 Статистика кампаний'], ['text' => '📋 Список кампаний']],
+        [['text' => '📊 Статистика кампаний']],
+[['text' => '📋 Список кампаний']],
     ];
     tgRequest('sendMessage', [
         'chat_id'      => $chatId,
@@ -176,11 +177,8 @@ function statsMenu(): array {
 
 function campStatsMenu(int $campId, bool $hasFilter = false): array {
     return [
-        [
-            ['text' => '🔄 Обновить', 'callback_data' => "camp_refresh:{$campId}"],
-            ['text' => $hasFilter ? '🗑️ Сбросить фильтр' : '📅 Фильтр по дате', 'callback_data' => "camp_filter:{$campId}"],
-        ],
-        [['text' => '◀️ К списку кампаний', 'callback_data' => 'campaigns']],
+[['text' => '🔄 Обновить', 'callback_data' => "camp_refresh:{$campId}"]],
+[['text' => $hasFilter ? '🗑️ Сбросить фильтр' : '📅 Фильтр по дате', 'callback_data' => "camp_filter:{$campId}"]],
     ];
 }
 
@@ -426,7 +424,7 @@ function processUpdate(array $input): void {
 }
 
     // /start и всё остальное
-    sendReplyKeyboard($chatId, "👋 <b>Добро пожаловать в Easy TDS Bot</b>");
+    sendReplyKeyboard($chatId, "👋 <b>Добро пожаловать в Easy TDS</b>");
 }
 
 // ── Главный цикл polling ──────────────────────────────────────────────────────
