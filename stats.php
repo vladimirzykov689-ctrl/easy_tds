@@ -116,8 +116,7 @@ if (!empty($goals)) {
 // ── Экспорт лога ─────────────────────────────────────────────────────────────
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="log_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $campaign_name) . '.csv"');
-
+    header('Content-Disposition: attachment; filename*=UTF-8\'\'' . rawurlencode('log_' . $campaign_name) . '.csv');
     $output = fopen('php://output', 'w');
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
     fputcsv($output, ['Дата', 'ClickID', 'Девайс','UA','IP','Гео','Провайдер','PTR','Ключевики'], ';');
@@ -142,7 +141,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 // ── Экспорт целей ─────────────────────────────────────────────────────────────
 if (isset($_GET['export']) && $_GET['export'] === 'goals_csv') {
     header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="goals_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $campaign_name) . '.csv"');
+    header('Content-Disposition: attachment; filename*=UTF-8\'\'' . rawurlencode('goals_' . $campaign_name) . '.csv');
 
     $output = fopen('php://output', 'w');
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
