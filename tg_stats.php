@@ -272,18 +272,18 @@ $campUrl  = htmlspecialchars($camp['url'] ?? '—');
     $profitText  = $profitValue > 0 ? number_format($profitValue, 2) . $symbol : "Нет данных";
 
     return
-        "📊 <b>Статистика кампании</b>\n" .
-        "<b>" . htmlspecialchars($camp['name']) . "</b>\n\n" .
-        $filterText .
+"📊 <b>Статистика кампании</b> " .
+"<b>" . htmlspecialchars($camp['name']) . "</b>\n\n" .
+$filterText .
 "🔗 <b>URL Кампании:</b>\n<a href=\"{$campUrl}\">{$campUrl}</a>\n\n" .
-        "👆 Клики: <b>{$data['total_clicks']}</b>\n" .
-        "👤 Уники: <b>{$data['unique_ips']}</b>\n" .
-        "🤖 Боты: <b>{$data['bots']}</b>\n\n" .
-        "🖥 Desktop: <b>{$desktop}</b> ({$deskPct}%)\n" .
-        "📱 Mobile: <b>{$mobile}</b> ({$mobPct}%)\n\n" .
-        "🌍 <b>Топ гео:</b>\n" . $topGeo . "\n" .
-        "💰 Профит: <b>{$profitText}</b>\n\n" .
-        "🎯 <b>Цели:</b>\n" . $goalsText;
+"👆 Клики: <b>{$data['total_clicks']}</b>\n" .
+"👤 Уники: <b>{$data['unique_ips']}</b>\n" .
+"🤖 Боты: <b>{$data['bots']}</b>\n\n" .
+"🖥 Desktop: <b>{$desktop}</b> ({$deskPct}%)\n" .
+"📱 Mobile: <b>{$mobile}</b> ({$mobPct}%)\n\n" .
+"🌍 <b>Топ гео:</b>\n" . $topGeo . "\n" .
+"💰 Профит: <b>{$profitText}</b>\n\n" .
+"🎯 <b>Цели:</b>\n" . $goalsText;
 }
 
 function buildCampaignsList(array $campaigns): array {
