@@ -43,6 +43,22 @@ function clearDateFilter(int $chatId, int $campId): void {
     saveConfig($config);
 }
 
+function saveStatsFilter(int $chatId, string $dateFrom, string $dateTo): void {
+    $config = loadConfig();
+    $config['stats_filters'][$chatId] = ['date_from' => $dateFrom, 'date_to' => $dateTo];
+    saveConfig($config);
+}
+
+function getStatsFilter(int $chatId): ?array {
+    return loadConfig()['stats_filters'][$chatId] ?? null;
+}
+
+function clearStatsFilter(int $chatId): void {
+    $config = loadConfig();
+    unset($config['stats_filters'][$chatId]);
+    saveConfig($config);
+}
+
 // ── Helper: валюта ────────────────────────────────────────────────────────────
 
 function currencySymbol(string $currency): string {
@@ -171,20 +187,23 @@ function apiRequest(string $action, array $params = []): ?array {
 
 // ── Меню ──────────────────────────────────────────────────────────────────────
 
-function statsMenu(): array {
-    return [[['text' => '🔄 Обновить', 'callback_data' => 'stats_refresh']]];
+function statsMenu(bool $hasFilter = false): array {
+    return [
+        [['text' => '🔄 Обновить', 'callback_data' => 'stats_refresh']],
+        [['text' => $hasFilter ? '🗑️ Сбросить фильтр' : '📅 Фильтр по дате', 'callback_data' => $hasFilter ? 'stats_clear_filter' : 'stats_filter']],
+    ];
 }
 
 function campStatsMenu(int $campId, bool $hasFilter = false): array {
     return [
 [['text' => '🔄 Обновить', 'callback_data' => "camp_refresh:{$campId}"]],
-[['text' => $hasFilter ? '🗑️ Сбросить фильтр' : '📅 Фильтр по дате', 'callback_data' => "camp_filter:{$campId}"]],
+[['text' => $hasFilter ? '🗑️ Сбросить фильтр' : '📅 Фильтр по дате', 'callback_data' => $hasFilter ? "camp_clear_filter:{$campId}" : "camp_filter:{$campId}"]],
     ];
 }
 
 // ── Формирование сообщений ────────────────────────────────────────────────────
 
-function buildStatsMessage(array $stats): string {
+function buildStatsMessage(array $stats, ?array $filter = null): string {
     $currency = $stats['profit_currency'] ?? 'USD';
     $symbol   = currencySymbol($currency);
 
@@ -218,9 +237,14 @@ $topGeo = '';
     $total   = $desktop + $mobile ?: 1;
     $deskPct = round($desktop / $total * 100);
     $mobPct  = round($mobile  / $total * 100);
+        $filterText = '';
+    if ($filter) {
+        $filterText = "📅 <b>Фильтр:</b> {$filter['date_from']} — {$filter['date_to']}\n\n";
+    }
 
     return
         "📊 <b>Общая статистика кампаний</b>\n\n" .
+        $filterText .
         "📁 Активных кампаний: <b>{$stats['total_campaigns']}</b>\n\n" .
         "👆 Клики: <b>{$stats['total_clicks']}</b>\n" .
         "👤 Уники: <b>{$stats['unique_ips']}</b>\n" .
@@ -333,14 +357,18 @@ function processUpdate(array $input): void {
             return;
         }
 
-        if (str_starts_with($data, 'camp_filter:')) {
-            $campId = (int)explode(':', $data)[1];
-            sendMessage($chatId,
-                "📅 Введите диапазон дат для фильтрации:\n\n" .
-                "<b>Формат:</b> YYYY-MM-DD\n\n" .
-                "<b>Пример:</b>\n<code>2024-01-01 2024-01-31</code>\n\n" .
-                "Отправьте даты в формате: <b>date_from date_to</b>"
-            );
+if (str_starts_with($data, 'camp_filter:')) {
+    $campId = (int)explode(':', $data)[1];
+    
+    $dateFrom = date('Y-m-01');        // первый день текущего месяца
+    $dateTo   = date('Y-m-d');         // сегодня
+
+    sendMessage($chatId,
+        "📅 Введите диапазон дат для фильтрации:\n\n" .
+        "<b>Формат:</b> YYYY-MM-DD\n\n" .
+        "<b>Пример:</b>\n<code>{$dateFrom} {$dateTo}</code>\n\n" .
+        "Отправьте даты в формате: <b>date_from date_to</b>"
+    );
             $config = loadConfig();
             if (!isset($config['temp_filter'])) $config['temp_filter'] = [];
             $config['temp_filter'][$chatId] = ['camp_id' => $campId];
@@ -357,13 +385,38 @@ function processUpdate(array $input): void {
             return;
         }
 
-        switch ($data) {
-            case 'stats':
-            case 'stats_refresh':
-                $stats = apiRequest('stats');
-                if (!$stats) editMessage($chatId, $messageId, "❌ Не удалось получить статистику.\nПроверьте URL и API ключ.", statsMenu());
-                else editMessage($chatId, $messageId, buildStatsMessage($stats), statsMenu());
-                break;
+switch ($data) {
+    case 'stats_filter':
+        $dateFrom = date('Y-m-01');
+        $dateTo   = date('Y-m-d');
+        sendMessage($chatId,
+            "📅 Введите диапазон дат для фильтрации:\n\n" .
+            "<b>Формат:</b> YYYY-MM-DD\n\n" .
+            "<b>Пример:</b>\n<code>{$dateFrom} {$dateTo}</code>\n\n" .
+            "Отправьте даты в формате: <b>date_from date_to</b>"
+        );
+        $config = loadConfig();
+        if (!isset($config['temp_filter'])) $config['temp_filter'] = [];
+        $config['temp_filter'][$chatId] = ['type' => 'stats'];
+        saveConfig($config);
+        break;
+
+    case 'stats_clear_filter':
+        clearStatsFilter($chatId);
+        $stats = apiRequest('stats');
+        if (!$stats) editMessage($chatId, $messageId, "❌ Не удалось получить статистику.", statsMenu(false));
+        else editMessage($chatId, $messageId, buildStatsMessage($stats, null), statsMenu(false));
+        break;
+
+    case 'stats':
+    case 'stats_refresh':
+        $filter = getStatsFilter($chatId);
+        $params = [];
+        if ($filter) { $params['date_from'] = $filter['date_from']; $params['date_to'] = $filter['date_to']; }
+        $stats = apiRequest('stats', $params);
+        if (!$stats) editMessage($chatId, $messageId, "❌ Не удалось получить статистику.", statsMenu($filter !== null));
+        else editMessage($chatId, $messageId, buildStatsMessage($stats, $filter), statsMenu($filter !== null));
+        break;
 
             case 'campaigns':
                 $result = apiRequest('campaigns');
@@ -382,36 +435,48 @@ function processUpdate(array $input): void {
     $text   = trim($message['text'] ?? '');
 
     // Ввод дат для фильтра
-    $config = loadConfig();
-    if (isset($config['temp_filter'][$chatId])) {
-        $campId = $config['temp_filter'][$chatId]['camp_id'];
-        unset($config['temp_filter'][$chatId]);
-        saveConfig($config);
+$config = loadConfig();
+if (isset($config['temp_filter'][$chatId])) {
+    $tempFilter = $config['temp_filter'][$chatId];
+    unset($config['temp_filter'][$chatId]);
+    saveConfig($config);
 
-        $parts = preg_split('/\s+/', $text);
-        if (count($parts) !== 2) {
-            sendMessage($chatId, "❌ Неверный формат!\n\nОтправьте в виде: <code>YYYY-MM-DD YYYY-MM-DD</code>\nПример: <code>2024-01-01 2024-01-31</code>");
-            return;
-        }
-        [$dateFrom, $dateTo] = $parts;
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
-            sendMessage($chatId, "❌ Неверный формат даты!\n\nИспользуйте YYYY-MM-DD\nПример: <code>2024-01-01 2024-01-31</code>");
-            return;
-        }
+    $parts = preg_split('/\s+/', $text);
+    if (count($parts) !== 2) {
+        sendMessage($chatId, "❌ Неверный формат!\n\nОтправьте в виде: <code>YYYY-MM-DD YYYY-MM-DD</code>\nПример: <code>2024-01-01 2024-01-31</code>");
+        return;
+    }
+    [$dateFrom, $dateTo] = $parts;
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
+        sendMessage($chatId, "❌ Неверный формат даты!\n\nИспользуйте YYYY-MM-DD\nПример: <code>2024-01-01 2024-01-31</code>");
+        return;
+    }
+
+    if (($tempFilter['type'] ?? '') === 'stats') {
+        saveStatsFilter($chatId, $dateFrom, $dateTo);
+        $result = apiRequest('stats', ['date_from' => $dateFrom, 'date_to' => $dateTo]);
+        if (!$result) { sendMessage($chatId, "❌ Не удалось получить статистику."); return; }
+        sendMessage($chatId, buildStatsMessage($result, ['date_from' => $dateFrom, 'date_to' => $dateTo]), statsMenu(true));
+    } else {
+        $campId = $tempFilter['camp_id'];
         saveDateFilter($chatId, $campId, $dateFrom, $dateTo);
         $result = apiRequest('campaign', ['id' => $campId, 'date_from' => $dateFrom, 'date_to' => $dateTo]);
         if (!$result) { sendMessage($chatId, "❌ Не удалось получить статистику."); return; }
         sendMessage($chatId, buildCampStatsMessage($result, ['date_from' => $dateFrom, 'date_to' => $dateTo]), campStatsMenu($campId, true));
-        return;
     }
+    return;
+}
 
     // Кнопки Reply Keyboard
     switch ($text) {
-        case '📊 Статистика кампаний':
-            $stats = apiRequest('stats');
-            if (!$stats) { sendMessage($chatId, "❌ Не удалось получить статистику.\nПроверьте URL и API ключ.", statsMenu()); return; }
-            sendMessage($chatId, buildStatsMessage($stats), statsMenu());
-            return;
+case '📊 Статистика кампаний':
+    $filter = getStatsFilter($chatId);
+    $params = [];
+    if ($filter) { $params['date_from'] = $filter['date_from']; $params['date_to'] = $filter['date_to']; }
+    $stats = apiRequest('stats', $params);
+    if (!$stats) { sendMessage($chatId, "❌ Не удалось получить статистику.", statsMenu(false)); return; }
+    sendMessage($chatId, buildStatsMessage($stats, $filter), statsMenu($filter !== null));
+    return;
 
         case '📋 Список кампаний':
             $result = apiRequest('campaigns');
