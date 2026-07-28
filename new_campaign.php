@@ -51,16 +51,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['slug'
 
             $goalsMode = $_POST['goals_mode'] ?? 'none';
             if ($goalsMode === 'add') {
-$goalNames        = $_POST['goal_name']         ?? [];
-$goalParams       = $_POST['goal_param']        ?? [];
-$goalTypes        = $_POST['goal_type']         ?? [];
-$goalCurrencies   = $_POST['goal_currency']     ?? [];
-$goalTargetValues = $_POST['goal_target_value'] ?? [];
+                $goalNames        = $_POST['goal_name']         ?? [];
+                $goalParams       = $_POST['goal_param']        ?? [];
+                $goalTypes        = $_POST['goal_type']         ?? [];
+                $goalCurrencies   = $_POST['goal_currency']     ?? [];
+                $goalTargetValues = $_POST['goal_target_value'] ?? [];
 
-$stmtGoal = $db->prepare("
-    INSERT INTO goals (stream_id, name, param_name, value_type, is_revenue, currency, target_value)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-");
+                $stmtGoal = $db->prepare("
+                    INSERT INTO goals (stream_id, name, param_name, value_type, is_revenue, currency, target_value)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ");
 
                 foreach ($goalNames as $i => $goalName) {
                     $goalName  = trim($goalName);
@@ -74,11 +74,11 @@ $stmtGoal = $db->prepare("
                     $currency  = $goalType === 'profit' ? ($goalCurrencies[$i] ?? 'USD') : null;
 
                     $targetValue = trim($goalTargetValues[$i] ?? '') ?: null;
-$stmtGoal->execute([$streamId, $goalName, $goalParam, $valueType, $isRevenue, $currency, $targetValue]);
+                    $stmtGoal->execute([$streamId, $goalName, $goalParam, $valueType, $isRevenue, $currency, $targetValue]);
                 }
             }
 
-            header('Location: campaigns.php');
+            header('Location: campaigns.php?created=' . urlencode($name));
             exit;
         }
     }
@@ -88,108 +88,13 @@ $stmtGoal->execute([$streamId, $goalName, $goalParam, $valueType, $isRevenue, $c
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Новая кампания</title>
+<title>Новая кампания — Easy TDS</title>
 <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
 <link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico">
 <link rel="stylesheet" href="/css/style.css">
-<style>
-.add-form { max-width: 100% !important; }
-
-/* Toast */
-.toast {
-    display: none; position: fixed; top: 32px; left: 50%;
-    transform: translateX(-50%); z-index: 9999;
-    padding: 12px 28px; border-radius: 8px; font-size: 14px;
-    font-weight: 600; box-shadow: 0 4px 24px rgba(0,0,0,0.5);
-    opacity: 0; transition: opacity 0.3s ease; white-space: nowrap;
-}
-.toast.error   { background: rgba(60,20,20,0.97); border: 1px solid #dc3545; color: #ff6666; }
-.toast.visible { opacity: 1; }
-
-/* Custom select — тот же стиль что в bots/credentials */
-.custom-select-wrapper {
-    position: relative;
-    user-select: none;
-}
-.custom-select-trigger {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 8px 12px; border-radius: 6px; cursor: pointer;
-    background: rgba(0,0,0,0.3); border: 1px solid rgba(155,0,255,0.3);
-    color: #fff; font-size: 13px; transition: border-color 0.2s;
-}
-.custom-select-trigger:hover { border-color: #cc88ff; }
-.custom-select-wrapper.open .custom-select-trigger { border-color: #cc88ff; }
-.custom-select-options {
-    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
-    background: #1e1230; border: 1px solid rgba(155,0,255,0.4);
-    border-radius: 6px; z-index: 100; overflow: hidden;
-}
-.custom-select-wrapper.open .custom-select-options { display: block; }
-.custom-select-option {
-    padding: 9px 12px; font-size: 13px; color: #ccc; cursor: pointer;
-    transition: background 0.15s;
-}
-.custom-select-option:hover    { background: rgba(155,0,255,0.15); color: #fff; }
-.custom-select-option.selected { background: rgba(155,0,255,0.25); color: #cc88ff; }
-
-/* Двухколоночный layout формы */
-.campaign-form-grid {
-    display: flex; gap: 24px; align-items: flex-start; margin-bottom: 24px;
-}
-.campaign-form-col { flex: 1; }
-
-/* Блок секции */
-.form-section {
-    background: rgba(30,15,60,0.85);
-    border: 1px solid rgba(155,0,255,0.35);
-    border-radius: 10px;
-    padding: 16px;
-    margin-bottom: 16px;
-}
-.form-section label {
-    color: #cc88ff; font-weight: 600; text-transform: uppercase;
-    font-size: 13px; letter-spacing: 0.05em; display: block; margin-bottom: 6px;
-}
-.form-section input[type=text],
-.form-section textarea {
-    width: 100%; padding: 8px 12px; border-radius: 6px;
-    background: rgba(0,0,0,0.3); border: 1px solid rgba(155,0,255,0.3);
-    color: #fff; font-size: 13px; box-sizing: border-box;
-    font-family: inherit; resize: vertical;
-}
-.form-section input[type=text]:focus,
-.form-section textarea:focus {
-    outline: none; border-color: #cc88ff;
-}
-.form-section .note {
-    font-size: 11px; color: #666; margin-top: 4px;
-}
-
-/* Секция целей */
-.goals-section {
-    background: rgba(30,15,60,0.85);
-    border: 1px solid rgba(155,0,255,0.35);
-    border-radius: 10px;
-    padding: 16px;
-    margin-bottom: 24px;
-}
-.goals-section > label {
-    color: #cc88ff; font-weight: 600; text-transform: uppercase;
-    font-size: 13px; letter-spacing: 0.05em; display: block; margin-bottom: 8px;
-}
-
-/* Кнопка сабмит */
-.btn-create {
-    display: inline-flex; align-items: center; justify-content: center;
-    padding: 10px 32px; background: #28a745; color: #fff;
-    border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
-    cursor: pointer; box-shadow: 0 0 10px #28a745; transition: background 0.2s;
-}
-.btn-create:hover { background: #1e7e34; }
-
-/* geo/bot подсекции */
-.sub-section { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(155,0,255,0.2); }
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
 /* ---- Custom Select ---- */
 function toggleCustomSelect(wrapperId) {
@@ -252,45 +157,44 @@ function selectGoalCurrency(el, value, label) {
 }
 function addGoal() {
     var container = document.getElementById('goals_list');
+    var uid1 = 'wrap_goal_type_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+    var uid2 = 'wrap_goal_currency_' + Date.now() + '_' + Math.floor(Math.random()*1000);
     var div = document.createElement('div');
     div.className = 'goal-item';
     div.innerHTML =
         '<button type="button" class="remove-goal-btn" onclick="removeGoal(this)">&times;</button>' +
-        '<label>Имя цели:</label>' +
-        '<input type="text" name="goal_name[]" placeholder="Например: Регистрация" style="margin-bottom:8px;">' +
-'<label>Параметр:</label>' +
-'<input type="text" name="goal_param[]" placeholder="Например: reg" style="margin-bottom:8px;">' +
-'<div class="goal-target-value-block">' +
-'<label>Целевое значение: <span style="color:#666;font-weight:400;text-transform:none;font-size:11px;">(необязательно)</span></label>' +
-'<input type="text" name="goal_target_value[]" placeholder="Например: approved — или оставьте пустым" style="margin-bottom:8px;">' +
-'</div>' +
-        '<label>Тип цели:</label>' +
-'<div class="custom-select-wrapper" id="wrap_goal_type_' + Date.now() + '">' +
-  '<div class="custom-select-trigger" onclick="toggleCustomSelect(this.parentElement.id)">' +
-    '<span class="goal-type-label">Целевое действие</span>' +
-    '<svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>' +
-  '</div>' +
-  '<div class="custom-select-options">' +
-    '<div class="custom-select-option selected" onclick="selectGoalType(this,\'flag\')">Целевое действие</div>' +
-    '<div class="custom-select-option" onclick="selectGoalType(this,\'profit\')">Профит</div>' +
-  '</div>' +
-  '<input type="hidden" name="goal_type[]" value="flag">' +
-'</div>' +
-'<div class="goal-currency-block" style="display:none;margin-top:8px;">' +
-  '<label>Валюта профита:</label>' +
-  '<div class="custom-select-wrapper" id="wrap_goal_currency_' + Date.now() + 1 + '">' +
-    '<div class="custom-select-trigger" onclick="toggleCustomSelect(this.parentElement.id)">' +
-      '<span class="goal-currency-label">USD ($)</span>' +
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>' +
-    '</div>' +
-    '<div class="custom-select-options">' +
-      '<div class="custom-select-option selected" onclick="selectGoalCurrency(this,\'USD\',\'USD ($)\')">USD ($)</div>' +
-      '<div class="custom-select-option" onclick="selectGoalCurrency(this,\'EUR\',\'EUR (€)\')">EUR (€)</div>' +
-      '<div class="custom-select-option" onclick="selectGoalCurrency(this,\'RUB\',\'RUB (₽)\')">RUB (₽)</div>' +
-    '</div>' +
-    '<input type="hidden" name="goal_currency[]" value="USD">' +
-  '</div>' +
-'</div>';
+        '<div class="form-field"><label>Имя цели</label>' +
+        '<input type="text" name="goal_name[]" placeholder="Например: Регистрация"></div>' +
+        '<div class="form-field"><label>Параметр</label>' +
+        '<input type="text" name="goal_param[]" placeholder="Например: reg"></div>' +
+        '<div class="form-field goal-target-value-block"><label>Целевое значение <span class="form-note-inline">(необязательно)</span></label>' +
+        '<input type="text" name="goal_target_value[]" placeholder="Например: approved — или оставьте пустым"></div>' +
+        '<div class="form-field"><label>Тип цели</label>' +
+        '<div class="custom-select-wrapper" id="' + uid1 + '">' +
+        '<div class="custom-select-trigger" onclick="toggleCustomSelect(this.parentElement.id)">' +
+        '<span class="goal-type-label">Целевое действие</span>' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5H7z"/></svg>' +
+        '</div>' +
+        '<div class="custom-select-options">' +
+        '<div class="custom-select-option selected" onclick="selectGoalType(this,\'flag\')">Целевое действие</div>' +
+        '<div class="custom-select-option" onclick="selectGoalType(this,\'profit\')">Профит</div>' +
+        '</div>' +
+        '<input type="hidden" name="goal_type[]" value="flag">' +
+        '</div></div>' +
+        '<div class="form-field goal-currency-block" style="display:none;">' +
+        '<label>Валюта профита</label>' +
+        '<div class="custom-select-wrapper" id="' + uid2 + '">' +
+        '<div class="custom-select-trigger" onclick="toggleCustomSelect(this.parentElement.id)">' +
+        '<span class="goal-currency-label">USD ($)</span>' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5H7z"/></svg>' +
+        '</div>' +
+        '<div class="custom-select-options">' +
+        '<div class="custom-select-option selected" onclick="selectGoalCurrency(this,\'USD\',\'USD ($)\')">USD ($)</div>' +
+        '<div class="custom-select-option" onclick="selectGoalCurrency(this,\'EUR\',\'EUR (€)\')">EUR (€)</div>' +
+        '<div class="custom-select-option" onclick="selectGoalCurrency(this,\'RUB\',\'RUB (₽)\')">RUB (₽)</div>' +
+        '</div>' +
+        '<input type="hidden" name="goal_currency[]" value="USD">' +
+        '</div></div>';
     container.appendChild(div);
 }
 function removeGoal(btn) {
@@ -317,9 +221,80 @@ window.addEventListener('DOMContentLoaded', function() {
     toggleBotInputs();
     toggleGoalsInputs();
     addGoal();
+    initWizard();
 });
+
+function initWizard() {
+    var steps = Array.prototype.slice.call(document.querySelectorAll('.wizard-step'));
+    var progressSteps = Array.prototype.slice.call(document.querySelectorAll('.wizard-progress-step'));
+    var progressLines = Array.prototype.slice.call(document.querySelectorAll('.wizard-progress-line'));
+    var backBtn = document.getElementById('wizardBackBtn');
+    var nextBtn = document.getElementById('wizardNextBtn');
+    var form = document.getElementById('campaignForm');
+    var current = 0;
+
+    function showStep(index) {
+        steps.forEach(function (s, i) {
+            if (i === index) {
+                s.style.display = 'block';
+                void s.offsetWidth;
+                s.classList.add('wizard-step-active');
+            } else {
+                s.classList.remove('wizard-step-active');
+                s.style.display = 'none';
+            }
+        });
+
+        progressSteps.forEach(function (ps, i) {
+            ps.classList.remove('wizard-progress-active', 'wizard-progress-done');
+            if (i < index) ps.classList.add('wizard-progress-done');
+            else if (i === index) ps.classList.add('wizard-progress-active');
+        });
+        progressLines.forEach(function (line, i) {
+            line.classList.toggle('wizard-progress-line-done', i < index);
+        });
+
+        backBtn.style.visibility = index === 0 ? 'hidden' : 'visible';
+        nextBtn.textContent = index === steps.length - 1 ? 'Создать кампанию' : 'Далее';
+
+        current = index;
+    }
+
+    function validateStep(index) {
+        var fields = steps[index].querySelectorAll('input[required], textarea[required]');
+        for (var i = 0; i < fields.length; i++) {
+            if (!fields[i].checkValidity()) {
+                fields[i].reportValidity();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    backBtn.addEventListener('click', function () {
+        if (current > 0) showStep(current - 1);
+    });
+
+    nextBtn.addEventListener('click', function () {
+        if (!validateStep(current)) return;
+        if (current === steps.length - 1) {
+            form.submit();
+        } else {
+            showStep(current + 1);
+        }
+    });
+
+    progressSteps.forEach(function (ps) {
+        ps.addEventListener('click', function () {
+            var idx = parseInt(ps.getAttribute('data-idx'), 10);
+            if (idx < current) showStep(idx);
+        });
+    });
+
+    showStep(0);
+}
 </script>
-	</head>
+</head>
 <body class="dashboard-page">
 
 <!-- ========== TOP HEADER ========== -->
@@ -332,6 +307,24 @@ window.addEventListener('DOMContentLoaded', function() {
     <a href="main.php" style="text-decoration:none; display:flex; align-items:center;">
     <img src="/img/logo.png" alt="Easy TDS" style="height:40px; width:auto;">
 </a>
+
+    <div class="header-right">
+        <div class="profile-menu" id="profileMenu">
+            <button class="profile-avatar" id="profileAvatarBtn" type="button" aria-label="Профиль">
+                <?= htmlspecialchars(mb_strtoupper(mb_substr($_SESSION['username'] ?? 'A', 0, 1))) ?>
+            </button>
+            <div class="profile-dropdown" id="profileDropdown">
+                <a href="credentials.php">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 10c4.418 0 8 1.79 8 4v1H4v-1c0-2.21 3.582-4 8-4z"/></svg>
+                    <span>Учетная запись</span>
+                </a>
+                <a href="logout.php" style="color:#ff6666;">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M16 13v-2H7V8l-5 4 5 4v-3h9zm2-11H6a2 2 0 0 0-2 2v4h2V4h12v16H6v-4H4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg>
+                    <span>Выйти</span>
+                </a>
+            </div>
+        </div>
+    </div>
 </header>
 
 <!-- ========== MAIN WRAPPER ========== -->
@@ -340,6 +333,8 @@ window.addEventListener('DOMContentLoaded', function() {
     <!-- ========== SIDEBAR ========== -->
     <nav class="sidebar" id="sidebar">
         <ul class="sidebar-nav">
+
+            <li class="sidebar-section-label">Обзор</li>
 
             <li data-tooltip="Главная">
                 <a href="main.php">
@@ -352,73 +347,18 @@ window.addEventListener('DOMContentLoaded', function() {
                 </a>
             </li>
 
-            <li class="sidebar-divider"></li>
+            <li class="sidebar-section-label">Управление</li>
 
             <li data-tooltip="Кампании">
-                <div class="sidebar-group-row">
-                    <a href="campaigns.php" class="sidebar-group-link">
-                        <span class="nav-icon">
-                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M20 6h-3V4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm-9-2h2v2h-2V4zm-2 0h2v2H9V4zm11 15H4V8h16v11z"/>
-                            </svg>
-                        </span>
-                        <span class="nav-label">Кампании</span>
-                    </a>
-                    <button class="nav-arrow-btn open" id="campaignsToggle" type="button" title="Свернуть">
+                <a href="campaigns.php" class="active">
+                    <span class="nav-icon">
                         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M7 10l5 5 5-5H7z"/>
+                            <path d="M20 6h-3V4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm-9-2h2v2h-2V4zm-2 0h2v2H9V4zm11 15H4V8h16v11z"/>
                         </svg>
-                    </button>
-                </div>
-
-                <ul class="sidebar-subnav open" id="campaignsSubnav">
-                    <li>
-                        <a href="new_campaign.php" class="active">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/>
-                                </svg>
-                            </span>
-                            <span class="nav-label">Создать новую</span>
-                        </a>
-                    </li>
-<li>
-                        <a href="campaigns.php?export=csv">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 13h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h3v1.5H8V10z"/>
-                                </svg>
-                            </span>
-                            <span class="nav-label">Экспорт логов</span>
-                        </a>
-                    </li>
-<li>
-                        <a href="campaigns.php?export=goals_csv">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.88-11.71L10 14.17l-1.88-1.88a.996.996 0 1 0-1.41 1.41l2.59 2.59c.39.39 1.02.39 1.41 0L17.3 9.7a.996.996 0 0 0 0-1.41c-.39-.39-1.03-.39-1.42 0z"/>
-                                </svg>
-                            </span>
-                            <span class="nav-label">Экспорт целей</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" onclick="confirmDeleteAll(event)" style="color:#ff6666;">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M9 3v1H4v2h1v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3H9zm0 5h2v9H9V8zm4 0h2v9h-2V8z"/>
-                                </svg>
-                            </span>
-                            <span class="nav-label">Удалить все</span>
-                        </a>
-                        <form id="deleteAllForm" method="post" action="campaigns.php" style="display:none;">
-                            <input type="hidden" name="delete_all" value="1">
-                        </form>
-                    </li>
-                </ul>
+                    </span>
+                    <span class="nav-label">Кампании</span>
+                </a>
             </li>
-
-            <li class="sidebar-divider"></li>
 
             <li data-tooltip="Фильтр ботов">
                 <a href="bots.php">
@@ -431,93 +371,102 @@ window.addEventListener('DOMContentLoaded', function() {
                 </a>
             </li>
 
-            <li class="sidebar-divider"></li>
-
-            <li data-tooltip="Учетная запись">
-                <a href="credentials.php">
-                    <span class="nav-icon">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 10c4.418 0 8 1.79 8 4v1H4v-1c0-2.21 3.582-4 8-4z"/>
-                        </svg>
-                    </span>
-                    <span class="nav-label">Учетная запись</span>
-                </a>
-            </li>
-
-            <li class="sidebar-divider"></li>
-
-            <li data-tooltip="Выйти">
-                <a href="logout.php" style="color:#ff6666;">
-                    <span class="nav-icon">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M16 13v-2H7V8l-5 4 5 4v-3h9zm2-11H6a2 2 0 0 0-2 2v4h2V4h12v16H6v-4H4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0-2-2z"/>
-                        </svg>
-                    </span>
-                    <span class="nav-label">Выйти</span>
-                </a>
-            </li>
-
         </ul>
     </nav>
     <!-- /sidebar -->
 
     <!-- ========== PAGE CONTENT ========== -->
-<div class="page-content">
-    <div class="content">
+    <div class="page-content">
+        <div class="content">
 
-        <div id="toast" class="toast"></div>
+            <div id="toast" class="toast"></div>
 
-        <?php if (!empty($error)): ?>
-        <script>
-        window.addEventListener('DOMContentLoaded', function() {
-            showToast('<?= addslashes(htmlspecialchars($error)) ?>', 'error');
-        });
-        </script>
-        <?php endif; ?>
+            <?php if (!empty($error)): ?>
+            <script>
+            window.addEventListener('DOMContentLoaded', function() {
+                showToast('<?= addslashes(htmlspecialchars($error)) ?>', 'error');
+            });
+            </script>
+            <?php endif; ?>
 
-<h2 class="campaign-title">Создание новой кампании</h2>
+            <div class="page-header-bar">
+                <div class="page-header-titles">
+                    <h2 class="page-title">Новая кампания</h2>
+                    <div class="page-breadcrumb"><a href="main.php" class="page-breadcrumb-link">Easy TDS</a> <span>›</span> <a href="campaigns.php" class="page-breadcrumb-link">Кампании</a> <span>›</span> Создание</div>
+                </div>
+            </div>
 
-<div class="add-form">
-    <form method="post">
+            <div class="new-campaign-wrap">
 
-                <!-- ДВУХКОЛОНОЧНЫЙ GRID -->
-                <div class="campaign-form-grid">
+                <!-- Индикатор шагов -->
+                <div class="wizard-progress" id="wizardProgress">
+                    <div class="wizard-progress-step" data-idx="0">
+                        <span class="wizard-progress-num">1</span>
+                        <span class="wizard-progress-label">Инфо</span>
+                    </div>
+                    <div class="wizard-progress-line"></div>
+                    <div class="wizard-progress-step" data-idx="1">
+                        <span class="wizard-progress-num">2</span>
+                        <span class="wizard-progress-label">GEO</span>
+                    </div>
+                    <div class="wizard-progress-line"></div>
+                    <div class="wizard-progress-step" data-idx="2">
+                        <span class="wizard-progress-num">3</span>
+                        <span class="wizard-progress-label">Боты</span>
+                    </div>
+                    <div class="wizard-progress-line"></div>
+                    <div class="wizard-progress-step" data-idx="3">
+                        <span class="wizard-progress-num">4</span>
+                        <span class="wizard-progress-label">Цели</span>
+                    </div>
+                </div>
 
-                    <!-- ЛЕВАЯ КОЛОНКА -->
-                    <div class="campaign-form-col">
+                <form method="post" id="campaignForm">
 
-                        <!-- Название -->
-                        <div class="form-section">
+                    <!-- Шаг 1: Основная информация -->
+                    <div class="wizard-step" data-step="0">
+                    <div class="form-card">
+                        <h3 class="form-card-title">Основная информация</h3>
+
+                        <div class="form-field">
                             <label for="name">Название кампании</label>
-                            <input type="text" id="name" name="name" required placeholder="Например: Campaign #1">
+                            <div class="input-group">
+                                <span class="input-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/></svg>
+                                </span>
+                                <input type="text" id="name" name="name" required placeholder="Например: Campaign #1">
+                            </div>
                         </div>
 
-                        <!-- Идентификатор -->
-                        <div class="form-section">
-                            <label for="slug">Идентификатор кампании</label>
-                            <input type="text" id="slug" name="slug" required placeholder="Например: camp1">
+                        <div class="form-field">
+                            <label for="slug">Идентификатор кампании (slug)</label>
+                            <div class="input-group">
+                                <span class="input-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l-4 5 4 5M17 7l4 5-4 5M14 4l-4 16"/></svg>
+                                </span>
+                                <input type="text" id="slug" name="slug" required placeholder="Например: camp1">
+                            </div>
                         </div>
 
-                        <!-- URL -->
-                        <div class="form-section">
+                        <div class="form-field">
                             <label for="url">URL для перенаправления</label>
                             <textarea id="url" name="url" required rows="3" placeholder="https://example.com"></textarea>
-                            <div class="note">Можно указать несколько ссылок через запятую</div>
+                            <div class="form-note">Можно указать несколько ссылок через запятую</div>
                         </div>
-
                     </div>
-                    <!-- /ЛЕВАЯ -->
+                    </div>
 
-                    <!-- ПРАВАЯ КОЛОНКА -->
-                    <div class="campaign-form-col">
+                    <!-- Шаг 2: GEO-фильтр -->
+                    <div class="wizard-step" data-step="1">
+                    <div class="form-card">
+                        <h3 class="form-card-title">GEO-фильтр</h3>
 
-                        <!-- GEO-фильтр -->
-                        <div class="form-section">
-                            <label>GEO-фильтр</label>
+                        <div class="form-field">
+                            <label>Режим фильтрации</label>
                             <div class="custom-select-wrapper" id="wrap_geo_filter_type">
                                 <div class="custom-select-trigger" onclick="toggleCustomSelect('wrap_geo_filter_type')">
                                     <span id="label_geo_filter_type">Не использовать</span>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5H7z"/></svg>
                                 </div>
                                 <div class="custom-select-options">
                                     <div class="custom-select-option selected"
@@ -529,23 +478,34 @@ window.addEventListener('DOMContentLoaded', function() {
                                 </div>
                                 <input type="hidden" name="geo_filter_type" id="geo_filter_type" value="none">
                             </div>
-                            <div id="geo_sub" class="sub-section" style="display:none;">
-                                <label>Список кодов стран</label>
-                                <textarea name="geo_filter_list" id="geo_filter_list" rows="2" placeholder="US,RU,DE"></textarea>
-                                <div class="note">Коды стран через запятую</div>
-                                <label style="margin-top:10px;">URL для не прошедших фильтр</label>
-                                <textarea name="geo_redirect_urls" id="geo_redirect_urls" rows="2" placeholder="https://fallback.com"></textarea>
-                                <div class="note">Можно несколько через запятую</div>
-                            </div>
                         </div>
 
-                        <!-- Фильтр ботов -->
-                        <div class="form-section">
-                            <label>Фильтр ботов</label>
+                        <div id="geo_sub" style="display:none;">
+                            <div class="form-field">
+                                <label>Список кодов стран</label>
+                                <textarea name="geo_filter_list" id="geo_filter_list" rows="2" placeholder="US,RU,DE"></textarea>
+                                <div class="form-note">Коды стран через запятую</div>
+                            </div>
+                            <div class="form-field">
+                                <label>URL для не прошедших фильтр</label>
+                                <textarea name="geo_redirect_urls" id="geo_redirect_urls" rows="2" placeholder="https://fallback.com"></textarea>
+                                <div class="form-note">Можно несколько через запятую</div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+
+                    <!-- Шаг 3: Фильтр ботов -->
+                    <div class="wizard-step" data-step="2">
+                    <div class="form-card">
+                        <h3 class="form-card-title">Фильтр ботов</h3>
+
+                        <div class="form-field">
+                            <label>Статус</label>
                             <div class="custom-select-wrapper" id="wrap_bot_filter">
                                 <div class="custom-select-trigger" onclick="toggleCustomSelect('wrap_bot_filter')">
                                     <span id="label_bot_filter">Отключить</span>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5H7z"/></svg>
                                 </div>
                                 <div class="custom-select-options">
                                     <div class="custom-select-option selected"
@@ -555,68 +515,72 @@ window.addEventListener('DOMContentLoaded', function() {
                                 </div>
                                 <input type="hidden" name="bot_filter" id="bot_filter" value="off">
                             </div>
-                            <div id="bot_sub" class="sub-section" style="display:none;">
+                        </div>
+
+                        <div id="bot_sub" style="display:none;">
+                            <div class="form-field">
                                 <label>URL для ботов</label>
                                 <textarea name="bot_redirect_urls" id="bot_redirect_urls" rows="2" placeholder="https://bot-redirect.com"></textarea>
-                                <div class="note">Можно несколько через запятую</div>
+                                <div class="form-note">Можно несколько через запятую</div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+
+                    <!-- Шаг 4: Цели -->
+                    <div class="wizard-step" data-step="3">
+                    <div class="form-card">
+                        <h3 class="form-card-title">Цели кампании</h3>
+
+                        <div class="form-field">
+                            <label>Режим</label>
+                            <div class="custom-select-wrapper" id="wrap_goals_mode">
+                                <div class="custom-select-trigger" onclick="toggleCustomSelect('wrap_goals_mode')">
+                                    <span id="label_goals_mode">Не использовать</span>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5H7z"/></svg>
+                                </div>
+                                <div class="custom-select-options">
+                                    <div class="custom-select-option selected"
+                                         onclick="selectOption('wrap_goals_mode','goals_mode','none','Не использовать',this);toggleGoalsInputs()">Не использовать</div>
+                                    <div class="custom-select-option"
+                                         onclick="selectOption('wrap_goals_mode','goals_mode','add','Добавить',this);toggleGoalsInputs()">Добавить</div>
+                                </div>
+                                <input type="hidden" name="goals_mode" id="goals_mode" value="none">
                             </div>
                         </div>
 
-                    </div>
-                    <!-- /ПРАВАЯ -->
-
-                </div>
-                <!-- /GRID -->
-
-                <!-- ЦЕЛИ — на всю ширину снизу -->
-                <div class="goals-section">
-                    <label>Цели кампании</label>
-                    <div class="custom-select-wrapper" id="wrap_goals_mode">
-                        <div class="custom-select-trigger" onclick="toggleCustomSelect('wrap_goals_mode')">
-                            <span id="label_goals_mode">Не использовать</span>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>
+                        <div id="goals_container" style="display:none;">
+                            <div id="goals_list"></div>
+                            <button type="button" onclick="addGoal()" class="add-goal-btn">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                                Добавить цель
+                            </button>
                         </div>
-                        <div class="custom-select-options">
-                            <div class="custom-select-option selected"
-                                 onclick="selectOption('wrap_goals_mode','goals_mode','none','Не использовать',this);toggleGoalsInputs()">Не использовать</div>
-                            <div class="custom-select-option"
-                                 onclick="selectOption('wrap_goals_mode','goals_mode','add','Добавить',this);toggleGoalsInputs()">Добавить</div>
-                        </div>
-                        <input type="hidden" name="goals_mode" id="goals_mode" value="none">
+                    </div>
                     </div>
 
-                    <div id="goals_container" style="display:none; margin-top:14px;">
-                        <div id="goals_list"></div>
-                        <button type="button" onclick="addGoal()" class="add-goal-btn" style="margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;padding:8px 28px;background:#ffc107;color:#1b1b2f;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 0 8px #ffc107;width:auto;">+ Добавить цель</button>
+                    <div class="wizard-nav">
+                        <button type="button" id="wizardBackBtn" class="wizard-btn wizard-btn-back">Назад</button>
+                        <button type="button" id="wizardNextBtn" class="wizard-btn wizard-btn-next">Далее</button>
                     </div>
-                </div>
 
-                <div style="text-align:center;">
-    <button type="submit" class="btn-create" style="padding:10px 40px;width:auto;">Создать кампанию</button>
-</div>
+                </form>
+            </div>
 
-            </form>
-        </div>
+        </div><!-- /content -->
+    </div><!-- /page-content -->
 
-    </div><!-- /content -->
-</div><!-- /page-content -->
 </div><!-- /main-wrapper -->
 
 <script>
 (function () {
-    var SIDEBAR_KEY   = 'sidebar_collapsed';
-    var ACCORDION_KEY = 'campaigns_open';
-    var body    = document.body;
-    var btn     = document.getElementById('hamburgerBtn');
-    var toggle  = document.getElementById('campaignsToggle');
-    var subnav  = document.getElementById('campaignsSubnav');
+    var SIDEBAR_KEY = 'sidebar_collapsed';
+    var body = document.body;
+    var btn  = document.getElementById('hamburgerBtn');
 
     if (localStorage.getItem(SIDEBAR_KEY) === '1') {
         body.classList.add('sidebar-collapsed');
     }
-
-    var accordionOpen = localStorage.getItem(ACCORDION_KEY) !== '0';
-    setAccordion(accordionOpen, false);
 
     btn.addEventListener('click', function () {
         body.classList.toggle('sidebar-collapsed');
@@ -626,29 +590,18 @@ window.addEventListener('DOMContentLoaded', function() {
         );
     });
 
-    toggle.addEventListener('click', function () {
-        var isOpen = subnav.classList.contains('open');
-        setAccordion(!isOpen, true);
-    });
-
-    window.confirmDeleteAll = function (e) {
-        e.preventDefault();
-        if (confirm('Вы уверены, что хотите удалить все кампании и всю статистику?')) {
-            document.getElementById('deleteAllForm').submit();
-        }
-    };
-
-    function setAccordion(open, save) {
-        if (open) {
-            subnav.classList.add('open');
-            toggle.classList.add('open');
-        } else {
-            subnav.classList.remove('open');
-            toggle.classList.remove('open');
-        }
-        if (save) {
-            localStorage.setItem(ACCORDION_KEY, open ? '1' : '0');
-        }
+    var profileMenu = document.getElementById('profileMenu');
+    var avatarBtn = document.getElementById('profileAvatarBtn');
+    if (avatarBtn && profileMenu) {
+        avatarBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            profileMenu.classList.toggle('open');
+        });
+        document.addEventListener('click', function (e) {
+            if (!profileMenu.contains(e.target)) {
+                profileMenu.classList.remove('open');
+            }
+        });
     }
 }());
 </script>
