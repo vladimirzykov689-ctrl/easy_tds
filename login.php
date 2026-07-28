@@ -51,10 +51,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <div class="login-container">
     <img src="/img/logo.png" alt="Easy TDS" class="login-logo">
-    <h2>Вход</h2>
+    <h2>Добро пожаловать в Easy TDS!</h2>
+    <p class="login-subtitle">Войдите, чтобы продолжить работу с системой</p>
     <form method="post">
-        <input type="text" name="username" placeholder="Логин" required>
-        <input type="password" name="password" placeholder="Пароль" required>
+        <div class="input-group">
+            <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
+            </span>
+            <input type="text" name="username" placeholder="Логин" required>
+        </div>
+        <div class="input-group">
+            <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M7 10V7a5 5 0 0110 0v3"/></svg>
+            </span>
+            <input type="password" name="password" placeholder="Пароль" required>
+        </div>
         <button type="submit">Войти</button>
     </form>
     <?php if($error): ?>
