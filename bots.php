@@ -12,8 +12,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
     $fu  = ($_POST['filter_ua']  ?? 'no') === 'yes' ? 'yes' : 'no';
     $db->prepare("UPDATE bot_settings SET filter_ip=?, filter_isp=?, filter_ptr=?, filter_ua=? WHERE id=1")
        ->execute([$fi, $fis, $fp, $fu]);
-header('Location: bots.php?saved=1');
-exit;
+    header('Location: bots.php?saved=1');
+    exit;
 }
 
 // --- Загружаем текущие настройки ---
@@ -49,138 +49,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['read_file'])) {
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Фильтр ботов</title>
+<title>Фильтр ботов — Easy TDS</title>
 <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
 <link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico">
 <link rel="stylesheet" href="/css/style.css">
-<style>
-    /* === Модальное окно === */
-    .modal-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.7);
-        z-index: 1000;
-        align-items: center;
-        justify-content: center;
-    }
-    .modal-overlay.active { display: flex; }
-
-    .modal {
-        background: #242424;
-        border: 1px solid #3a3a3a;
-        border-radius: 6px;
-        width: 680px;
-        max-width: 95vw;
-        display: flex;
-        flex-direction: column;
-        max-height: 80vh;
-    }
-
-    .modal-header {
-        display: flex;
-        align-items: center;
-        padding: 12px 16px;
-        border-bottom: 1px solid #333;
-        gap: 10px;
-    }
-    .modal-header .modal-title {
-        flex: 1;
-        font-size: 14px;
-        font-weight: 600;
-        color: #ccc;
-    }
-    .modal-header .modal-filepath {
-        font-size: 11px;
-        color: #555;
-        font-family: monospace;
-    }
-    .modal-status {
-        font-size: 12px;
-        font-weight: 600;
-        min-width: 70px;
-        text-align: right;
-    }
-    .modal-status.ok    { color: #6fcf6f; }
-    .modal-status.error { color: #ff6666; }
-
-    .modal-body {
-        flex: 1;
-        overflow: hidden;
-        display: flex;
-    }
-    .modal-body textarea {
-        flex: 1;
-        background: #1e1e1e;
-        color: #d4d4d4;
-        border: none;
-        outline: none;
-        resize: none;
-        font-family: 'Courier New', Courier, monospace;
-        font-size: 13px;
-        line-height: 1.7;
-        padding: 14px 16px;
-        min-height: 320px;
-    }
-
-    .modal-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        padding: 10px 16px;
-        border-top: 1px solid #333;
-    }
-    .modal-footer .btn-cancel {
-        padding: 7px 18px;
-        background: transparent;
-        color: #aaa;
-        border: 1px solid #444;
-        border-radius: 4px;
-        font-size: 13px;
-        cursor: pointer;
-        transition: border-color 0.2s, color 0.2s;
-    }
-    .modal-footer .btn-cancel:hover { border-color: #aaa; color: #fff; }
-    .modal-footer .btn-modal-save {
-        padding: 7px 20px;
-        background: #4a90d9;
-        color: #fff;
-        border: none;
-        border-radius: 4px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-    .modal-footer .btn-modal-save:hover { background: #357abd; }
-    .add-form { max-width: 100% !important; }
-    .toast {
-    display: none;
-    position: fixed;
-    top: 32px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 9999;
-    padding: 12px 28px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    white-space: nowrap;
-}
-.toast.success { background: rgba(30,60,30,0.97); border: 1px solid #28a745; color: #6fcf6f; }
-.toast.error   { background: rgba(60,20,20,0.97); border: 1px solid #dc3545; color: #ff6666; }
-.toast.visible { opacity: 1; }
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
-window.addEventListener('DOMContentLoaded', function () {
-    ['ip','isp','ptr','ua'].forEach(function(k) {
-        var val = document.getElementById('filter_' + k).value;
-        showBotBtns(k, val);
-    });
-});
 var currentFile = '';
 var titles = {
     'bots_ip.dat':  'IP-адреса',
@@ -245,11 +121,9 @@ function saveFile() {
         });
 }
 
-function showBotBtns(key, value) {
-    var editBtn = document.getElementById('edit_' + key);
-    var saveBtn = document.getElementById('save_' + key);
-    editBtn.style.display = 'inline-flex';
-    saveBtn.style.display = 'inline-flex';
+function onToggleChange(key, checkbox) {
+    document.getElementById('filter_' + key).value = checkbox.checked ? 'yes' : 'no';
+    document.getElementById('save_' + key).style.display = 'inline-flex';
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -264,50 +138,34 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
-function toggleCustomSelect(wrapperId) {
-    var wrapper = document.getElementById(wrapperId);
-    var isOpen = wrapper.classList.contains('open');
-    document.querySelectorAll('.custom-select-wrapper.open').forEach(function(w) {
-        w.classList.remove('open');
-    });
-    if (!isOpen) wrapper.classList.add('open');
-}
 
-function selectBotOption(wrapperId, inputId, value, label, el) {
-    document.getElementById(inputId).value = value;
-    document.getElementById('label_' + inputId).textContent = label;
-    el.closest('.custom-select-options').querySelectorAll('.custom-select-option').forEach(function(o) {
-        o.classList.remove('selected');
-    });
-    el.classList.add('selected');
-    document.getElementById(wrapperId).classList.remove('open');
-    var key = inputId.replace('filter_', '');
-    showBotBtns(key, value);
-}
+function showBottomToast(title, message, type) {
+    var el = document.createElement('div');
+    el.className = 'bottom-toast bottom-toast-' + (type || 'success');
+    el.innerHTML =
+        '<div class="bottom-toast-header">' +
+            '<span class="bottom-toast-title">' + title + '</span>' +
+            '<div class="bottom-toast-header-right">' +
+                '<span class="bottom-toast-time">только что</span>' +
+                '<button type="button" class="bottom-toast-close" aria-label="Закрыть">&times;</button>' +
+            '</div>' +
+        '</div>' +
+        '<div class="bottom-toast-body">' + message + '</div>';
+    document.body.appendChild(el);
 
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.custom-select-wrapper')) {
-        document.querySelectorAll('.custom-select-wrapper.open').forEach(function(w) {
-            w.classList.remove('open');
-        });
+    var timer = setTimeout(hide, 5000);
+    function hide() {
+        el.classList.add('bottom-toast-hide');
+        setTimeout(function () { el.remove(); }, 300);
     }
-});
-
-function showToast(message, type) {
-    var t = document.getElementById('toast');
-    t.textContent = message;
-    t.className = 'toast ' + (type || 'success');
-    t.style.display = 'block';
-    setTimeout(function() { t.classList.add('visible'); }, 10);
-    setTimeout(function() {
-        t.classList.remove('visible');
-        setTimeout(function() { t.style.display = 'none'; }, 300);
-    }, 3500);
+    el.querySelector('.bottom-toast-close').addEventListener('click', function () {
+        clearTimeout(timer);
+        hide();
+    });
 }
 </script>
 </head>
 <body class="dashboard-page">
-	<div id="toast" class="toast"></div>
 
 <!-- ========== MODAL ========== -->
 <div class="modal-overlay" id="modalOverlay">
@@ -337,6 +195,24 @@ function showToast(message, type) {
     <a href="main.php" style="text-decoration:none; display:flex; align-items:center;">
     <img src="/img/logo.png" alt="Easy TDS" style="height:40px; width:auto;">
 </a>
+
+    <div class="header-right">
+        <div class="profile-menu" id="profileMenu">
+            <button class="profile-avatar" id="profileAvatarBtn" type="button" aria-label="Профиль">
+                <?= htmlspecialchars(mb_strtoupper(mb_substr($_SESSION['username'] ?? 'A', 0, 1))) ?>
+            </button>
+            <div class="profile-dropdown" id="profileDropdown">
+                <a href="credentials.php">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 10c4.418 0 8 1.79 8 4v1H4v-1c0-2.21 3.582-4 8-4z"/></svg>
+                    <span>Учетная запись</span>
+                </a>
+                <a href="logout.php" style="color:#ff6666;">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M16 13v-2H7V8l-5 4 5 4v-3h9zm2-11H6a2 2 0 0 0-2 2v4h2V4h12v16H6v-4H4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg>
+                    <span>Выйти</span>
+                </a>
+            </div>
+        </div>
+    </div>
 </header>
 
 <!-- ========== MAIN WRAPPER ========== -->
@@ -345,6 +221,8 @@ function showToast(message, type) {
     <!-- ========== SIDEBAR ========== -->
     <nav class="sidebar" id="sidebar">
         <ul class="sidebar-nav">
+
+            <li class="sidebar-section-label">Обзор</li>
 
             <li data-tooltip="Главная">
                 <a href="main.php">
@@ -357,73 +235,18 @@ function showToast(message, type) {
                 </a>
             </li>
 
-            <li class="sidebar-divider"></li>
+            <li class="sidebar-section-label">Управление</li>
 
             <li data-tooltip="Кампании">
-                <div class="sidebar-group-row">
-                    <a href="campaigns.php" class="sidebar-group-link">
-                        <span class="nav-icon">
-                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M20 6h-3V4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm-9-2h2v2h-2V4zm-2 0h2v2H9V4zm11 15H4V8h16v11z"/>
-                            </svg>
-                        </span>
-                        <span class="nav-label">Кампании</span>
-                    </a>
-                    <button class="nav-arrow-btn" id="campaignsToggle" type="button" title="Развернуть">
+                <a href="campaigns.php">
+                    <span class="nav-icon">
                         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M7 10l5 5 5-5H7z"/>
+                            <path d="M20 6h-3V4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm-9-2h2v2h-2V4zm-2 0h2v2H9V4zm11 15H4V8h16v11z"/>
                         </svg>
-                    </button>
-                </div>
-                <ul class="sidebar-subnav" id="campaignsSubnav">
-                    <li>
-                        <a href="new_campaign.php">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/>
-                                </svg>
-                            </span>
-                            <span class="nav-label">Создать новую</span>
-                        </a>
-                    </li>
-<li>
-                        <a href="campaigns.php?export=csv">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 13h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h3v1.5H8V10z"/>
-                                </svg>
-                            </span>
-                            <span class="nav-label">Экспорт логов</span>
-                        </a>
-                    </li>
-<li>
-                        <a href="campaigns.php?export=goals_csv">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.88-11.71L10 14.17l-1.88-1.88a.996.996 0 1 0-1.41 1.41l2.59 2.59c.39.39 1.02.39 1.41 0L17.3 9.7a.996.996 0 0 0 0-1.41c-.39-.39-1.03-.39-1.42 0z"/>
-                                </svg>
-                            </span>
-                            <span class="nav-label">Экспорт целей</span>
-                        </a>
-                    </li>
-                    <li>
-                    <li>
-                        <a href="#" onclick="confirmDeleteAll(event)" style="color:#ff6666;">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M9 3v1H4v2h1v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3H9zm0 5h2v9H9V8zm4 0h2v9h-2V8z"/>
-                                </svg>
-                            </span>
-                            <span class="nav-label">Удалить все</span>
-                        </a>
-                        <form id="deleteAllForm" method="post" action="campaigns.php" style="display:none;">
-                            <input type="hidden" name="delete_all" value="1">
-                        </form>
-                    </li>
-                </ul>
+                    </span>
+                    <span class="nav-label">Кампании</span>
+                </a>
             </li>
-
-            <li class="sidebar-divider"></li>
 
             <li data-tooltip="Фильтр ботов">
                 <a href="bots.php" class="active">
@@ -436,32 +259,6 @@ function showToast(message, type) {
                 </a>
             </li>
 
-            <li class="sidebar-divider"></li>
-
-            <li data-tooltip="Учетная запись">
-                <a href="credentials.php">
-                    <span class="nav-icon">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 10c4.418 0 8 1.79 8 4v1H4v-1c0-2.21 3.582-4 8-4z"/>
-                        </svg>
-                    </span>
-                    <span class="nav-label">Учетная запись</span>
-                </a>
-            </li>
-
-            <li class="sidebar-divider"></li>
-
-            <li data-tooltip="Выйти">
-                <a href="logout.php" style="color:#ff6666;">
-                    <span class="nav-icon">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M16 13v-2H7V8l-5 4 5 4v-3h9zm2-11H6a2 2 0 0 0-2 2v4h2V4h12v16H6v-4H4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/>
-                        </svg>
-                    </span>
-                    <span class="nav-label">Выйти</span>
-                </a>
-            </li>
-
         </ul>
     </nav>
     <!-- /sidebar -->
@@ -470,190 +267,218 @@ function showToast(message, type) {
     <div class="page-content">
         <div class="content">
 
-<h2 class="campaign-title">Фильтр ботов</h2>
+            <?php if (isset($_GET['saved'])): ?>
+            <script>
+            window.addEventListener('DOMContentLoaded', function() {
+                showBottomToast('Фильтр ботов', 'Настройки сохранены', 'success');
+            });
+            </script>
+            <?php endif; ?>
 
-<div class="add-form">
-
-<?php if (isset($_GET['saved'])): ?>
-<script>
-window.addEventListener('DOMContentLoaded', function() {
-    showToast('✓ Настройки сохранены', 'success');
-});
-</script>
-<?php endif; ?>
-
-<form method="post">
-    <input type="hidden" name="save_settings" value="1">
-
-    <!-- СТРОКА 1: IP (слева) + ISP (справа) -->
-    <div style="display:flex; gap:24px; align-items:flex-start; margin-bottom:16px;">
-
-        <!-- IP -->
-        <div style="flex:1;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;justify-content:space-between;">
-                <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;margin:0;">Фильтровать по IP:</label>
-                <button type="button" id="edit_ip" onclick="openEditor('bots_ip.dat')"
-                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;margin-left:auto;">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                </button>
-                <button type="submit" id="save_ip"
-                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-                </button>
-            </div>
-            <div class="custom-select-wrapper" id="wrap_filter_ip">
-                <div class="custom-select-trigger" onclick="toggleCustomSelect('wrap_filter_ip')">
-                    <span id="label_filter_ip"><?= $settings['filter_ip']==='yes' ? 'Да' : 'Нет' ?></span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>
+            <div class="page-header-bar">
+                <div class="page-header-titles">
+                    <h2 class="page-title">Фильтр ботов</h2>
+                    <div class="page-breadcrumb"><a href="main.php" class="page-breadcrumb-link">Easy TDS</a> <span>›</span> Фильтр ботов</div>
                 </div>
-                <div class="custom-select-options">
-                    <div class="custom-select-option <?= $settings['filter_ip']==='no' ? 'selected' : '' ?>"
-                         onclick="selectBotOption('wrap_filter_ip','filter_ip','no','Нет',this)">Нет</div>
-                    <div class="custom-select-option <?= $settings['filter_ip']==='yes' ? 'selected' : '' ?>"
-                         onclick="selectBotOption('wrap_filter_ip','filter_ip','yes','Да',this)">Да</div>
-                </div>
-                <input type="hidden" name="filter_ip" id="filter_ip" value="<?= $settings['filter_ip'] ?>">
             </div>
-        </div>
 
-        <!-- ISP -->
-        <div style="flex:1;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;justify-content:space-between;">
-                <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;margin:0;">Фильтровать по ISP:</label>
-                <button type="button" id="edit_isp" onclick="openEditor('bots_isp.dat')"
-                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;margin-left:auto;">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                </button>
-                <button type="submit" id="save_isp"
-                        style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-                </button>
-            </div>
-            <div class="custom-select-wrapper" id="wrap_filter_isp">
-                <div class="custom-select-trigger" onclick="toggleCustomSelect('wrap_filter_isp')">
-                    <span id="label_filter_isp"><?= $settings['filter_isp']==='yes' ? 'Да' : 'Нет' ?></span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>
+            <div class="new-campaign-wrap">
+
+                <!-- Вкладки -->
+                <div class="tabs-nav" id="tabsNav">
+                    <button type="button" class="tab-btn tab-btn-active" data-tab="0">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M7 10V7a5 5 0 0110 0v3"/></svg>
+                        IP
+                    </button>
+                    <button type="button" class="tab-btn" data-tab="1">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 4 6 4 9s-1.5 6.4-4 9c-2.5-2.6-4-6-4-9s1.5-6.4 4-9z"/></svg>
+                        ISP
+                    </button>
+                    <button type="button" class="tab-btn" data-tab="2">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v10H8l-4 4V4z"/></svg>
+                        PTR
+                    </button>
+                    <button type="button" class="tab-btn" data-tab="3">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h.01M7 13h6"/></svg>
+                        User-Agent
+                    </button>
                 </div>
-                <div class="custom-select-options">
-                    <div class="custom-select-option <?= $settings['filter_isp']==='no' ? 'selected' : '' ?>"
-                         onclick="selectBotOption('wrap_filter_isp','filter_isp','no','Нет',this)">Нет</div>
-                    <div class="custom-select-option <?= $settings['filter_isp']==='yes' ? 'selected' : '' ?>"
-                         onclick="selectBotOption('wrap_filter_isp','filter_isp','yes','Да',this)">Да</div>
-                </div>
-                <input type="hidden" name="filter_isp" id="filter_isp" value="<?= $settings['filter_isp'] ?>">
+
+                <form method="post" id="botsForm">
+                    <input type="hidden" name="save_settings" value="1">
+
+                    <!-- Панель IP -->
+                    <div class="tab-panel tab-panel-active" data-tab-panel="0">
+                        <div class="form-card">
+                            <div class="form-card-header-row">
+                                <h3 class="form-card-title">Фильтрация по IP</h3>
+                                <div class="form-card-header-actions">
+                                    <button type="button" id="edit_ip" onclick="openEditor('bots_ip.dat')" class="header-icon-btn" style="background:#ffc107;" title="Редактировать список">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                    </button>
+                                    <button type="submit" id="save_ip" class="header-icon-btn" style="display:none;background:#28a745;" title="Сохранить">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="toggle-row">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" <?= $settings['filter_ip']==='yes' ? 'checked' : '' ?> onchange="onToggleChange('ip', this)">
+                                    <span class="toggle-switch-slider"></span>
+                                </label>
+                                <span class="toggle-row-label">Фильтровать трафик по списку IP-адресов</span>
+                            </div>
+                            <input type="hidden" name="filter_ip" id="filter_ip" value="<?= $settings['filter_ip'] ?>">
+                            <div class="form-note">Список адресов редактируется по кнопке карандаша выше</div>
+                        </div>
+                    </div>
+
+                    <!-- Панель ISP -->
+                    <div class="tab-panel" data-tab-panel="1">
+                        <div class="form-card">
+                            <div class="form-card-header-row">
+                                <h3 class="form-card-title">Фильтрация по ISP</h3>
+                                <div class="form-card-header-actions">
+                                    <button type="button" id="edit_isp" onclick="openEditor('bots_isp.dat')" class="header-icon-btn" style="background:#ffc107;" title="Редактировать список">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                    </button>
+                                    <button type="submit" id="save_isp" class="header-icon-btn" style="display:none;background:#28a745;" title="Сохранить">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="toggle-row">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" <?= $settings['filter_isp']==='yes' ? 'checked' : '' ?> onchange="onToggleChange('isp', this)">
+                                    <span class="toggle-switch-slider"></span>
+                                </label>
+                                <span class="toggle-row-label">Фильтровать трафик по списку провайдеров (ISP)</span>
+                            </div>
+                            <input type="hidden" name="filter_isp" id="filter_isp" value="<?= $settings['filter_isp'] ?>">
+                            <div class="form-note">Список провайдеров редактируется по кнопке карандаша выше</div>
+                        </div>
+                    </div>
+
+                    <!-- Панель PTR -->
+                    <div class="tab-panel" data-tab-panel="2">
+                        <div class="form-card">
+                            <div class="form-card-header-row">
+                                <h3 class="form-card-title">Фильтрация по PTR</h3>
+                                <div class="form-card-header-actions">
+                                    <button type="button" id="edit_ptr" onclick="openEditor('bots_ptr.dat')" class="header-icon-btn" style="background:#ffc107;" title="Редактировать список">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                    </button>
+                                    <button type="submit" id="save_ptr" class="header-icon-btn" style="display:none;background:#28a745;" title="Сохранить">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="toggle-row">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" <?= $settings['filter_ptr']==='yes' ? 'checked' : '' ?> onchange="onToggleChange('ptr', this)">
+                                    <span class="toggle-switch-slider"></span>
+                                </label>
+                                <span class="toggle-row-label">Фильтровать трафик по PTR-записям</span>
+                            </div>
+                            <input type="hidden" name="filter_ptr" id="filter_ptr" value="<?= $settings['filter_ptr'] ?>">
+                            <div class="form-note">Список PTR-записей редактируется по кнопке карандаша выше</div>
+                        </div>
+                    </div>
+
+                    <!-- Панель UA -->
+                    <div class="tab-panel" data-tab-panel="3">
+                        <div class="form-card">
+                            <div class="form-card-header-row">
+                                <h3 class="form-card-title">Фильтрация по User-Agent</h3>
+                                <div class="form-card-header-actions">
+                                    <button type="button" id="edit_ua" onclick="openEditor('bots_ua.dat')" class="header-icon-btn" style="background:#ffc107;" title="Редактировать список">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                    </button>
+                                    <button type="submit" id="save_ua" class="header-icon-btn" style="display:none;background:#28a745;" title="Сохранить">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="toggle-row">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" <?= $settings['filter_ua']==='yes' ? 'checked' : '' ?> onchange="onToggleChange('ua', this)">
+                                    <span class="toggle-switch-slider"></span>
+                                </label>
+                                <span class="toggle-row-label">Фильтровать трафик по User-Agent</span>
+                            </div>
+                            <input type="hidden" name="filter_ua" id="filter_ua" value="<?= $settings['filter_ua'] ?>">
+                            <div class="form-note">Список User-Agent строк редактируется по кнопке карандаша выше</div>
+                        </div>
+                    </div>
+
+                </form>
+
             </div>
-        </div>
-
-    </div><!-- /строка 1 -->
-
-    <!-- СТРОКА 2: PTR (слева) + UA (справа) -->
-    <div style="display:flex; gap:24px; align-items:flex-start; margin-bottom:24px;">
-
-        <!-- PTR -->
-        <div style="flex:1;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;justify-content:space-between;">
-                <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;margin:0;">Фильтровать по PTR:</label>
-                <button type="button" id="edit_ptr" onclick="openEditor('bots_ptr.dat')"
-                        style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;margin-left:auto;">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                </button>
-                <button type="submit" id="save_ptr"
-                        style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-                </button>
-            </div>
-            <div class="custom-select-wrapper" id="wrap_filter_ptr">
-                <div class="custom-select-trigger" onclick="toggleCustomSelect('wrap_filter_ptr')">
-                    <span id="label_filter_ptr"><?= $settings['filter_ptr']==='yes' ? 'Да' : 'Нет' ?></span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>
-                </div>
-                <div class="custom-select-options">
-                    <div class="custom-select-option <?= $settings['filter_ptr']==='no' ? 'selected' : '' ?>"
-                         onclick="selectBotOption('wrap_filter_ptr','filter_ptr','no','Нет',this)">Нет</div>
-                    <div class="custom-select-option <?= $settings['filter_ptr']==='yes' ? 'selected' : '' ?>"
-                         onclick="selectBotOption('wrap_filter_ptr','filter_ptr','yes','Да',this)">Да</div>
-                </div>
-                <input type="hidden" name="filter_ptr" id="filter_ptr" value="<?= $settings['filter_ptr'] ?>">
-            </div>
-        </div>
-
-        <!-- UA -->
-        <div style="flex:1;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;justify-content:space-between;">
-                <label style="color:#cc88ff;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;margin:0;">Фильтровать по UA:</label>
-                <button type="button" id="edit_ua" onclick="openEditor('bots_ua.dat')"
-                        style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#ffc107;box-shadow:0 0 8px #ffc107;flex-shrink:0;margin-left:auto;">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                </button>
-                <button type="submit" id="save_ua"
-                        style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;flex-shrink:0;">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-                </button>
-            </div>
-            <div class="custom-select-wrapper" id="wrap_filter_ua">
-                <div class="custom-select-trigger" onclick="toggleCustomSelect('wrap_filter_ua')">
-                    <span id="label_filter_ua"><?= $settings['filter_ua']==='yes' ? 'Да' : 'Нет' ?></span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#cc88ff"><path d="M7 10l5 5 5-5H7z"/></svg>
-                </div>
-                <div class="custom-select-options">
-                    <div class="custom-select-option <?= $settings['filter_ua']==='no' ? 'selected' : '' ?>"
-                         onclick="selectBotOption('wrap_filter_ua','filter_ua','no','Нет',this)">Нет</div>
-                    <div class="custom-select-option <?= $settings['filter_ua']==='yes' ? 'selected' : '' ?>"
-                         onclick="selectBotOption('wrap_filter_ua','filter_ua','yes','Да',this)">Да</div>
-                </div>
-                <input type="hidden" name="filter_ua" id="filter_ua" value="<?= $settings['filter_ua'] ?>">
-            </div>
-        </div>
-
-    </div><!-- /строка 2 -->
-
-</form>			
-			</div>
 
         </div><!-- /content -->
-        	
     </div><!-- /page-content -->
 
 </div><!-- /main-wrapper -->
 
 <script>
 (function () {
-    var SIDEBAR_KEY   = 'sidebar_collapsed';
-    var ACCORDION_KEY = 'campaigns_open';
-    var body    = document.body;
-    var btn     = document.getElementById('hamburgerBtn');
-    var toggle  = document.getElementById('campaignsToggle');
-    var subnav  = document.getElementById('campaignsSubnav');
+    var SIDEBAR_KEY = 'sidebar_collapsed';
+    var body = document.body;
+    var btn  = document.getElementById('hamburgerBtn');
 
     if (localStorage.getItem(SIDEBAR_KEY) === '1') {
         body.classList.add('sidebar-collapsed');
     }
 
-    var accordionOpen = localStorage.getItem(ACCORDION_KEY) === '1';
-    setAccordion(accordionOpen, false);
-
     btn.addEventListener('click', function () {
         body.classList.toggle('sidebar-collapsed');
-        localStorage.setItem(SIDEBAR_KEY, body.classList.contains('sidebar-collapsed') ? '1' : '0');
+        localStorage.setItem(
+            SIDEBAR_KEY,
+            body.classList.contains('sidebar-collapsed') ? '1' : '0'
+        );
     });
 
-    toggle.addEventListener('click', function () {
-        var isOpen = subnav.classList.contains('open');
-        setAccordion(!isOpen, true);
-    });
-
-    window.confirmDeleteAll = function (e) {
-        e.preventDefault();
-        if (confirm('Вы уверены, что хотите удалить все кампании и всю статистику?')) {
-            document.getElementById('deleteAllForm').submit();
-        }
-    };
-
-    function setAccordion(open, save) {
-        if (open) { subnav.classList.add('open'); toggle.classList.add('open'); }
-        else       { subnav.classList.remove('open'); toggle.classList.remove('open'); }
-        if (save) localStorage.setItem(ACCORDION_KEY, open ? '1' : '0');
+    var profileMenu = document.getElementById('profileMenu');
+    var avatarBtn = document.getElementById('profileAvatarBtn');
+    if (avatarBtn && profileMenu) {
+        avatarBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            profileMenu.classList.toggle('open');
+        });
+        document.addEventListener('click', function (e) {
+            if (!profileMenu.contains(e.target)) {
+                profileMenu.classList.remove('open');
+            }
+        });
     }
+}());
+
+(function () {
+    var tabBtns   = Array.prototype.slice.call(document.querySelectorAll('.tab-btn'));
+    var tabPanels = Array.prototype.slice.call(document.querySelectorAll('.tab-panel'));
+
+    function showTab(idx) {
+        tabBtns.forEach(function (b) {
+            b.classList.toggle('tab-btn-active', parseInt(b.getAttribute('data-tab'), 10) === idx);
+        });
+        tabPanels.forEach(function (p) {
+            var isTarget = parseInt(p.getAttribute('data-tab-panel'), 10) === idx;
+            if (isTarget) {
+                p.style.display = 'block';
+                void p.offsetWidth;
+                p.classList.add('tab-panel-active');
+            } else {
+                p.classList.remove('tab-panel-active');
+                p.style.display = 'none';
+            }
+        });
+    }
+
+    tabBtns.forEach(function (b) {
+        b.addEventListener('click', function () {
+            showTab(parseInt(b.getAttribute('data-tab'), 10));
+        });
+    });
 }());
 </script>
 
