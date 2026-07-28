@@ -141,48 +141,11 @@ try {
 <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
 <link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico">
 <link rel="stylesheet" href="/css/style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="geo/map/topojson-client.min.js"></script>
 <script src="geo/map/d3.min.js"></script>
-<style>
-.info-cards-row {
-    display: flex;
-    gap: 18px;
-    margin-top: 18px;
-    margin-bottom: 40px;
-}
-.info-card {
-    flex: 1;
-    background: rgba(30, 15, 60, 0.85);
-    border: 1px solid rgba(155, 0, 255, 0.35);
-    border-radius: 12px;
-    padding: 22px 26px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-.info-card h3 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: #ffffff;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    text-shadow: 0 0 5px #ff77ff, 0 0 10px #ff00ff;
-}
-.info-card-value {
-    font-size: 32px;
-    font-weight: 700;
-    color: #ffffff;
-    line-height: 1;
-}
-.info-card-placeholder {
-    color: rgba(255, 255, 255, 0.25);
-    font-style: italic;
-}
-@media (max-width: 700px) {
-    .info-cards-row { flex-direction: column; }
-}
-</style>
 </head>
 <body class="dashboard-page">
 
@@ -196,6 +159,24 @@ try {
     <a href="main.php" style="text-decoration:none; display:flex; align-items:center;">
     <img src="/img/logo.png" alt="Easy TDS" style="height:40px; width:auto;">
 </a>
+
+    <div class="header-right">
+        <div class="profile-menu" id="profileMenu">
+            <button class="profile-avatar" id="profileAvatarBtn" type="button" aria-label="Профиль">
+                <?= htmlspecialchars(mb_strtoupper(mb_substr($_SESSION['username'] ?? 'A', 0, 1))) ?>
+            </button>
+            <div class="profile-dropdown" id="profileDropdown">
+                <a href="credentials.php">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 10c4.418 0 8 1.79 8 4v1H4v-1c0-2.21 3.582-4 8-4z"/></svg>
+                    <span>Учетная запись</span>
+                </a>
+                <a href="logout.php" style="color:#ff6666;">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M16 13v-2H7V8l-5 4 5 4v-3h9zm2-11H6a2 2 0 0 0-2 2v4h2V4h12v16H6v-4H4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg>
+                    <span>Выйти</span>
+                </a>
+            </div>
+        </div>
+    </div>
 </header>
 
 <!-- ========== MAIN WRAPPER ========== -->
@@ -204,6 +185,8 @@ try {
     <!-- ========== SIDEBAR ========== -->
     <nav class="sidebar" id="sidebar">
         <ul class="sidebar-nav">
+
+            <li class="sidebar-section-label">Обзор</li>
 
             <li data-tooltip="Главная">
                 <a href="main.php" class="active">
@@ -216,73 +199,18 @@ try {
                 </a>
             </li>
 
-            <li class="sidebar-divider"></li>
+            <li class="sidebar-section-label">Управление</li>
 
             <li data-tooltip="Кампании">
-                <div class="sidebar-group-row">
-                    <a href="campaigns.php" class="sidebar-group-link">
-                        <span class="nav-icon">
-                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M20 6h-3V4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm-9-2h2v2h-2V4zm-2 0h2v2H9V4zm11 15H4V8h16v11z"/>
-                            </svg>
-                        </span>
-                        <span class="nav-label">Кампании</span>
-                    </a>
-                    <button class="nav-arrow-btn open" id="campaignsToggle" type="button" title="Свернуть">
+                <a href="campaigns.php">
+                    <span class="nav-icon">
                         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M7 10l5 5 5-5H7z"/>
+                            <path d="M20 6h-3V4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm-9-2h2v2h-2V4zm-2 0h2v2H9V4zm11 15H4V8h16v11z"/>
                         </svg>
-                    </button>
-                </div>
-
-                <ul class="sidebar-subnav open" id="campaignsSubnav">
-                    <li>
-                        <a href="new_campaign.php">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/>
-                                </svg>
-                            </span>
-                            <span class="nav-label">Создать новую</span>
-                        </a>
-                    </li>
-<li>
-                        <a href="campaigns.php?export=csv">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 13h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h3v1.5H8V10z"/>
-                                </svg>
-                            </span>
-                            <span class="nav-label">Экспорт логов</span>
-                        </a>
-                    </li>
-<li>
-                        <a href="campaigns.php?export=goals_csv">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.88-11.71L10 14.17l-1.88-1.88a.996.996 0 1 0-1.41 1.41l2.59 2.59c.39.39 1.02.39 1.41 0L17.3 9.7a.996.996 0 0 0 0-1.41c-.39-.39-1.03-.39-1.42 0z"/>
-                                </svg>
-                            </span>
-                            <span class="nav-label">Экспорт целей</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" onclick="confirmDeleteAll(event)" style="color:#ff6666;">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M9 3v1H4v2h1v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3H9zm0 5h2v9H9V8zm4 0h2v9h-2V8z"/>
-                                </svg>
-                            </span>
-                            <span class="nav-label">Удалить все</span>
-                        </a>
-                        <form id="deleteAllForm" method="post" action="campaigns.php" style="display:none;">
-                            <input type="hidden" name="delete_all" value="1">
-                        </form>
-                    </li>
-                </ul>
+                    </span>
+                    <span class="nav-label">Кампании</span>
+                </a>
             </li>
-
-            <li class="sidebar-divider"></li>
 
             <li data-tooltip="Фильтр ботов">
                 <a href="bots.php">
@@ -295,32 +223,6 @@ try {
                 </a>
             </li>
 
-            <li class="sidebar-divider"></li>
-
-            <li data-tooltip="Учетная запись">
-                <a href="credentials.php">
-                    <span class="nav-icon">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 10c4.418 0 8 1.79 8 4v1H4v-1c0-2.21 3.582-4 8-4z"/>
-                        </svg>
-                    </span>
-                    <span class="nav-label">Учетная запись</span>
-                </a>
-            </li>
-
-            <li class="sidebar-divider"></li>
-
-            <li data-tooltip="Выйти">
-                <a href="logout.php" style="color:#ff6666;">
-                    <span class="nav-icon">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M16 13v-2H7V8l-5 4 5 4v-3h9zm2-11H6a2 2 0 0 0-2 2v4h2V4h12v16H6v-4H4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/>
-                        </svg>
-                    </span>
-                    <span class="nav-label">Выйти</span>
-                </a>
-            </li>
-
         </ul>
     </nav>
     <!-- /sidebar -->
@@ -329,7 +231,42 @@ try {
     <div class="page-content">
         <div class="content">
 
-            <h2 class="campaign-title">Общая статистика всех кампаний</h2>
+            <div class="page-header-bar">
+                <div class="page-header-titles">
+                    <h2 class="page-title">Главная</h2>
+                    <div class="page-breadcrumb"><a href="main.php" class="page-breadcrumb-link">Easy TDS</a> <span>›</span> Обзор</div>
+                </div>
+
+                <form method="get" class="date-filter-form" id="dateFilterForm">
+                    <button type="button" class="date-filter-pill" id="dateFilterBtn">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+                        <span id="dateFilterLabel">Все даты</span>
+                    </button>
+                    <input type="hidden" name="date_from" id="dateFromHidden" value="<?= htmlspecialchars($date_from) ?>">
+                    <input type="hidden" name="date_to" id="dateToHidden" value="<?= htmlspecialchars($date_to) ?>">
+
+                    <div class="date-calendar-dropdown" id="dateCalendarDropdown">
+                        <div class="cal-header">
+                            <button type="button" class="cal-nav-btn" id="calPrev">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                            </button>
+                            <span id="calMonthLabel" class="cal-month-label"></span>
+                            <button type="button" class="cal-nav-btn" id="calNext">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                            </button>
+                        </div>
+                        <div class="cal-weekdays" id="calWeekdays">
+                            <span>Вс</span><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span>
+                        </div>
+                        <div class="cal-days" id="calDays"></div>
+                        <div class="cal-month-grid" id="calMonthGrid" style="display:none;"></div>
+                        <div class="cal-footer">
+                            <button type="button" id="calToday">Сегодня</button>
+                            <button type="button" id="calClear">Сбросить</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
 
             <?php if ($total_logs === 0): ?>
                 <div class="no-data">Нету статистики</div>
@@ -338,26 +275,43 @@ try {
                 <!-- ========== INFO CARDS ========== -->
             <div class="info-cards-row">
 
-                <div class="info-card">
-                    <h3>Активных кампаний</h3>
-                    <div class="info-card-value"><?= $total_campaigns ?></div>
-                </div>
+                <div class="info-cards-left-group">
 
-                <div class="info-card">
-                    <h3>Самая профитная кампания</h3>
-                    <div class="info-card-value">
-                        <?php if ($topCampaign): ?>
-                            <?= htmlspecialchars($topCampaign['name']) ?>
-                        <?php else: ?>
-                            <span class="info-card-placeholder" style="font-size:16px;">Нет данных</span>
-                        <?php endif; ?>
+                    <div class="info-card">
+                        <div class="info-card-icon">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 6h-3V4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm-9-2h2v2h-2V4zm-2 0h2v2H9V4zm11 15H4V8h16v11z"/></svg>
+                        </div>
+                        <div class="info-card-text">
+                            <div class="info-card-value"><?= $total_campaigns ?></div>
+                            <h3>Активных кампаний</h3>
+                        </div>
                     </div>
+
+                    <div class="info-card">
+                        <div class="info-card-icon">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l2.4 7.2H22l-6 4.4 2.3 7.2-6.3-4.5L5.7 20.8 8 13.6 2 9.2h7.6z"/></svg>
+                        </div>
+                        <div class="info-card-text">
+                            <div class="info-card-value">
+                                <?php if ($topCampaign): ?>
+                                    <?= htmlspecialchars($topCampaign['name']) ?>
+                                <?php else: ?>
+                                    <span class="info-card-placeholder">Нет данных</span>
+                                <?php endif; ?>
+                            </div>
+                            <h3>Самая профитная кампания</h3>
+                        </div>
+                    </div>
+
                 </div>
 
-                <div class="info-card">
-                    <h3>Общий профит</h3>
-                    <div class="info-card-value">
-                        <?= number_format($totalProfit, 2) . $dominantSymbol ?>
+                <div class="info-card info-card-profit">
+                    <div class="info-card-icon">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h17a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1zM4 5h13a2 2 0 0 1 2 2H4a2 2 0 0 1 0-2zm14 10a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>
+                    </div>
+                    <div class="info-card-text">
+                        <div class="info-card-value"><?= number_format($totalProfit, 2) . $dominantSymbol ?></div>
+                        <h3>Общий профит</h3>
                     </div>
                 </div>
 
@@ -365,65 +319,178 @@ try {
                 
 	                <div class="stats-row">
 
-                    <!-- Карта слева -->
+                    <!-- Карта + гео-список в одной карточке (шире) -->
                     <div class="map-block">
                         <h3>Детализация трафика</h3>
-                        <div id="geoMapWrapper">
+                        <div id="geoMapWrapper" class="geo-map-relative">
                             <div id="geoMapD3"></div>
+
+                            <input type="range" id="mapZoomSlider" class="map-zoom-slider" min="1" max="6" step="0.1" value="1" title="Масштаб карты">
+
+                            <div class="geo-list-overlay">
+                                <?php if (empty($geo_labels)): ?>
+                                    <div class="geo-list-item">
+                                        <span class="geo-list-name" style="color:#888;">Нет гео-данных</span>
+                                    </div>
+                                <?php else: ?>
+                                    <?php foreach ($geo_labels as $i => $iso):
+                                        $cnt = (int)$geo_values[$i];
+                                        $pct = $total_logs > 0 ? round($cnt / $total_logs * 100) : 0;
+                                        $isoLower = strtolower($iso);
+                                    ?>
+                                    <div class="geo-list-item">
+                                        <?php if (strlen($iso) === 2): ?>
+                                            <img src="https://flagcdn.com/24x18/<?= $isoLower ?>.png" class="geo-flag" alt="<?= htmlspecialchars($iso) ?>">
+                                        <?php else: ?>
+                                            <span class="geo-flag geo-flag-placeholder">?</span>
+                                        <?php endif; ?>
+                                        <div class="geo-list-info">
+                                            <span class="geo-list-name"><?= htmlspecialchars($iso) ?></span>
+                                            <span class="geo-list-clicks"><?= $cnt ?> кликов</span>
+                                        </div>
+                                        <span class="geo-list-pct"><?= $pct ?>%</span>
+                                    </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Топ кампаний и целей справа -->
-                    <div class="chart-block">
+                    <!-- Трафик и девайсы справа (уже, чем карта) -->
+                    <div class="side-stats-col">
 
-                        <h3>Топ профитных кампаний</h3>
-                        <div class="stat-list">
-                            <?php if (empty($topCampaigns)): ?>
-                                <div class="stat-item">
-                                    <span class="stat-label" style="color:#888;font-size:13px;">Не используется</span>
-                                </div>
-                            <?php else: ?>
-                                <?php foreach ($topCampaigns as $i => $tc): ?>
-                                <div class="stat-item">
-                                    <span class="stat-label"><?= ($i + 1) . '. ' . htmlspecialchars($tc['name']) ?></span>
-                                    <span class="stat-value"><?= number_format((float)$tc['profit'], 2) . $dominantSymbol ?></span>
+                        <div class="device-sessions-card">
+                            <h3>Трафик</h3>
+                            <?php
+                                $trafficStats = [
+                                    'Клики' => [
+                                        'val' => $total_logs, 'color' => '#ff2fd0',
+                                        'icon' => '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 2L4 8.5l6.4 2.3L12.7 17 20 2z"/></svg>',
+                                    ],
+                                    'Уники' => [
+                                        'val' => $unique, 'color' => '#22c1c3',
+                                        'icon' => '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.42 0-8 2.24-8 5v3h16v-3c0-2.76-3.58-5-8-5z"/></svg>',
+                                    ],
+                                    'Боты'  => [
+                                        'val' => $botCount, 'color' => '#ff9f43',
+                                        'icon' => '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h3a3 3 0 0 1 3 3v1h.5a1.5 1.5 0 0 1 0 3H19v1a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3v-1h-.5a1.5 1.5 0 0 1 0-3H5v-1a3 3 0 0 1 3-3h3V5.73A2 2 0 0 1 10 4a2 2 0 0 1 2-2zm-2 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm4 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm-5 5v1h6v-1H9z"/></svg>',
+                                    ],
+                                ];
+                                $trafficMax = max(1, max(array_column($trafficStats, 'val')));
+                            ?>
+                            <div class="device-bars">
+                                <?php foreach ($trafficStats as $label => $t):
+                                    $tPct = round($t['val'] / $trafficMax * 100);
+                                ?>
+                                <div class="device-bar-row">
+                                    <div class="device-icon"><?= $t['icon'] ?></div>
+                                    <div class="device-bar-track">
+                                        <div class="device-bar-fill" style="width:<?= $tPct ?>%; background:<?= $t['color'] ?>;">
+                                            <?php if ($tPct >= 20): ?><span class="device-bar-pct"><?= $label ?></span><?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <span class="device-bar-count"><?= $t['val'] ?></span>
                                 </div>
                                 <?php endforeach; ?>
-                            <?php endif; ?>
+                            </div>
+                            <div class="device-legend">
+                                <?php foreach ($trafficStats as $label => $t): ?>
+                                    <span class="device-legend-item"><span class="device-legend-dot" style="background:<?= $t['color'] ?>;"></span><?= $label ?></span>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
 
-                        <h3 style="margin-top:16px;">Топ целей кампаний</h3>
-                        <div class="stat-list">
-                            <?php if (empty($topGoals)): ?>
-                                <div class="stat-item">
-                                    <span class="stat-label" style="color:#888;font-size:13px;">Нету целей</span>
-                                </div>
-                            <?php else: ?>
-                                <?php foreach ($topGoals as $i => $tg): ?>
-                                <div class="stat-item">
-                                    <span class="stat-label"><?= ($i + 1) . '. ' . htmlspecialchars($tg['name']) ?></span>
-                                    <span class="stat-value"><?= (int)$tg['cnt'] ?></span>
+                        <div class="device-sessions-card">
+                            <h3>Девайсы</h3>
+                            <?php
+                                $deviceColors = ['desktop' => '#22c1c3', 'mobile' => '#9b00ff', 'tablet' => '#ff9f43'];
+                                $deviceIcons = [
+                                    'desktop' => '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5l-1 3h8l-1-3h5a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 12H4V5h16v10z"/></svg>',
+                                    'mobile'  => '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M16 2H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 16H8V5h8v13z"/></svg>',
+                                    'tablet'  => '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 16H5V5h14v13z"/></svg>',
+                                ];
+                                $deviceIconDefault = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5l-1 3h8l-1-3h5a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 12H4V5h16v10z"/></svg>';
+                                $deviceTotal  = array_sum($data) ?: 1;
+                            ?>
+                            <div class="device-bars">
+                                <?php foreach ($data as $devName => $devCount):
+                                    $devPct = round($devCount / $deviceTotal * 100);
+                                    $color  = $deviceColors[$devName] ?? '#888';
+                                    $icon   = $deviceIcons[$devName] ?? $deviceIconDefault;
+                                ?>
+                                <div class="device-bar-row">
+                                    <div class="device-icon"><?= $icon ?></div>
+                                    <div class="device-bar-track">
+                                        <div class="device-bar-fill" style="width:<?= $devPct ?>%; background:<?= $color ?>;">
+                                            <?php if ($devPct >= 12): ?><span class="device-bar-pct"><?= $devPct ?>%</span><?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <span class="device-bar-count"><?= $devCount ?></span>
                                 </div>
                                 <?php endforeach; ?>
-                            <?php endif; ?>
+                            </div>
+                            <div class="device-legend">
+                                <?php foreach ($data as $devName => $devCount): $color = $deviceColors[$devName] ?? '#888'; ?>
+                                    <span class="device-legend-item"><span class="device-legend-dot" style="background:<?= $color ?>;"></span><?= ucfirst($devName) ?></span>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
 
                     </div>
                 </div>
-            <?php endif; ?>
 
-<div class="date-filter-block">
-                <form method="get" class="date-filter-form">
-                    <label>С: <input type="date" name="date_from" value="<?= htmlspecialchars($date_from) ?>"></label>
-                    <label>По: <input type="date" name="date_to" value="<?= htmlspecialchars($date_to) ?>"></label>
-                    <a href="main.php" title="Сбросить" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;background:#ffc107;box-shadow:0 0 8px #ffc107;text-decoration:none;">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#1b1b2f"><path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
-                    </a>
-                    <button type="submit" title="Применить" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;background:#28a745;box-shadow:0 0 8px #28a745;">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-                    </button>
-                </form>
-            </div>
+                <div class="stats-row">
+
+                    <!-- Топ кампаний — таблица -->
+                    <div class="campaigns-table-card">
+                        <h3>Топ кампаний</h3>
+
+                        <?php if (empty($topCampaigns)): ?>
+                            <div class="campaigns-table-empty">Не используется</div>
+                        <?php else: ?>
+                            <div class="campaigns-table-head">
+                                <span>Кампания</span>
+                                <span>Профит</span>
+                            </div>
+                            <?php foreach ($topCampaigns as $i => $tc): ?>
+                            <div class="campaigns-table-row">
+                                <span class="campaigns-table-name"><?= htmlspecialchars($tc['name']) ?></span>
+                                <span class="campaigns-table-profit"><?= number_format((float)$tc['profit'], 2) . $dominantSymbol ?></span>
+                            </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Топ целей — прогресс-бары -->
+                    <div class="goals-progress-card">
+                        <h3>Топ целей</h3>
+
+                        <?php if (empty($topGoals)): ?>
+                            <div class="campaigns-table-empty">Нету целей</div>
+                        <?php else: ?>
+                            <?php
+                                $goalColors = ['#28a745', '#22c1c3', '#ff9f43', '#9b00ff', '#ff2fd0'];
+                                $goalsMax   = max(1, max(array_column($topGoals, 'cnt')));
+                            ?>
+                            <?php foreach ($topGoals as $i => $tg):
+                                $gPct = round((int)$tg['cnt'] / $goalsMax * 100);
+                                $gColor = $goalColors[$i % count($goalColors)];
+                            ?>
+                            <div class="goal-progress-item">
+                                <div class="goal-progress-top">
+                                    <span class="goal-progress-label"><?= htmlspecialchars($tg['name']) ?>:</span>
+                                    <span class="goal-progress-count"><?= (int)$tg['cnt'] ?></span>
+                                </div>
+                                <div class="goal-progress-track">
+                                    <div class="goal-progress-fill" style="width:<?= $gPct ?>%; background:<?= $gColor ?>;"></div>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+
+                </div>
+            <?php endif; ?>
 
         </div><!-- /content -->
     </div><!-- /page-content -->
@@ -439,20 +506,30 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
     .then(function(worldData) {
         var wrapper = document.getElementById('geoMapD3');
         var W = wrapper.offsetWidth || 800;
-        var H = Math.round(W * 0.32);
-
-        var svg = d3.select('#geoMapD3')
-            .append('svg')
-            .attr('width', '100%')
-            .attr('height', H)
-            .attr('viewBox', '0 0 ' + W + ' ' + H)
-            .style('display', 'block');
 
         var projection = d3.geoNaturalEarth1();
         var path = d3.geoPath().projection(projection);
 
-        projection.fitSize([W, H], {type: 'Sphere'});
         var countries = topojson.feature(worldData, worldData.objects.countries).features;
+        var countriesFC = { type: 'FeatureCollection', features: countries };
+
+        // Fit to the actual landmass bounds (not the full sphere/poles),
+        // so empty polar space is cropped and the map stays compact.
+        projection.fitWidth(W, countriesFC);
+        var bounds = path.bounds(countriesFC);
+        var bx = bounds[0][0];
+        var by = bounds[0][1];
+        var bw = bounds[1][0] - bounds[0][0];
+        var bh = bounds[1][1] - bounds[0][1];
+
+        var svg = d3.select('#geoMapD3')
+            .append('svg')
+            .attr('width', '100%')
+            .attr('height', Math.round(bh))
+            .attr('viewBox', bx + ' ' + by + ' ' + bw + ' ' + bh)
+            .style('display', 'block');
+
+        var zoomLayer = svg.append('g').attr('class', 'zoom-layer');
 
         var maxVal = 1;
         Object.values(geoData).forEach(function(v){ if(v > maxVal) maxVal = v; });
@@ -479,7 +556,7 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
             .style('display','none')
             .style('z-index','9999');
 
-        svg.selectAll('path')
+        zoomLayer.selectAll('path')
             .data(countries)
             .enter()
             .append('path')
@@ -504,162 +581,33 @@ fetch('<?= htmlspecialchars($geo_json_path) ?>')
                 tip.style('display','none');
             });
 
-        svg.append('path')
+        zoomLayer.append('path')
             .datum(topojson.mesh(worldData, worldData.objects.countries, function(a,b){ return a !== b; }))
             .attr('d', path)
             .attr('fill', 'none')
             .attr('stroke', 'rgba(155,0,255,0.2)')
             .attr('stroke-width', 0.3);
 
-        /* ── Девайсы (лево-верх) ── */
-        var desktop = <?= $data['desktop'] ?>;
-        var mobile  = <?= $data['mobile'] ?>;
-        var total   = desktop + mobile || 1;
-        var devEntries = [
-            { label: 'Desktop', val: desktop, pct: Math.round(desktop/total*100) },
-            { label: 'Mobile',  val: mobile,  pct: Math.round(mobile/total*100)  }
-        ];
-
-        (function() {
-var padX = 14, padY = 10, lineH = 24, fontSize = 14;
-var boxW = 175, boxH = padY * 2 + lineH * 3;
-var bx = 10, by = 10;
-
-            var g2 = svg.append('g').attr('class', 'dev-legend');
-
-            g2.append('rect')
-                .attr('x', bx).attr('y', by)
-                .attr('width', boxW).attr('height', boxH)
-                .attr('rx', 6)
-                .attr('fill', 'rgba(20,10,40,0.75)')
-                .attr('stroke', 'rgba(155,0,255,0.5)')
-                .attr('stroke-width', 1);
-
-            g2.append('text')
-                .attr('x', bx + padX).attr('y', by + padY + fontSize)
-                .attr('fill', '#ff77ff')
-                .attr('font-size', fontSize)
-                .attr('font-weight', 'bold')
-                .attr('font-family', 'sans-serif')
-                .text('ДЕВАЙСЫ');
-
-            var devColors = ['#9b00ff', '#28a745'];
-var devIcons = ['🖥️', '📱'];
-            devEntries.forEach(function(d, i) {
-                var ty = by + padY + lineH * (i + 2);
-                g2.append('foreignObject')
-                    .attr('x', bx + padX).attr('y', ty - fontSize)
-                    .attr('width', 180).attr('height', lineH)
-                    .append('xhtml:div')
-                    .style('color', '#fff')
-                    .style('font-size', fontSize + 'px')
-                    .style('font-family', 'sans-serif')
-                    .style('line-height', lineH + 'px')
-                    .style('white-space', 'nowrap')
-                    .html(devIcons[i] + ' ' + d.label + ' — ' + d.val + ' (' + d.pct + '%)');
+        /* ── Масштабирование карты (колёсико / перетаскивание / слайдер) ── */
+        var zoomBehavior = d3.zoom()
+            .scaleExtent([1, 6])
+            .translateExtent([[bx, by], [bx + bw, by + bh]])
+            .on('zoom', function (event) {
+                zoomLayer.attr('transform', event.transform);
+                var slider = document.getElementById('mapZoomSlider');
+                if (slider) slider.value = event.transform.k;
             });
-        })();
 
-        /* ── Трафик (лево-низ, под девайсами) ── */
-        (function() {
-var padX = 14, padY = 10, lineH = 24, fontSize = 14;
-var trafficEntries = [
-                { label: 'Клики', val: <?= $total_logs ?> },
-                { label: 'Уники', val: <?= $unique ?> },
-                { label: 'Боты',  val: <?= $botCount ?> }
-            ];
-var devBoxH = 10 * 2 + 24 * 3;
-var boxH = padY * 2 + lineH * (trafficEntries.length + 1);
-var bx = 10, by = 10 + devBoxH + 8;
-var boxW = 175;
+        svg.call(zoomBehavior);
 
-            var g3 = svg.append('g').attr('class', 'traffic-legend');
-
-            g3.append('rect')
-                .attr('x', bx).attr('y', by)
-                .attr('width', boxW).attr('height', boxH)
-                .attr('rx', 6)
-                .attr('fill', 'rgba(20,10,40,0.75)')
-                .attr('stroke', 'rgba(155,0,255,0.5)')
-                .attr('stroke-width', 1);
-
-            g3.append('text')
-                .attr('x', bx + padX).attr('y', by + padY + fontSize)
-                .attr('fill', '#ff77ff')
-                .attr('font-size', fontSize)
-                .attr('font-weight', 'bold')
-                .attr('font-family', 'sans-serif')
-                .text('ТРАФИК');
-
-var trafficIcons = ['👆', '👤', '🤖'];
-            trafficEntries.forEach(function(d, i) {
-                var ty = by + padY + lineH * (i + 2);
-                g3.append('foreignObject')
-                    .attr('x', bx + padX).attr('y', ty - fontSize)
-                    .attr('width', 180).attr('height', lineH)
-                    .append('xhtml:div')
-                    .style('color', '#fff')
-                    .style('font-size', fontSize + 'px')
-                    .style('font-family', 'sans-serif')
-                    .style('line-height', lineH + 'px')
-                    .style('white-space', 'nowrap')
-                    .html(trafficIcons[i] + ' ' + d.label + ' — ' + d.val);
-            });
-        })();
-
-        /* ── Топ Гео (право-верх) ── */
-var totalClicks = Object.values(geoData).reduce(function(s, v){ return s + v; }, 0) || 1;
-var topEntries = Object.entries(geoData)
-    .sort(function(a,b){ return b[1]-a[1]; })
-    .slice(0, 5);
-
-        if (topEntries.length > 0) {
-var padX = 14, padY = 10, lineH = 24, fontSize = 14;
-var boxW = 175, boxH = padY * 2 + lineH * (topEntries.length + 1);
-var bx = W - boxW - 10, by = 10;
-
-            var g = svg.append('g').attr('class', 'geo-legend');
-
-            g.append('rect')
-                .attr('x', bx).attr('y', by)
-                .attr('width', boxW).attr('height', boxH)
-                .attr('rx', 6)
-                .attr('fill', 'rgba(20,10,40,0.75)')
-                .attr('stroke', 'rgba(155,0,255,0.5)')
-                .attr('stroke-width', 1);
-
-            g.append('text')
-                .attr('x', bx + padX).attr('y', by + padY + fontSize)
-                .attr('fill', '#ff77ff')
-                .attr('font-size', fontSize)
-                .attr('font-weight', 'bold')
-                .attr('font-family', 'sans-serif')
-                .text('ТОП ГЕО');
-
-            topEntries.forEach(function(entry, i) {
-                var iso = entry[0], cnt = entry[1];
-                var ty = by + padY + lineH * (i + 2);
-
-function isoToFlag(iso) {
-                    if (!iso || iso.length !== 2) return '';
-                    return String.fromCodePoint(
-                        iso.toUpperCase().charCodeAt(0) + 127397,
-                        iso.toUpperCase().charCodeAt(1) + 127397
-                    );
-                }
-
-g.append('foreignObject')
-                    .attr('x', bx + padX).attr('y', ty - fontSize)
-                    .attr('width', 180).attr('height', lineH)
-                    .append('xhtml:div')
-                    .style('color', '#fff')
-                    .style('font-size', fontSize + 'px')
-                    .style('font-family', 'sans-serif')
-                    .style('line-height', lineH + 'px')
-                    .style('white-space', 'nowrap')
-                    .html((iso.length === 2 ? '<img src="https://flagcdn.com/16x12/' + iso.toLowerCase() + '.png" style="vertical-align:middle;margin-right:5px;">' : '') + iso + ' — ' + cnt + ' (' + Math.round(cnt / totalClicks * 100) + '%)');
+        var zoomSlider = document.getElementById('mapZoomSlider');
+        if (zoomSlider) {
+            zoomSlider.addEventListener('input', function () {
+                var scale = parseFloat(this.value);
+                svg.transition().duration(120).call(zoomBehavior.scaleTo, scale);
             });
         }
+
     })
     .catch(function(e) {
         console.error('Map load error:', e);
@@ -718,18 +666,12 @@ function isoNumericToAlpha2(id) {
 <script>
 (function () {
     var SIDEBAR_KEY   = 'sidebar_collapsed';
-    var ACCORDION_KEY = 'campaigns_open';
     var body    = document.body;
     var btn     = document.getElementById('hamburgerBtn');
-    var toggle  = document.getElementById('campaignsToggle');
-    var subnav  = document.getElementById('campaignsSubnav');
 
     if (localStorage.getItem(SIDEBAR_KEY) === '1') {
         body.classList.add('sidebar-collapsed');
     }
-
-    var accordionOpen = localStorage.getItem(ACCORDION_KEY) !== '0';
-    setAccordion(accordionOpen, false);
 
     btn.addEventListener('click', function () {
         body.classList.toggle('sidebar-collapsed');
@@ -739,30 +681,252 @@ function isoNumericToAlpha2(id) {
         );
     });
 
-    toggle.addEventListener('click', function () {
-        var isOpen = subnav.classList.contains('open');
-        setAccordion(!isOpen, true);
-    });
+    var profileMenu = document.getElementById('profileMenu');
+    var avatarBtn = document.getElementById('profileAvatarBtn');
+    if (avatarBtn && profileMenu) {
+        avatarBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            profileMenu.classList.toggle('open');
+        });
+        document.addEventListener('click', function (e) {
+            if (!profileMenu.contains(e.target)) {
+                profileMenu.classList.remove('open');
+            }
+        });
+    }
+}());
+</script>
 
-    window.confirmDeleteAll = function (e) {
-        e.preventDefault();
-        if (confirm('Вы уверены, что хотите удалить все кампании и всю статистику?')) {
-            document.getElementById('deleteAllForm').submit();
-        }
-    };
+<script>
+(function () {
+    var pickerBtn   = document.getElementById('dateFilterBtn');
+    var dropdown    = document.getElementById('dateCalendarDropdown');
+    var label       = document.getElementById('dateFilterLabel');
+    var fromHidden  = document.getElementById('dateFromHidden');
+    var toHidden    = document.getElementById('dateToHidden');
+    var form        = document.getElementById('dateFilterForm');
+    var monthLabel  = document.getElementById('calMonthLabel');
+    var weekdaysRow = document.getElementById('calWeekdays');
+    var daysGrid    = document.getElementById('calDays');
+    var monthGrid   = document.getElementById('calMonthGrid');
+    var prevBtn     = document.getElementById('calPrev');
+    var nextBtn     = document.getElementById('calNext');
+    var todayBtn    = document.getElementById('calToday');
+    var clearBtn    = document.getElementById('calClear');
 
-    function setAccordion(open, save) {
-        if (open) {
-            subnav.classList.add('open');
-            toggle.classList.add('open');
+    if (!pickerBtn) return;
+
+    var monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+    var monthShort = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+    var viewMode = 'days'; // 'days' | 'months'
+
+    function parseDate(str) {
+        if (!str) return null;
+        var p = str.split('-');
+        if (p.length !== 3) return null;
+        return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+    }
+
+    function fmt(d) {
+        var y = d.getFullYear();
+        var m = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + day;
+    }
+
+    function fmtDisplay(d) {
+        var m = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return day + '.' + m + '.' + d.getFullYear();
+    }
+
+    function sameDay(a, b) {
+        return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    }
+
+    var selStart = parseDate(fromHidden.value);
+    var selEnd   = parseDate(toHidden.value);
+    var viewDate = selStart ? new Date(selStart.getFullYear(), selStart.getMonth(), 1) : new Date();
+    viewDate.setDate(1);
+
+    function updateLabel() {
+        if (selStart && selEnd) {
+            label.textContent = fmtDisplay(selStart) + ' – ' + fmtDisplay(selEnd);
+        } else if (selStart) {
+            label.textContent = fmtDisplay(selStart) + ' – …';
         } else {
-            subnav.classList.remove('open');
-            toggle.classList.remove('open');
-        }
-        if (save) {
-            localStorage.setItem(ACCORDION_KEY, open ? '1' : '0');
+            label.textContent = 'Все даты';
         }
     }
+
+    function renderHeader() {
+        if (viewMode === 'months') {
+            monthLabel.textContent = String(viewDate.getFullYear());
+        } else {
+            monthLabel.textContent = monthNames[viewDate.getMonth()] + ' ' + viewDate.getFullYear();
+        }
+    }
+
+    function renderDays() {
+        daysGrid.innerHTML = '';
+
+        var firstOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+        var startWeekday = firstOfMonth.getDay();
+        var gridStart = new Date(firstOfMonth);
+        gridStart.setDate(gridStart.getDate() - startWeekday);
+
+        var today = new Date();
+        today.setHours(0,0,0,0);
+
+        for (var i = 0; i < 42; i++) {
+            var cellDate = new Date(gridStart);
+            cellDate.setDate(gridStart.getDate() + i);
+
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'cal-day';
+            btn.textContent = cellDate.getDate();
+
+            if (cellDate.getMonth() !== viewDate.getMonth()) btn.classList.add('cal-day-muted');
+            if (sameDay(cellDate, today)) btn.classList.add('cal-day-today');
+
+            if (selStart && selEnd) {
+                if (sameDay(cellDate, selStart) || sameDay(cellDate, selEnd)) btn.classList.add('cal-day-selected');
+                else if (cellDate > selStart && cellDate < selEnd) btn.classList.add('cal-day-in-range');
+            } else if (selStart && sameDay(cellDate, selStart)) {
+                btn.classList.add('cal-day-selected');
+            }
+
+            (function (d) {
+                btn.addEventListener('click', function () {
+                    if (!selStart || (selStart && selEnd)) {
+                        selStart = d;
+                        selEnd = null;
+                    } else {
+                        if (d < selStart) {
+                            selEnd = selStart;
+                            selStart = d;
+                        } else {
+                            selEnd = d;
+                        }
+                    }
+                    renderDays();
+                    updateLabel();
+                    if (selStart && selEnd) {
+                        fromHidden.value = fmt(selStart);
+                        toHidden.value = fmt(selEnd);
+                        dropdown.classList.remove('open');
+                        form.submit();
+                    }
+                });
+            })(cellDate);
+
+            daysGrid.appendChild(btn);
+        }
+    }
+
+    function renderMonths() {
+        monthGrid.innerHTML = '';
+        var currentYear = new Date().getFullYear();
+        var currentMonth = new Date().getMonth();
+
+        for (var m = 0; m < 12; m++) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'cal-month-cell';
+            btn.textContent = monthShort[m];
+
+            if (viewDate.getFullYear() === currentYear && m === currentMonth) {
+                btn.classList.add('cal-day-today');
+            }
+            if (m === viewDate.getMonth()) {
+                btn.classList.add('cal-month-cell-active');
+            }
+
+            (function (monthIndex) {
+                btn.addEventListener('click', function () {
+                    viewDate.setMonth(monthIndex);
+                    viewMode = 'days';
+                    render();
+                });
+            })(m);
+
+            monthGrid.appendChild(btn);
+        }
+    }
+
+    function render() {
+        renderHeader();
+        if (viewMode === 'months') {
+            weekdaysRow.style.display = 'none';
+            daysGrid.style.display = 'none';
+            monthGrid.style.display = 'grid';
+            renderMonths();
+        } else {
+            weekdaysRow.style.display = '';
+            daysGrid.style.display = '';
+            monthGrid.style.display = 'none';
+            renderDays();
+        }
+    }
+
+    pickerBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dropdown.classList.toggle('open');
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!dropdown.contains(e.target) && e.target !== pickerBtn) {
+            dropdown.classList.remove('open');
+            viewMode = 'days';
+        }
+    });
+
+    monthLabel.addEventListener('click', function () {
+        viewMode = viewMode === 'months' ? 'days' : 'months';
+        render();
+    });
+
+    prevBtn.addEventListener('click', function () {
+        if (viewMode === 'months') {
+            viewDate.setFullYear(viewDate.getFullYear() - 1);
+        } else {
+            viewDate.setMonth(viewDate.getMonth() - 1);
+        }
+        render();
+    });
+
+    nextBtn.addEventListener('click', function () {
+        if (viewMode === 'months') {
+            viewDate.setFullYear(viewDate.getFullYear() + 1);
+        } else {
+            viewDate.setMonth(viewDate.getMonth() + 1);
+        }
+        render();
+    });
+
+    todayBtn.addEventListener('click', function () {
+        var t = new Date();
+        t.setHours(0,0,0,0);
+        selStart = t;
+        selEnd = t;
+        fromHidden.value = fmt(t);
+        toHidden.value = fmt(t);
+        dropdown.classList.remove('open');
+        form.submit();
+    });
+
+    clearBtn.addEventListener('click', function () {
+        selStart = null;
+        selEnd = null;
+        fromHidden.value = '';
+        toHidden.value = '';
+        dropdown.classList.remove('open');
+        form.submit();
+    });
+
+    updateLabel();
+    render();
 }());
 </script>
 
