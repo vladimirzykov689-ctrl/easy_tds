@@ -329,10 +329,10 @@ $exportGoalsUrl = 'stats.php?' . http_build_query(['campaign' => $campaign_slug,
 
                     <form method="get" class="date-filter-form" id="dateFilterForm">
                         <input type="hidden" name="campaign" value="<?= htmlspecialchars($campaign_slug) ?>">
-                        <button type="button" class="date-filter-pill" id="dateFilterBtn">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-                            <span id="dateFilterLabel">Все даты</span>
-                        </button>
+<button type="button" class="date-filter-pill" id="dateFilterBtn">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18"/><path d="M8 2.5v4"/><path d="M16 2.5v4"/></svg>
+    <span id="dateFilterLabel">Все даты</span>
+</button>
                         <input type="hidden" name="date_from" id="dateFromHidden" value="<?= htmlspecialchars($date_from) ?>">
                         <input type="hidden" name="date_to" id="dateToHidden" value="<?= htmlspecialchars($date_to) ?>">
 
