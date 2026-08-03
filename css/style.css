@@ -355,9 +355,12 @@ body.page-with-sidebar::before {
     top: calc(100% + 10px);
     right: 0;
     min-width: 190px;
-    background: var(--glass-bg-soft);
-    border-radius: 12px;
-    box-shadow: var(--glass-shadow);
+    background: rgba(25, 10, 35, 0.95);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
     padding: 6px;
     display: none;
     flex-direction: column;
@@ -367,6 +370,7 @@ body.page-with-sidebar::before {
 
 .profile-menu.open .profile-dropdown {
     display: flex;
+    animation: wizardFadeIn 0.25s ease;
 }
 
 .profile-dropdown a {
@@ -2491,13 +2495,13 @@ input[type="date"] {
 }
 
 .wizard-btn-back {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid var(--glass-border);
-    color: var(--text-muted);
+    background: var(--glass-bg-soft);
+    box-shadow: var(--glass-shadow);
+    color: rgba(255,255,255,0.85);
 }
 
 .wizard-btn-back:hover {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.12);
     color: var(--text);
 }
 
@@ -2977,9 +2981,12 @@ input[type="date"] {
     min-width: 200px;
     max-height: 320px;
     overflow-y: auto;
-    background: var(--glass-bg-soft);
-    border-radius: 12px;
-    box-shadow: var(--glass-shadow);
+    background: rgba(25, 10, 35, 0.95);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
     padding: 6px;
     display: none;
     flex-direction: column;
@@ -2989,6 +2996,7 @@ input[type="date"] {
 
 .theme-menu.open .theme-dropdown {
     display: flex;
+    animation: wizardFadeIn 0.25s ease;
 }
 
 .theme-option {
