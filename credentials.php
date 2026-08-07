@@ -107,6 +107,17 @@ if (!empty($_POST['bot_token'])) {
     $success = 'Токен бота сохранён.';
 }
 
+// ── Запуск / остановка бота ─────────────────────────────────────────────────
+$botAction = $_POST['bot_action'] ?? '';
+if ($botAction === 'start') {
+    shell_exec('pkill -f tg_stats.php 2>/dev/null');
+    shell_exec('nohup php /var/www/html/easy_tds/tg_stats.php > /var/www/html/easy_tds/tg_stats.log 2>&1 &');
+    $success = 'Бот успешно запущен.';
+} elseif ($botAction === 'stop') {
+    shell_exec('pkill -f tg_stats.php 2>/dev/null');
+    $success = 'Бот успешно остановлен.';
+}
+
 // ── Смена логина ──────────────────────────────────────────────────────────
     if ($changeLogin) {
         $newLogin = trim($_POST['new_login'] ?? '');
@@ -473,7 +484,7 @@ window.addEventListener('DOMContentLoaded', function () {
                     </button>
                     <button type="button" class="tab-btn" data-tab="1">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 1 0 0 5.66l1.3 1.3-.9.9 1.4 1.4.9-.9 1 1v2h2v-2l1-1-1.4-1.4-1 1-2.5-2.5a4 4 0 0 0-2.7-5.46z"/></svg>
-                        API и бот
+                        API и TG бот
                     </button>
                     <button type="button" class="tab-btn" data-tab="2">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M7 10V7a5 5 0 0110 0v3"/></svg>
@@ -555,13 +566,23 @@ window.addEventListener('DOMContentLoaded', function () {
                     <form method="post">
                         <div class="form-card">
                             <div class="form-card-header-row">
-                                <h3 class="form-card-title">Токен Telegram бота</h3>
-                                <button type="button" id="botTokenEditBtn" class="header-icon-btn" style="background:#ffc107;" title="Редактировать токен" onclick="toggleBotTokenEdit()">
-                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                                </button>
-                                <button type="submit" id="botTokenSaveBtn" class="header-icon-btn" style="display:none;background:#28a745;" title="Сохранить токен">
-                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-                                </button>
+                                <h3 class="form-card-title">Настройки Telegram бота</h3>
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <button type="button" id="botTokenEditBtn" class="header-icon-btn" style="background:#ffc107;" title="Редактировать токен" onclick="toggleBotTokenEdit()">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="#1b1b2f"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                    </button>
+                                    <button type="submit" id="botTokenSaveBtn" class="header-icon-btn" style="display:none;background:#28a745;" title="Сохранить токен">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                                    </button>
+                                    <?php if (!empty($currentBotToken)): ?>
+                                    <button type="button" id="botStartBtn" class="header-icon-btn" style="background:#28a745;" title="Запустить бота" onclick="runBotAction('start')">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
+                                    </button>
+                                    <button type="button" id="botStopBtn" class="header-icon-btn" style="background:#dc3545;" title="Остановить бота" onclick="runBotAction('stop')">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M6 6h12v12H6z"/></svg>
+                                    </button>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                             <div class="form-field">
                                 <input type="text" id="bot_token_input" name="bot_token" readonly
@@ -569,6 +590,10 @@ window.addEventListener('DOMContentLoaded', function () {
                                        placeholder="<?= empty($currentBotToken) ? 'Токен не задан' : '' ?>">
                             </div>
                         </div>
+                    </form>
+
+                    <form method="post" id="bot_action_form" style="display:none;">
+                        <input type="hidden" name="bot_action" id="bot_action_input" value="">
                     </form>
 
                 </div>
@@ -774,6 +799,22 @@ function showBottomToast(title, message, type) {
         document.body.appendChild(ov);
     }
 }());
+
+function runBotAction(action) {
+    var ov = document.createElement('div');
+    ov.className = 'page-loading-overlay';
+    var text = action === 'start' ? 'Запускаем бота…' : 'Останавливаем бота…';
+    ov.innerHTML =
+        '<div class="page-loading-box">' +
+            '<div class="page-loading-spinner"></div>' +
+            '<div class="page-loading-text">' + text + '</div>' +
+            '<div class="page-loading-subtext">Пожалуйста, подождите</div>' +
+        '</div>';
+    document.body.appendChild(ov);
+
+    document.getElementById('bot_action_input').value = action;
+    document.getElementById('bot_action_form').submit();
+}
 
 (function () {
     var tabBtns   = Array.prototype.slice.call(document.querySelectorAll('.tab-btn'));
