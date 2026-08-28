@@ -14,7 +14,7 @@
             '.geo-scroll-track {',
             '  position: absolute;',
             '  top: 10px;',
-            '  right: 4px;',
+            '  right: 2px;',
             '  bottom: 10px;',
             '  width: 4px;',
             '  background: rgba(255,255,255,0.08);',
@@ -39,12 +39,11 @@
     }
 
     function initCustomScrollbar(outer) {
-
         if (outer.dataset.customScrollInit) return;
         outer.dataset.customScrollInit = '1';
-        
+
         outer.style.overflow = 'hidden';
-        
+
         var lockedHeight = outer.getBoundingClientRect().height;
         outer.style.height = lockedHeight + 'px';
         outer.style.maxHeight = lockedHeight + 'px';
@@ -53,14 +52,14 @@
         if (computedPosition === 'static') {
             outer.style.position = 'relative';
         }
-        
+
         var viewport = document.createElement('div');
         viewport.className = 'geo-scroll-viewport';
         while (outer.firstChild) {
             viewport.appendChild(outer.firstChild);
         }
         outer.appendChild(viewport);
-        viewport.style.paddingRight = '10px';
+        viewport.style.paddingRight = '16px';
         viewport.style.paddingTop = getComputedStyle(outer).paddingTop;
         viewport.style.paddingLeft = getComputedStyle(outer).paddingLeft;
         viewport.style.paddingBottom = getComputedStyle(outer).paddingBottom;
