@@ -1026,5 +1026,7 @@ function isoNumericToAlpha2(id) {
 }());
 </script>
 
+<script src="geo/map/geo-custom-scrollbar.js"></script>
+
 </body>
 </html>
